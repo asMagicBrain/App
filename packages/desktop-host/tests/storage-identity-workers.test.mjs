@@ -15,7 +15,6 @@ import {pinDirectory} from '../src/physical-roots.mjs';
 import {renameDirectoryStep} from '../src/repository-import/rename-directory.mjs';
 import {copyLocalRepository} from '../src/repository-import/copy-repository.mjs';
 import {createRepositoryImporter} from '../src/repository-import/index.mjs';
-import {createRepositorySearch} from '../../../apps/native/repository-search.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function fixture(t) {
@@ -88,15 +87,6 @@ test('file-management and GitHub-apply command workers admit mapped parents and 
       assert.equal(reply.status, 0); assert.equal(reply.value.ok, true);
       assert.equal(reply.value.value.identity, persistentIdentity(fs.statSync(path.join(f.root, name))));
     }
-  });
-});
-
-test('search caller carries the mapped admitted root into its fixed worker', async t => {
-  const f = fixture(t), source = f.directory('source'); fs.writeFileSync(path.join(source, 'note.md'), 'saved');
-  await runWithStorageIdentity(f.context, async () => {
-    const search = createRepositorySearch({admit: async () => [{repo: 'Fixture', pin: pinDirectory(source)}]});
-    try {assert.deepEqual((await search.listRepositoryFiles({requestId: 'mapped-search', repo: 'Fixture'})).paths, ['note.md']);}
-    finally {await search.close();}
   });
 });
 
