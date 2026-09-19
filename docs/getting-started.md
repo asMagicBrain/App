@@ -17,8 +17,8 @@ Download the Apple-silicon ZIP and unzip it. Read the [Mac preview note](platfor
 Download the `.deb` and its `SHA256SUMS` file from the same release. Compare the package's checksum with its entry in `SHA256SUMS`, then install it:
 
 ```sh
-sha256sum asmagicbrain-preview_VERSION_amd64.deb
-sudo apt install ./asmagicbrain-preview_VERSION_amd64.deb
+sha256sum asMagicBrain-VERSION-linux-amd64-preview.deb
+sudo apt install ./asMagicBrain-VERSION-linux-amd64-preview.deb
 ```
 
 Replace `VERSION` with the downloaded version. Open **asMagicBrain Preview** from the applications menu as your normal user. The package supplies Git and the sandbox configuration; you do not need Node.js or a separate Git installation. Do not run the app with `sudo` or `--no-sandbox`.
