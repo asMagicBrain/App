@@ -1,3 +1,4 @@
+import {persistentIdentity} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {crc32, inflateRawSync} from 'node:zlib';
@@ -213,7 +214,7 @@ export function extractZip(input, {destination, stripRoot = true} = {}) {
   const directories = new Map([['', root]]);
   function checkStageDirectory(pinned) {
     const live = fs.lstatSync(pinned.path);
-    if (!live.isDirectory() || live.isSymbolicLink() || `${live.dev}:${live.ino}` !== pinned.identity) fail('ZIP_DESTINATION_UNSAFE');
+    if (!live.isDirectory() || live.isSymbolicLink() || persistentIdentity(live) !== pinned.identity) fail('ZIP_DESTINATION_UNSAFE');
   }
   function ensureDirectory(relative) {
     let current = '';
@@ -226,7 +227,7 @@ export function extractZip(input, {destination, stripRoot = true} = {}) {
         fs.mkdirSync(absolute, {mode: 0o700});
         const stat = fs.lstatSync(absolute);
         if (!stat.isDirectory() || stat.isSymbolicLink()) fail('ZIP_DESTINATION_UNSAFE');
-        directories.set(current, {path: absolute, identity: `${stat.dev}:${stat.ino}`});
+        directories.set(current, {path: absolute, identity: persistentIdentity(stat)});
       } else checkStageDirectory(directories.get(current));
     }
     return directories.get(relative);

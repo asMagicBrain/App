@@ -40,7 +40,7 @@ export function createExternalPackageFixture({metadataRevision, sourceTag, attri
   json(path.join(sourceRoot, 'apps/native/git-runtime.json'), {preparedManifestSha256});
   write(path.join(sourceRoot, 'apps/native/main.mjs'), '// Synthetic tracked source fixture\n');
   const binaryPath = 'docs/assets/fixture.png';
-  const binaryBytes = binaryInput ? fs.readFileSync(new URL('../../docs/assets/catalog-docs-last.png', import.meta.url)) : null;
+  const binaryBytes = binaryInput ? Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a8kkAAAAASUVORK5CYII=', 'base64') : null;
   if (binaryBytes) write(path.join(sourceRoot, binaryPath), binaryBytes);
   const git = (...args) => {const r = spawnSync('/usr/bin/git', ['-C', sourceRoot, ...args], {env: {PATH: '/usr/bin:/bin', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_COUNT: '0', GIT_TERMINAL_PROMPT: '0', TMPDIR: workDirectory}, encoding: 'utf8'}); if (r.status !== 0) throw Error('fixture Git failed'); return r.stdout.trim();};
   git('init', '-q'); git('add', '.'); git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', 'commit', '-qm', 'synthetic external package fixture');

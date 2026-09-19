@@ -1,3 +1,4 @@
+import {persistentIdentity} from '../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -54,7 +55,7 @@ export function createPrivateStore({ privateRoot, bindingHash, hooks = {} }) {
         if (!readBytes) break; count += readBytes;
       }
       const bytes = buffer.subarray(0, count);
-      const observed = { name, identity: `${before.dev}:${before.ino}`, bytes: bytes.length, hash: privateHash(bytes) };
+      const observed = { name, identity: persistentIdentity(before), bytes: bytes.length, hash: privateHash(bytes) };
       if (flushExpected) {
         if (JSON.stringify(observed) !== JSON.stringify(flushExpected)) fail('RECOVERY_REQUIRED');
         hooks.at?.('private-before-recovery-file-sync', { name }); fs.fsyncSync(fd);
@@ -141,7 +142,7 @@ export function createPrivateStore({ privateRoot, bindingHash, hooks = {} }) {
       if (durable === JSON.stringify(live.files)) return live;
       for (const file of live.files) read(file.name, file);
       check(); directory = fs.openSync(root.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-      if (`${fs.fstatSync(directory).dev}:${fs.fstatSync(directory).ino}` !== root.identity) fail('RECOVERY_REQUIRED');
+      if (persistentIdentity(fs.fstatSync(directory)) !== root.identity) fail('RECOVERY_REQUIRED');
       hooks.at?.('private-before-recovery-directory-sync', {}); fs.fsyncSync(directory);
       hooks.at?.('private-after-recovery-directory-sync', {}); check();
       const after = scan();
@@ -173,7 +174,7 @@ export function createPrivateStore({ privateRoot, bindingHash, hooks = {} }) {
       hooks.at?.('private-after-file-sync', { type, sequence });
       fs.closeSync(fd); fd = undefined;
       directory = fs.openSync(root.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-      if (`${fs.fstatSync(directory).dev}:${fs.fstatSync(directory).ino}` !== root.identity) fail('RECOVERY_REQUIRED');
+      if (persistentIdentity(fs.fstatSync(directory)) !== root.identity) fail('RECOVERY_REQUIRED');
       fs.fsyncSync(directory); check();
       hooks.at?.('private-after-directory-sync', { type, sequence });
       const after = scan();
@@ -212,7 +213,7 @@ export function createPrivateStore({ privateRoot, bindingHash, hooks = {} }) {
       // authenticated covered records are eligible; unrelated bytes remain.
       const directory = fs.openSync(root.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
       try {
-        if (`${fs.fstatSync(directory).dev}:${fs.fstatSync(directory).ino}` !== root.identity) fail('RECOVERY_REQUIRED');
+        if (persistentIdentity(fs.fstatSync(directory)) !== root.identity) fail('RECOVERY_REQUIRED');
         for (const file of live.coveredFiles) {
           const checkpoint = live.files.find(item => item.name === checkpointName);
           if (!checkpoint || JSON.stringify(read(checkpointName).observed) !== JSON.stringify(checkpoint)) fail('RECOVERY_REQUIRED');
@@ -253,10 +254,10 @@ export function createPrivateStore({ privateRoot, bindingHash, hooks = {} }) {
       hooks.at?.('private-after-checkpoint-rename', {});
       verifyCreated(destination);
       directory = fs.openSync(root.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-      if (`${fs.fstatSync(directory).dev}:${fs.fstatSync(directory).ino}` !== root.identity) fail('RECOVERY_REQUIRED');
+      if (persistentIdentity(fs.fstatSync(directory)) !== root.identity) fail('RECOVERY_REQUIRED');
       fs.fsyncSync(directory);
       const stagingFd = fs.openSync(staged.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-      try { if (`${fs.fstatSync(stagingFd).dev}:${fs.fstatSync(stagingFd).ino}` !== staged.identity) fail('RECOVERY_REQUIRED'); fs.fsyncSync(stagingFd); }
+      try { if (persistentIdentity(fs.fstatSync(stagingFd)) !== staged.identity) fail('RECOVERY_REQUIRED'); fs.fsyncSync(stagingFd); }
       finally { fs.closeSync(stagingFd); }
       check(); hooks.at?.('private-after-checkpoint-publish', {});
       verifyCreated(destination);

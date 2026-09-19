@@ -1,3 +1,4 @@
+import {persistentIdentity, currentStorageIdentity, runWithStorageIdentity} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import {createRepositoryManagement} from './repository-management.mjs';
 import {createRepositoryPins} from './repository-pins.mjs';
@@ -24,7 +25,7 @@ const THEMES=new Set(['light-default','light-high-contrast','light-colorblind','
 const README='# Workspace\n\nYour local workspace. Create a file or import a ZIP to begin.\n';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const updateError=error=>{const code=typeof error?.code==='string'&&/^[A-Z][A-Z0-9_]{1,79}$/.test(error.code)?error.code:'UPDATES_FAILED';return Object.assign(new Error(code),{code});};
-const identity=stat=>`${stat.dev}:${stat.ino}`;
+const identity=persistentIdentity;
 const exact=(value,keys)=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const exists=filename=>{try{return fs.lstatSync(filename);}catch(error){if(error.code==='ENOENT')return null;throw error;}};
 const uid=()=>typeof process.getuid==='function'?process.getuid():null;
@@ -53,7 +54,22 @@ function acquireLock(root){
   const again=readSmall(filename);if(again.identity!==observed.identity||!again.bytes.equals(observed.bytes))fail('PROFILE_IN_USE');checkDirectory(root);fs.unlinkSync(filename);syncDirectory(root);
  }
  const bytes=Buffer.from(JSON.stringify({pid:process.pid,token:randomUUID()}));writeExclusive(filename,bytes);const owned=readSmall(filename);
- return ()=>{checkDirectory(root);const live=readSmall(filename);if(live.identity!==owned.identity||!live.bytes.equals(owned.bytes))fail('RECOVERY_REQUIRED');fs.unlinkSync(filename);syncDirectory(root);};
+ const verify=()=>{checkDirectory(root);const live=readSmall(filename);if(live.identity!==owned.identity||!live.bytes.equals(owned.bytes))fail('RECOVERY_REQUIRED');};
+ const release=()=>{verify();fs.unlinkSync(filename);syncDirectory(root);};release.verify=verify;return release;
+}
+// Admission and the service share one host-issued lock. A second process cannot
+// enter between recovery inspection, backup, namespace publication and opening.
+const admittedLocks=new WeakMap();
+export function acquireNativeProfileLock(dataRoot){
+ const context=currentStorageIdentity(),root=privateDirectory(dataRoot),release=acquireLock(root);
+ const state={root:root.path,identity:root.identity,consumed:false,released:false,verify:release.verify};
+ const capability=Object.freeze({release(){if(state.released)return;runWithStorageIdentity(context,release);state.released=true;}});
+ admittedLocks.set(capability,state);return capability;
+}
+function consumeProfileLock(capability,root){
+ const value=admittedLocks.get(capability);
+ if(!value||value.consumed||value.released||value.root!==root.path||value.identity!==root.identity)fail('RECOVERY_REQUIRED');
+ value.verify();value.consumed=true;return ()=>capability.release();
 }
 // Initial Git metadata must reach storage before the profile becomes ready. Git
 // later owns its object/index/ref transactions; ordinary Save never invokes Git.
@@ -79,15 +95,15 @@ function updatePath(value){return isInspectableRelativePath(value)&&value.split(
  * executable or capability. Only one service may hold a profile at a time.
  * Existing data is never reseeded: damaged, moved or incomplete storage holds
  * for recovery instead of becoming a new empty profile. */
-export async function createNativeService({dataRoot,hooks={},revealInFileManager,ripgrepPath,searchLimits,bundledDocs}={}){
+async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManager,ripgrepPath,searchLimits,bundledDocs,profileLock}={}){
  if(typeof dataRoot!=='string'||!path.isAbsolute(dataRoot)||path.normalize(dataRoot)!==dataRoot)fail('INVALID_DATA_ROOT');
  const root=privateDirectory(dataRoot,true);assertOutsideGit(root.path);
  const ownedPreview=hasPreviewDataOwnership(root.path);
- const names=fs.readdirSync(root.path).filter(name=>!ownedPreview||name!=='.asmagicbrain-channel.json'),fresh=names.length===0;
+ const names=fs.readdirSync(root.path).filter(name=>(!ownedPreview||name!=='.asmagicbrain-channel.json')&&(!currentStorageIdentity()||name!=='.asmb-storage-volume.json')),fresh=names.length===0;
  // A previous process may have died after writing only its lock. Retain every
  // other interrupted setup for explicit recovery; never adopt arbitrary data.
  const lockOnly=names.length===1&&names[0]==='.asmb-native.lock';
- const release=acquireLock(root);let workspace;
+ const release=profileLock?consumeProfileLock(profileLock,root):acquireLock(root);let workspace;
  try{
   const initialize=fresh||lockOnly;
   const workspaces=privateDirectory(path.join(root.path,'workspaces'),initialize);
@@ -236,7 +252,7 @@ export async function createNativeService({dataRoot,hooks={},revealInFileManager
   function runWorkspaceWorker(value,signal){
    const cancelFlag=new SharedArrayBuffer(4),cancelled=new Int32Array(cancelFlag),cancel=()=>Atomics.store(cancelled,0,1);if(signal?.aborted)cancel();signal?.addEventListener('abort',cancel,{once:true});
    const operation=new Promise((resolve,reject)=>{
-    const worker=new Worker(new URL('../../packages/desktop-host/src/repository-import/external-worker.mjs',import.meta.url),{workerData:{workspace:{base:organization.path,privateBase:privateRoot.path,builtinRepositories:builtins(),repositoryBindings:record.repositoryBindings,localOwnerId:record.ownerId,localRootId:'native'},...value,cancelFlag,reportPhases:typeof hooks.externalPhase==='function',...(value.operation==='importExternal'&&hooks.externalInterruptAt?{interruptAt:hooks.externalInterruptAt}:{}),...(value.operation==='importExternal'&&hooks.externalExitAt?{exitAt:hooks.externalExitAt}:{})}});let result;
+    const worker=new Worker(new URL('../../packages/desktop-host/src/repository-import/external-worker.mjs',import.meta.url),{workerData:{workspace:{base:organization.path,privateBase:privateRoot.path,builtinRepositories:builtins(),repositoryBindings:record.repositoryBindings,localOwnerId:record.ownerId,localRootId:'native'},...value,storageIdentity:currentStorageIdentity(),cancelFlag,reportPhases:typeof hooks.externalPhase==='function',...(value.operation==='importExternal'&&hooks.externalInterruptAt?{interruptAt:hooks.externalInterruptAt}:{}),...(value.operation==='importExternal'&&hooks.externalExitAt?{exitAt:hooks.externalExitAt}:{})}});let result;
     worker.on('message',message=>{if(Object.hasOwn(message,'ok'))result=message;else if(message.phase)hooks.externalPhase?.(message.phase);});
     worker.once('error',reject);worker.once('exit',code=>{if(code!==0||!result)reject(Object.assign(new Error('The local file operation was interrupted. Reopen and reconcile the repository before continuing.'),{code:'RECOVERY_REQUIRED'}));else if(!result.ok)reject(Object.assign(new Error(result.message??result.code),{code:result.code}));else resolve(result.value);});
    });
@@ -446,4 +462,14 @@ export async function createNativeService({dataRoot,hooks={},revealInFileManager
    close:()=>{if(closePromise)return closePromise;closing=true;void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
   });
  }catch(error){try{workspace?.close();}finally{try{release();}catch{}}throw error;}
+}
+
+// This capability comes only from native storage admission, never renderer data.
+export function createNativeService(options={}) {
+ const context=options.storageIdentity??null;
+ return runWithStorageIdentity(context,async()=>{
+  const service=await createNativeServiceInContext(options);
+  return Object.freeze(Object.fromEntries(Object.entries(service).map(([name,value])=>
+   [name,typeof value==='function'?(...args)=>runWithStorageIdentity(context,()=>value(...args)):value])));
+ });
 }

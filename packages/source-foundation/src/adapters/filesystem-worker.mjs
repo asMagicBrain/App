@@ -1,3 +1,4 @@
+import {persistentIdentity, runStorageWorkerEnvelope} from './storage-identity.mjs';
 // Internal fixed-command worker. Not a shell, renderer transport or public API.
 // cwd pins one directory object; all file operations below use direct basenames.
 import fs from 'node:fs';
@@ -157,7 +158,7 @@ function* readPaths(paths, limit, totalLimit) {
       if (total > totalLimit) fail('SOURCE_TOO_LARGE');
       const relative = parent === '.' ? file.name : parent + '/' + file.name;
       saved.set(relative, { path: relative, hash: file.hash, bytes: file.bytes,
-        parentIdentity: `${group.stat.dev}:${group.stat.ino}`, parentDev: group.stat.dev });
+        parentIdentity: persistentIdentity(group.stat), parentDev: group.stat.dev });
     }
   }
   if (process.send) yield { ready: 'read-paths' };
@@ -206,7 +207,7 @@ function* command(input) {
   const dir = fs.statSync('.');
   const held = fs.openSync('.', fs.constants.O_RDONLY | fs.constants.O_DIRECTORY);
   const pinned = fs.fstatSync(held); fs.closeSync(held);
-  if (!dir.isDirectory() || `${dir.dev}:${dir.ino}` !== input.identity || `${pinned.dev}:${pinned.ino}` !== input.identity) fail('DIRECTORY_CHANGED');
+  if (!dir.isDirectory() || persistentIdentity(dir) !== input.identity || persistentIdentity(pinned) !== input.identity) fail('DIRECTORY_CHANGED');
   let result;
   if (['directory','directory-state'].includes(input.command)) {
     exactName(input.name);
@@ -214,7 +215,7 @@ function* command(input) {
     try {
       fd = fs.openSync(input.name, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | flags);
       const stat = fs.fstatSync(fd); if (!stat.isDirectory()) fail('UNSAFE_DIRECTORY');
-      result = { identity: `${stat.dev}:${stat.ino}`, dev: stat.dev };
+      result = { identity: persistentIdentity(stat), dev: stat.dev };
     } catch (error) { if (input.command !== 'directory-state' || error.code !== 'ENOENT') throw error; result = { identity: null, dev: null }; }
     finally { if (fd !== undefined) fs.closeSync(fd); }
   } else if (input.command === 'mkdir') {
@@ -222,7 +223,7 @@ function* command(input) {
     // user-requested child folder. Never recursive; an existing entry wins.
     exactName(input.name); fs.mkdirSync(input.name, { mode: 0o700 }); syncDirectory();
     const fd = fs.openSync(input.name, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | flags);
-    try { const stat = fs.fstatSync(fd); result = { identity: `${stat.dev}:${stat.ino}`, dev: stat.dev }; }
+    try { const stat = fs.fstatSync(fd); result = { identity: persistentIdentity(stat), dev: stat.dev }; }
     finally { fs.closeSync(fd); }
   } else if (input.command === 'read') result = read(input.name, input.limit);
   else if (input.command === 'read-many') result = yield* readMany(input.names, input.limit, input.totalLimit);
@@ -337,26 +338,26 @@ function localExecutor(context) {
         current = path.join(current, part); chain.set(current, held);
       } finally { fs.closeSync(fd); }
     }
-    if (`${fs.statSync('.').dev}:${fs.statSync('.').ino}` !== parent.identity) fail('DIRECTORY_CHANGED');
+    if (persistentIdentity(fs.statSync('.')) !== parent.identity) fail('DIRECTORY_CHANGED');
     const iterator = command({ command: operation, identity: parent.identity, ...fields, limit });
     const step = iterator.next();
     // Production never has a qualification IPC channel. Do not consume a test
     // barrier and pretend that its external race action has happened.
     if (!step.done) fail('UNEXPECTED_BARRIER');
     check(anchors); check(chain);
-    if (`${fs.statSync(parent.path).dev}:${fs.statSync(parent.path).ino}` !== parent.identity) fail('DIRECTORY_CHANGED');
+    if (persistentIdentity(fs.statSync(parent.path)) !== parent.identity) fail('DIRECTORY_CHANGED');
     return step.value;
   };
 }
 try {
   const raw = fs.readFileSync(0, 'utf8');
   if (raw.length > 48 * 1024 * 1024) fail('INPUT_TOO_LARGE');
-  const input = JSON.parse(raw);
+  await runStorageWorkerEnvelope(JSON.parse(raw), async input => {
   let step;
   if (input?.command === 'transaction') {
     if (Object.keys(input).sort().join('|') !== ['command', 'identity', 'limit', 'context', 'request'].sort().join('|')
       || input.limit !== 1024 * 1024 || input.identity !== input.context?.repositoryIdentity
-      || `${fs.statSync('.').dev}:${fs.statSync('.').ino}` !== input.identity) fail('INVALID_CONTEXT');
+      || persistentIdentity(fs.statSync('.')) !== input.identity) fail('INVALID_CONTEXT');
     const { executeFilesystemTransaction } = await import('./node-filesystem.mjs');
     step = { done: true, value: executeFilesystemTransaction(input.context, input.request, localExecutor(input.context)) };
   } else {
@@ -367,6 +368,7 @@ try {
     }
   }
   process.stdout.write(JSON.stringify(step.value));
+  });
 } catch (error) {
   process.stdout.write(JSON.stringify({ ok: false, code: error.code ?? 'FAILED' })); process.exitCode = 1;
 }

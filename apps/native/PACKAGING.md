@@ -72,7 +72,7 @@ libcairo2, libcups2t64, libdbus-1-3, libdrm2, libexpat1,
 libgbm1, libglib2.0-0t64, libgtk-3-0t64, libnspr4, libnss3,
 libpango-1.0-0, libx11-6, libxcb1, libxcomposite1, libxdamage1,
 libxext6, libxfixes3, libxkbcommon0, libxrandr2, ca-certificates,
-xdg-utils, zlib1g, libcurl4t64, libudev1, libgcc-s1
+xdg-utils, util-linux, zlib1g, libcurl4t64, libudev1, libgcc-s1
 ```
 
 Users need no Node.js, build tools, or separate Git. The app runs as the ordinary desktop user from the fixed root-owned path. Its AppArmor profile grants user namespaces to that executable and reloads on configuration/upgrade. Removal unloads the profile without deleting user data. Keep global restrictions and Chromium sandboxing enabled; there is no setuid helper and `--no-sandbox` is refused. Moving the executable loses that grant. Source launches need a reviewed exact-path policy.

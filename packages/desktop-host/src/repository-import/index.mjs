@@ -1,3 +1,4 @@
+import {persistentIdentity, currentStorageIdentity} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -13,7 +14,7 @@ export const BUILTIN_REPOSITORIES=Object.freeze([
  {name:'asTeach-Founders',privateRepo:true},{name:'asTeach-v01-Acceptance-01',privateRepo:true},{name:'asTeach-Docs',privateRepo:true}
 ].map(Object.freeze));
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-const identity=stat=>`${stat.dev}:${stat.ino}`;
+const identity=persistentIdentity;
 const exists=p=>{try{return fs.lstatSync(p);}catch(e){if(e.code==='ENOENT')return null;throw e;}};
 const sync=directory=>{const fd=fs.openSync(directory,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}};
 export function validRepositoryName(name){return typeof name==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(name)&&isPortableRelativePath(name);}
@@ -204,7 +205,7 @@ export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSI
 }
 
 function runWorker(archivePath,destination){return new Promise((resolve,reject)=>{
- const worker=new Worker(new URL('./worker.mjs',import.meta.url),{workerData:{archivePath,destination}});let result;
+ const worker=new Worker(new URL('./worker.mjs',import.meta.url),{workerData:{archivePath,destination,storageIdentity:currentStorageIdentity()}});let result;
  worker.once('message',message=>{result=message;});worker.once('error',reject);
  worker.once('exit',code=>{if(code!==0||!result)reject(Object.assign(new Error('IMPORT_FAILED'),{code:'IMPORT_FAILED'}));else if(!result.ok)reject(Object.assign(new Error(result.code),{code:result.code}));else resolve(result.value);});
 });}

@@ -1,10 +1,11 @@
+import {persistentIdentity, runStorageWorkerEnvelope} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 // Internal fixed-command worker. cwd pins one admitted parent directory object;
 // every source mutation uses a direct basename, never a traversable absolute path.
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const stamp=stat=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(key=>String(stat[key])).join(':');
-const identity=stat=>`${stat.dev}:${stat.ino}`;
+const identity=persistentIdentity;
 const flags=fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK;
 const leaf=name=>typeof name==='string'&&name.length>0&&!['.','..'].includes(name)&&!/[\/\\\0]/.test(name);
 function names(filename){const handle=fs.opendirSync(filename),result=[];try{for(let entry=handle.readSync();entry;entry=handle.readSync()){if(result.length>=10000)fail('LIMIT_EXCEEDED');result.push(entry.name);}return result;}finally{handle.closeSync();}}
@@ -27,7 +28,7 @@ function verifyTree(root,entries){
   walk(root,'');if(count!==entries.length)fail('CONFLICT');
 }
 try{
-  const request=JSON.parse(fs.readFileSync(0,'utf8'));
+  await runStorageWorkerEnvelope(JSON.parse(fs.readFileSync(0,'utf8')),request=>{
   if(!request||typeof request!=='object'||identity(fs.statSync('.'))!==request.parentIdentity)fail('DENIED');
   for(const name of ['name','from','to'])if(Object.hasOwn(request,name)&&!leaf(request[name]))fail('INVALID_PATH');
   let value={};
@@ -58,4 +59,5 @@ try{
     const from=regular(request.from),to=regular(request.to);if(from.nlink!==2n||identity(from)!==identity(to))fail('CONFLICT');fs.unlinkSync(request.from);sync();
   }else fail('INVALID_COMMAND');
   process.stdout.write(JSON.stringify({ok:true,value}));
+  });
 }catch(error){process.stdout.write(JSON.stringify({ok:false,error:error.code??'OPERATION_FAILED'}));process.exitCode=1;}

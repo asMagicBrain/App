@@ -1,3 +1,4 @@
+import {persistentIdentity, runStorageWorkerEnvelope} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 import {gitExecutable, gitEnvironment} from '../../packages/desktop-host/src/git-executable.mjs';
 // Internal process: cwd pins each traversed directory. File basenames open with
 // O_NOFOLLOW; ripgrep receives already-open descriptors, never workspace paths.
@@ -6,7 +7,7 @@ import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import ignore from './dist-host/search-ignore.mjs';
 import {isInspectableRelativePath} from '../../packages/source-foundation/src/domain/path-policy.mjs';
-const identity=s=>`${s.dev}:${s.ino}`;
+const identity=persistentIdentity;
 const stamp=s=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const flags=fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK;
@@ -25,7 +26,8 @@ async function command(executable,args,{fds=[],max=2*1024*1024,timeout=5000}={})
  });
 }
 try{
- const request=JSON.parse(fs.readFileSync(0,'utf8')),{kind,input,roots,ripgrepPath,limits}=request;
+ await runStorageWorkerEnvelope(JSON.parse(fs.readFileSync(0,'utf8')),async request=>{
+ const {kind,input,roots,ripgrepPath,limits}=request;
  const start=Date.now(),result=kind==='files'?{requestId:input.requestId,repo:input.repo,ref:input.ref??'',commit:null,paths:[],truncated:false}:{requestId:input.requestId,matches:[],truncated:false,searchedFiles:0,skippedFiles:0};
  let seen=0,totalBytes=0,batch=[],visited=0,stopped=false,resultBytes=512;const readBuffer=Buffer.alloc(64*1024);
  const elapsed=()=>{if(cancelled)fail('SEARCH_CANCELLED');if(Date.now()-start>=limits.timeMs){result.truncated=true;result.reason='timeout';stopped=true;return true;}return false;};
@@ -111,4 +113,5 @@ try{
   }else await walk(root,'',[],root.identity);
  }
  await flush();if(kind==='files')result.paths.sort();if(cancelled)fail('SEARCH_CANCELLED');process.stdout.write(JSON.stringify({ok:true,value:result}));
+ });
 }catch(error){process.stdout.write(JSON.stringify({ok:false,code:typeof error.code==='string'?error.code:'SEARCH_FAILED'}));process.exitCode=1;}

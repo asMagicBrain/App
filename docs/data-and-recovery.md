@@ -30,6 +30,16 @@ The official **asMagicBrain-Docs** repository is read-only in the app. Use **Dup
 
 Guide updates come with the app. Previous editions and unexpected outside edits are preserved before replacement. A same-name user folder is kept, and the official copy may receive a numeric suffix. Preserved copies are not automatically deleted.
 
+## Restore access after a drive change
+
+If macOS changes the drive's internal device number, asMagicBrain may offer **Back Up and Restore Access**. This checks the existing storage records and makes a verified copy of your workspace, drafts and local Git history before restoring access.
+
+The backup is kept in `~/asMagicBrain-recovery-backups/`. Keep it until you have checked your files and drafts. Recovery preserves the original records; it does not reset your workspace. If a check fails, your original data stays in place—contact support rather than deleting the `state` folder.
+
+This recovery copy covers the managed data in `~/asMagicBrain/`; it is not a complete app-profile backup. For a complete manual backup, also copy the Mac or Ubuntu app profile listed above.
+
+The updated app remembers the drive's stable volume identity. A replaced folder, changed drive identity or damaged record still requires investigation.
+
 ## When something goes wrong
 
 Keep your data folder unchanged. Note the error message, app version, and the action that led to it, then [report the problem](https://github.com/asMagicBrain/App/issues) with a small example that contains no private data.

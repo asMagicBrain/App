@@ -1,9 +1,10 @@
+import {persistentIdentity, runStorageWorkerEnvelope} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 // Fixed, host-internal commands. cwd is an admitted physical parent; operations
 // use basenames only. Retain the actual displaced leaf before publication.
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-const identity=s=>`${s.dev}:${s.ino}`,flags=fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK;
+const identity=persistentIdentity,flags=fs.constants.O_NOFOLLOW|fs.constants.O_NONBLOCK;
 const stamp=s=>['dev','ino','mode','nlink','size','mtimeNs','ctimeNs'].map(k=>String(s[k])).join(':');
 const sync=()=>{const fd=fs.openSync('.',fs.constants.O_RDONLY|fs.constants.O_DIRECTORY|flags);try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}};
 function observe(name){
@@ -14,7 +15,7 @@ function observe(name){
 }
 const equal=(a,b)=>a===null||b===null?a===b:a.hash===b.hash&&a.mode===b.mode&&a.size===b.size;
 try{
- const r=JSON.parse(fs.readFileSync(0,'utf8'));if(identity(fs.statSync('.'))!==r.parentIdentity)fail('APPLY_RECOVERY_REQUIRED');
+ await runStorageWorkerEnvelope(JSON.parse(fs.readFileSync(0,'utf8')),r=>{if(identity(fs.statSync('.'))!==r.parentIdentity)fail('APPLY_RECOVERY_REQUIRED');
  for(const k of ['name','stage','previous'])if(r[k]!==undefined&&(typeof r[k]!=='string'||!r[k]||['.','..'].includes(r[k])||/[\/\\\0]/.test(r[k])))fail('INVALID_PATH');
  let value={};
  if(r.command==='copy'){
@@ -42,4 +43,5 @@ try{
   const current=observe(r.name);if(current){if(!equal(current,r.expected))fail('APPLY_RECOVERY_REQUIRED');fs.unlinkSync(r.name);sync();}
  }else fail('INVALID_COMMAND');
  process.stdout.write(JSON.stringify({ok:true,value}));
+ });
 }catch(error){process.stdout.write(JSON.stringify({ok:false,code:error.code??'APPLY_FAILED'}));process.exitCode=1;}

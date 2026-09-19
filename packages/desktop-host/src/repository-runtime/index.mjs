@@ -1,3 +1,4 @@
+import {persistentIdentity} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
@@ -35,7 +36,7 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     try { fs.mkdirSync(target, { mode: 0o700 }); } catch (e) { if (e.code !== 'EEXIST') throw e; }
     // Persist each private child name before a draft/intent can be acknowledged.
     const child = pinDirectory(target), fd = fs.openSync(privatePin.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-    try { if (`${fs.fstatSync(fd).dev}:${fs.fstatSync(fd).ino}` !== privatePin.identity) fail('DENIED'); fs.fsyncSync(fd); checkDirectory(privatePin); }
+    try { if (persistentIdentity(fs.fstatSync(fd)) !== privatePin.identity) fail('DENIED'); fs.fsyncSync(fd); checkDirectory(privatePin); }
     finally { fs.closeSync(fd); }
     return child.path;
   }
@@ -150,7 +151,7 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
             const fd = fs.openSync(target.path, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
             try {
               const stat = fs.fstatSync(fd);
-              if (`${stat.dev}:${stat.ino}` !== target.identity) fail('DENIED');
+              if (persistentIdentity(stat) !== target.identity) fail('DENIED');
               fs.fsyncSync(fd);
             } finally { fs.closeSync(fd); }
           }

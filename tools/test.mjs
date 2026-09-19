@@ -8,7 +8,7 @@ fs.mkdirSync(runs, {recursive: true, mode: 0o700});
 const run = fs.mkdtempSync(path.join(runs, 'source-unit-'));
 const temporary = path.join(run, 'tmp');
 fs.mkdirSync(temporary, {mode: 0o700});
-const files = ['tools', 'ui-workshop/tests', 'ui-workshop/.storybook', 'packages/desktop-host/tests']
+const files = ['tools', 'ui-workshop/tests', 'ui-workshop/.storybook', 'packages/desktop-host/tests', 'packages/source-foundation/tests']
   .flatMap(directory => fs.readdirSync(path.join(appRoot, directory)).filter(name => name.endsWith('.test.mjs')).sort().map(name => path.join(directory, name)))
   .concat(['apps/native/account-build-config.test.mjs', 'apps/native/application-auth.test.mjs']);
 const result = spawnSync(process.execPath, ['--test', ...files], {

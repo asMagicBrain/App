@@ -18,7 +18,7 @@ function fixture(){
  write('package-lock.json','{}\n');write('ui-workshop/package-lock.json','{}\n');
  write('package.json',JSON.stringify({author:{name:'Public Maintainer',email:'public@example.invalid',url:'https://example.invalid'},organization:{name:'Example Group',url:'https://example.invalid'},homepage:'https://example.invalid',copyright:'Copyright 2026 Public Maintainer'})+'\n');
  write('apps/native/release.json',JSON.stringify({schemaVersion:1,version:'0.2.12',buildNumber:35,bundleId:'org.asmagicbrain.preview'})+'\n');
- for(const f of ['tools/export-source.mjs','tools/public-source-policy.mjs','apps/native/release-identity.mjs','packages/desktop-host/src/zip-import/index.mjs','packages/desktop-host/src/physical-roots.mjs','packages/source-foundation/src/domain/path-policy.mjs'])write(f,fs.readFileSync(path.join(root,f)));
+ for(const f of ['tools/export-source.mjs','tools/public-source-policy.mjs','apps/native/release-identity.mjs','packages/desktop-host/src/zip-import/index.mjs','packages/desktop-host/src/physical-roots.mjs','packages/source-foundation/src/domain/path-policy.mjs', 'packages/source-foundation/src/adapters/storage-identity.mjs'])write(f,fs.readFileSync(path.join(root,f)));
  write('docs/test file.md','\ufeffExact bytes\r\n');write('tools/run.sh','#!/bin/sh\nexit 0\n',0o755);
  git(repo,'init','--initial-branch=main','--object-format=sha1','--template=');git(repo,'add','.');git(repo,'commit','-m','Private initial history');
  write('NOTICE','Changed synthetic notice\n');git(repo,'add','.');git(repo,'commit','-m','Second internal commit');git(repo,'tag','native-v0.2.12');

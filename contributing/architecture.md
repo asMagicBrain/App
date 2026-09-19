@@ -12,6 +12,7 @@ The shared React interface communicates through a typed preload bridge with Elec
 | `apps/native/renderer/` | Native UI adapter and startup. |
 | `apps/native/main.mjs`, `preload.cjs` | Window lifecycle and narrow IPC admission. |
 | `apps/native/host-service.mjs` | Service composition and managed repository authority. |
+| `apps/native/storage-*.mjs` | Stable volume admission, legacy recovery inspection, and verified backups. |
 | `packages/desktop-host/src/` | Physical roots, private state, Git, drafts, import, and management. |
 | `apps/desktop/ui/markdown-preview.mjs` | Markdown, admitted links/media, and heading anchors. |
 | `apps/native/bundled-docs*.mjs` | Validated user-doc payload and safe local installation. |
@@ -27,6 +28,8 @@ Markdown HTML and remote images are disabled. Local links and media use admitted
 Physical roots, stable identities, portable paths, journals, and source hashes constrain mutations. Ambiguous recovery preserves data. Save and selected-file commits remain separate operations. Git suppresses inherited configuration, hooks, filters, and credential helpers; imported projects cannot run automation.
 
 These controls do not guarantee recovery from every storage failure or hostile changes by another process using the same OS account.
+
+Native storage anchors its physical root to the filesystem volume UUID. Persisted identities retain their original device namespace through a scoped adapter; raw OS device/inode checks remain unchanged. Workers receive this context only from the host. Existing records and checksums are never rewritten to accommodate a renumbered device. Legacy profiles without a UUID anchor require read-only validation, a verified managed-data backup and native confirmation before interpreting a changed device number. An unchanged-device upgrade retains normal transaction recovery. See [recovery](../docs/data-and-recovery.md).
 
 Packaged Git and ripgrep are pinned app-owned binaries with no PATH or system-Git fallback. Workers use the same checked binary/library set. Tests may explicitly use host Git for fixtures.
 

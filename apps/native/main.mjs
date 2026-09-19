@@ -4,6 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import {createNativeService} from './host-service.mjs';
+import {prepareNativeStorage} from './storage-admission.mjs';
 import {loadBundledDocs} from './bundled-docs-manifest.mjs';
 import {createExternalFileTickets} from './external-file-tickets.mjs';
 import {ensurePhysicalDirectory, admitNativeProfile} from './profile-paths.mjs';
@@ -52,7 +53,7 @@ try {
   app.setAppLogsPath(ensurePhysicalDirectory(path.join(profileRoot, 'logs')));
 } catch (error) {startupFailure = error;}
 
-let window, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
+let storageAdmission, window, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
 const isApplicationPage = value => {try {const url = new URL(value); url.hash = ''; return url.href === pageURL;} catch {return false;}};
 const trusted = event => Boolean(window && !window.isDestroyed() && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame && isApplicationPage(event.senderFrame.url));
 const openExternal = value => {try {const url = new URL(value); if (['https:', 'http:', 'mailto:'].includes(url.protocol)) void shell.openExternal(url.href).catch(error => console.error('External link could not open:', error.message));} catch {}};
@@ -192,9 +193,16 @@ try {
   if (!app.requestSingleInstanceLock()) {allowQuit = true; app.quit();} else {
     app.on('second-instance', () => {if (window && !window.isDestroyed()) {window.restore(); window.focus();}});
     const bundledDocs = loadBundledDocs(path.resolve(here, '../..'), {packaged: app.isPackaged, metadata: packageMetadata});
-    service = await createNativeService({dataRoot,bundledDocs,revealInFileManager:filename=>shell.showItemInFolder(filename)});
-    externalTickets=createExternalFileTickets({prepare:paths=>service.prepareExternalFiles(paths),importFiles:(request,options)=>service.importExternalFiles(request,options)});
     await app.whenReady();
+    storageAdmission = await prepareNativeStorage({dataRoot, confirmRecovery: async () => {
+      const choice = await dialog.showMessageBox({type: 'question', title: 'Restore workspace access',
+        message: 'Your computer identifies this drive differently.',
+        detail: 'asMagicBrain checked your saved storage records. It can back up your workspace, drafts and local Git history, then restore access. The backup will be kept in asMagicBrain-recovery-backups beside your asMagicBrain folder.',
+        buttons: ['Quit', 'Back Up and Restore Access'], defaultId: 0, cancelId: 0, noLink: true});
+      return choice.response === 1;
+    }});
+    service = await createNativeService({dataRoot,bundledDocs,storageIdentity:storageAdmission.context,profileLock:storageAdmission.profileLock,revealInFileManager:filename=>shell.showItemInFolder(filename)});
+    externalTickets=createExternalFileTickets({prepare:paths=>service.prepareExternalFiles(paths),importFiles:(request,options)=>service.importExternalFiles(request,options)});
     // Account credentials live only in this main process. Existing encrypted
     // account files are deliberately neither opened nor changed by this policy.
     applicationAuth = createApplicationAuth({config: applicationAccount, AuthClient, storagePolicy: 'session', fetch: (...args) => globalThis.fetch(...args),
@@ -238,12 +246,14 @@ try {
     await window.loadURL(pageURL);
   }
 } catch (error) {
+  if (error.code === 'STORAGE_RECOVERY_CANCELLED') {allowQuit = true; app.exit(0); return;}
   console.error('asMagicBrain could not start:', startupFailureMessage(error));
   allowQuit = true;
   await Promise.all([cloneCoordinator?.close().catch(() => {}), updateCoordinator?.close().catch(() => {}), applyCoordinator?.close().catch(() => {})]);
   await applicationAuth?.close().catch(() => {});
   await githubAuth?.close().catch(() => {});
   await service?.close().catch(() => {});
+  try {storageAdmission?.profileLock.release();} catch {}
   dialog.showErrorBox('asMagicBrain could not start', startupFailureMessage(error));
   app.exit(1);
 }
