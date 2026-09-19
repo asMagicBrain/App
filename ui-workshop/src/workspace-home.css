@@ -1,0 +1,41 @@
+.wh-view{flex:1;min-width:0;min-height:0;overflow:auto;line-height:1.5}
+.wh-content{width:100%;max-width:1040px;margin:0 auto;padding:28px 32px 48px}
+.wh-heading-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--fw-line)}
+.wh-heading-row>div{min-width:0}
+.wh-heading-row h1{width:fit-content;max-width:100%;margin:0;font-size:24px;line-height:1.35;font-weight:600;overflow-wrap:anywhere;border-radius:3px}
+.wh-heading-row p{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 0;color:var(--fw-muted)}
+.wh-device{display:inline-flex;align-items:center;min-height:22px;border:1px solid var(--fw-line);border-radius:20px;padding:0 7px;font-size:12px;white-space:nowrap}
+.fw-window .wh-button{display:inline-flex;align-items:center;justify-content:center;min-height:32px;padding:5px 10px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-chrome);font-size:12px;text-align:center;overflow-wrap:anywhere}
+.fw-window .wh-button:hover:not(:disabled){background:var(--fw-hover,var(--fw-line))}
+.wh-return{max-width:50%}
+.wh-account{display:flex;align-items:flex-start;gap:14px;margin-top:24px;padding:18px;border:1px solid var(--fw-line);border-radius:6px}
+.wh-account-icon{display:grid;place-items:center;flex:none;width:36px;height:36px;border:1px solid var(--fw-line);border-radius:50%;color:var(--fw-muted)}
+.wh-account-icon svg{width:20px;height:20px}
+.wh-account-copy{flex:1;min-width:0;overflow-wrap:anywhere}
+.wh-account h2{margin:0 0 8px;font-size:14px;font-weight:600}
+.wh-account-name{font-size:14px;font-weight:600}
+.wh-account p{margin:4px 0 0;color:var(--fw-muted);font-size:12px}
+.wh-account-actions,.wh-repository-actions{display:flex;flex-wrap:wrap;gap:8px}
+.wh-account-actions{justify-content:flex-end;max-width:40%}
+.wh-account .wh-error,.wh-feedback.wh-error{color:var(--fw-danger,var(--fw-text))}
+.wh-repositories{margin-top:28px}
+.wh-repositories-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.wh-repositories h2{display:flex;align-items:center;gap:8px;margin:0;font-size:16px;font-weight:600}
+.wh-count{min-width:22px;padding:0 6px;border-radius:20px;background:var(--fw-chrome);color:var(--fw-muted);font-size:12px;font-weight:400;text-align:center}
+.wh-search{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;color:var(--fw-muted);font-size:12px}
+.wh-search input{width:100%;min-width:0;min-height:34px;padding:6px 10px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-bg);color:var(--fw-text);font-size:13px}
+.wh-search input::placeholder{color:var(--fw-muted);opacity:1}
+.wh-repository-list{list-style:none;padding:0;margin:0;border:1px solid var(--fw-line);border-radius:6px;overflow:hidden}
+.wh-repository-list li+li{border-top:1px solid var(--fw-line)}
+.fw-window .wh-repository{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:12px 14px;text-align:left}
+.wh-repository>svg{width:18px;height:18px;flex:none;color:var(--fw-muted)}
+.wh-repository-name{min-width:0;flex:1;font-size:14px;overflow-wrap:anywhere}
+.wh-current{color:var(--fw-muted);font-size:12px}
+.wh-open{flex:none;color:var(--fw-muted);font-size:16px}
+.wh-feedback,.wh-empty{padding:12px 0;margin:0 0 12px;color:var(--fw-muted);overflow-wrap:anywhere}
+.wh-feedback p{margin:0 0 8px}
+.wh-empty{padding:24px 14px;border:1px solid var(--fw-line);border-radius:6px;text-align:center}
+/* Busy actions remain visible in both availability modes. */
+
+@media(max-width:760px){.wh-content{padding:24px 20px 40px}.wh-heading-row{align-items:flex-start;flex-wrap:wrap}.wh-return{max-width:100%}.wh-account{flex-wrap:wrap}.wh-account-actions{max-width:100%;width:100%;justify-content:flex-start;padding-left:50px}.wh-repositories-heading{align-items:flex-start;flex-wrap:wrap}.wh-current{max-width:70px;text-align:right}}
+@media(max-width:440px){.wh-content{padding:20px 12px 32px}.wh-account{padding:14px;gap:10px}.wh-account-actions{padding-left:46px}.fw-window .wh-repository{gap:8px}.wh-current{max-width:60px}}

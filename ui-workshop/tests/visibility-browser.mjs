@@ -1,0 +1,100 @@
+import assert from 'node:assert/strict';
+import {mkdir, writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {build} from '../node_modules/esbuild/lib/main.js';
+
+// An isolated, offline browser harness. All generated files and profiles belong in Test.
+const output = process.env.ASMB_VISIBILITY_OUTPUT;
+const executablePath = process.env.ASMB_BROWSER;
+assert(output && executablePath, 'Set ASMB_VISIBILITY_OUTPUT and ASMB_BROWSER.');
+assert(path.resolve(output).includes(`${path.sep}asMagicBrain-Test${path.sep}`), 'Browser evidence must be stored in asMagicBrain-Test.');
+await mkdir(output, {recursive: true});
+const source = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
+const fixture = `
+import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {RepositoryActions} from './RepositoryActions';
+import {FileNavigationControls} from './FileNavigationControls';
+import {FileMoreActions, DirectoryAddActions} from './FileViewActions';
+import {RevisionListing} from './RevisionListing';
+import {AccountControls} from './AccountControls';
+import './workspace-preferences.css';
+import './repository-file-editor.css';
+const noop=()=>{};
+const which=new URLSearchParams(location.search).get('case');
+const preferences={revision:0,mode:'asmagicbrain',asmagicbrain:{name:'Test',email:'test@example.invalid'},github:{name:'',email:''}};
+const content=which?.startsWith('toolbar')?<RepositoryActions onNew={noop} onImport={noop} showAgentPlaceholder={which!=='toolbar-preview'}/>
+ :which==='navigation'?<><FileNavigationControls repository="test/repo" branch="main" branches={[]} tags={[]} revision="" disabled onRevisionChange={noop}/><DirectoryAddActions/></>
+ :which==='file'?<FileMoreActions sourceOptions={false} onCopyPath={noop} wrap={false} onWrapChange={noop} onFoldingChange={noop} onCenterChange={noop}/>
+ :which==='branches'?<RevisionListing kind="branches" repository="test/repo" branch="main" branches={[]} tags={[]} onSelect={noop} onBack={noop}/>
+ :<AccountControls preferences={preferences} loading error="" onReload={noop} onSave={async()=>{}} settingsRequest={0} onAppearance={noop} initialSettingsOpen={which==='settings'}/>;
+createRoot(document.getElementById('root')).render(<main className="fw-window fw-hide-unavailable"><div className="fixture">{content}</div></main>);
+`;
+await build({stdin:{contents:fixture,resolveDir:source,sourcefile:'visibility-fixture.tsx',loader:'tsx'},bundle:true,outfile:path.join(output,'fixture.js'),platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"test"'}});
+await writeFile(path.join(output,'fixture.html'), '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="fixture.css"><style>body{margin:0;font-family:Arial,sans-serif}.fw-window{height:800px;--fw-bg:#fff;--fw-panel:#f6f8fa;--fw-text:#1f2328;--fw-line:#d1d9e0;--fw-muted:#59636e;--fw-accent:#0969da}.fixture{padding:48px;max-width:1000px}.fixture>button{min-width:32px;min-height:32px}.ra-actions{justify-content:flex-end}</style></head><body><div id="root"></div><script src="fixture.js"></script></body></html>');
+import {chromium} from '../../tools/playwright.mjs';
+const browser=await chromium.launch({headless:true,executablePath,args:['--disable-background-networking']});
+const evidence=[];
+try {
+ const page=await browser.newPage({viewport:{width:1200,height:800}});
+ const errors=[];
+ page.on('pageerror',error=>errors.push(error.message));
+ await page.route(/^https?:/,route=>route.abort());
+ const open=async which=>{await page.goto(`${pathToFileURL(path.join(output,'fixture.html')).href}?case=${which}`);await page.locator('.fixture').waitFor({timeout:5000}).catch(error=>{throw Error(`${error.message}\nBrowser errors: ${errors.join('; ')}`);});};
+ const show=async()=>page.locator('.fw-window').evaluate(element=>element.classList.remove('fw-hide-unavailable'));
+ const visibleDisabled=async locator=>{assert(await locator.isVisible());assert(await locator.isDisabled());};
+ await open('toolbar');
+ for(const label of ['Search all repositories','Ask agent','Ask agent options'])await visibleDisabled(page.getByRole('button',{name:label,exact:true}));
+ for(const label of ['All issues','All pull requests','All PRs','All notifications','All repositories'])assert.equal(await page.getByRole('button',{name:label,exact:true,includeHidden:true}).count(),0);
+ await page.getByRole('button',{name:'Ask agent options',exact:true}).dispatchEvent('click');
+ assert.equal(await page.locator('.ra-menu').count(),0);
+ await page.getByRole('button',{name:'Create new options'}).click();
+ await visibleDisabled(page.getByRole('button',{name:'New repository',exact:true}));
+ assert.equal(await page.getByRole('button',{name:'New issue',exact:true,includeHidden:true}).isVisible(),false);
+ await show();
+ await visibleDisabled(page.getByRole('button',{name:'New issue',exact:true}));
+ await visibleDisabled(page.getByRole('button',{name:'Ask agent',exact:true}));
+ evidence.push('Toolbar: removed overview shortcuts absent; inert Ask agent and contextual Search/New repository visible; deferred create entries follow Hide/Show.');
+ await open('toolbar-preview');
+ for(const label of ['Ask agent','Ask agent options'])assert.equal(await page.getByRole('button',{name:label,exact:true,includeHidden:true}).count(),0);
+ await visibleDisabled(page.getByRole('button',{name:'Search all repositories',exact:true}));
+ await page.getByRole('button',{name:'Create new options'}).click();
+ await visibleDisabled(page.getByRole('button',{name:'New repository',exact:true}));
+ assert.equal(await page.getByRole('button',{name:'New issue',exact:true,includeHidden:true}).isVisible(),false);
+ await page.keyboard.press('Escape');
+ await page.getByRole('button',{name:'Create new options'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:'Create new options'}).evaluate(element=>element===document.activeElement),true);
+ evidence.push('Preview toolbar: Ask agent is absent; disabled working controls stay visible; deferred controls remain hidden; menu dismissal restores keyboard focus.');
+ await open('navigation');
+ for(const label of ['New Markdown file','Go to file','Add file to directory'])await visibleDisabled(page.getByRole('button',{name:label,exact:true}));
+ evidence.push('Navigation: disabled new-file, go-to-file, and directory Add file stay visible.');
+ await open('file');
+ await page.getByRole('button',{name:'More file options'}).click();
+ for(const label of ['Show code folding buttons','Wrap lines','Center content'])await visibleDisabled(page.getByRole('menuitemcheckbox',{name:label,exact:true}));
+ for(const label of ['Copy permalink','Ask about this file','Download','Delete file'])assert.equal(await page.getByRole('menuitem',{name:label,exact:true,includeHidden:true}).isVisible(),false);
+ await show();
+ for(const label of ['Copy permalink','Ask about this file','Download','Delete file'])await visibleDisabled(page.getByRole('menuitem',{name:label,exact:true}));
+ evidence.push('File menu: media/source-dependent options remain disabled-visible; deferred menu items follow Hide/Show.');
+ await open('branches');
+ for(const label of ['Yours','Active','Stale','New branch'])assert.equal(await page.getByRole('button',{name:label,exact:true,includeHidden:true}).isVisible(),false);
+ for(const label of ['Overview','All'])assert(await page.getByRole('button',{name:label,exact:true}).isVisible());
+ await show();
+ for(const label of ['Yours','Active','Stale','New branch'])await visibleDisabled(page.getByRole('button',{name:label,exact:true}));
+ evidence.push('Branches: implemented categories stay visible; deferred categories and New branch follow Hide/Show.');
+ await open('account');
+ await page.getByRole('button',{name:'Account menu',exact:true}).click();
+ await page.locator('.ac-menu').waitFor({timeout:5000});
+ for(const label of ['Sign in','Profile','Sign out'])await visibleDisabled(page.getByRole('menuitem',{name:label,exact:true}));
+ assert.equal(await page.getByRole('menuitem',{name:'Set status',exact:true,includeHidden:true}).isVisible(),false);
+ await show();
+ await visibleDisabled(page.getByRole('menuitem',{name:'Set status',exact:true}));
+ evidence.push('Account: implemented sign-in/profile/sign-out remain visible while disabled; deferred status follows Hide/Show.');
+ await open('settings');
+ await visibleDisabled(page.getByRole('button',{name:'Save settings',exact:true}));
+ evidence.push('Settings: Save settings remains visible during loading.');
+ assert.deepEqual(errors,[],'Browser exceptions');
+ await page.screenshot({path:path.join(output,'settings-loading.png')});
+ await writeFile(path.join(output,'results.json'),JSON.stringify({passed:true,checks:evidence,browserErrors:errors},null,2));
+ console.log(JSON.stringify({passed:true,checks:evidence.length,evidence:output},null,2));
+} finally {await browser.close();}

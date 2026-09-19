@@ -1,0 +1,8 @@
+{
+  "applicationAccount": {
+    "origin": null,
+    "publishableKey": null,
+    "providers": {"github": false, "email": false}
+  },
+  "githubApp": {"clientId": null, "slug": null}
+}

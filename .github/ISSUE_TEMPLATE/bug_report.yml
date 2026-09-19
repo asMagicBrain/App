@@ -1,0 +1,46 @@
+name: Report a problem
+description: Tell us what went wrong.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please leave out passwords, access tokens, and private files. For security concerns, use [private reporting](https://github.com/asMagicBrain/App/security/policy).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How can we try it?
+      placeholder: |
+        1. Open …
+        2. Select …
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 0.2.13
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Your system
+      options:
+        - Mac (Apple silicon)
+        - Ubuntu 24.04 (x64)
+        - Another system or a source build
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else? (optional)
+      description: Add a screenshot or error message if it helps. Check it for private information first.

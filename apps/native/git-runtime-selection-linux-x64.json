@@ -1,0 +1,2058 @@
+{
+  "schemaVersion": 1,
+  "included": [
+    {
+      "path": "bin",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "bin/git",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4071360,
+      "sha256": "74ea93260192ffae64e47c70c9fc54c8ca3609fcc746dc6518e1d92a54951fd4"
+    },
+    {
+      "path": "libexec",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/git",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4071360,
+      "sha256": "74ea93260192ffae64e47c70c9fc54c8ca3609fcc746dc6518e1d92a54951fd4"
+    },
+    {
+      "path": "libexec/git-core/git-add",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-am",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-annotate",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-apply",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-archive",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-backfill",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bisect",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-blame",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-branch",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bugreport",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bundle",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cat-file",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-attr",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-ignore",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-mailmap",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-ref-format",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout--worker",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cherry",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cherry-pick",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-clean",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-clone",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-column",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit-graph",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-config",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-count-objects",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-describe",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diagnose",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-files",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-pairs",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-difftool",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fast-export",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fast-import",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fetch",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fetch-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fmt-merge-msg",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-for-each-ref",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-for-each-repo",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-format-patch",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsck",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsck-objects",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsmonitor--daemon",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-gc",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-get-tar-commit-id",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-grep",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-hash-object",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-help",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-hook",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-index-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-init",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-init-db",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-interpret-trailers",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-last-modified",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-log",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-files",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-remote",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mailinfo",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mailsplit",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-maintenance",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-base",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-file",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-ours",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-recursive",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-subtree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mktag",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mktree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-multi-pack-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mv",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-name-rev",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-notes",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-objects",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-redundant",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-refs",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-patch-id",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-prune",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-prune-packed",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pull",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-push",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-range-diff",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-read-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rebase",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-receive-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-reflog",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-refs",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-http",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2340816,
+      "sha256": "c6ae57d2bee04dcaf52616b6915674ea51bee539a7ab22609ece4e70773d20a8"
+    },
+    {
+      "path": "libexec/git-core/git-remote-https",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-repack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-replace",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-replay",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-repo",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rerere",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-reset",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-restore",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rev-list",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rev-parse",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-revert",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rm",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-send-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-shortlog",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-branch",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-ref",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-sparse-checkout",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stage",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stash",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-status",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stripspace",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-submodule--helper",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-switch",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-symbolic-ref",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-tag",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-unpack-file",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-unpack-objects",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-index",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-ref",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-server-info",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-upload-archive",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-upload-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-var",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-commit",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-pack",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-tag",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-version",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-whatchanged",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-worktree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-write-tree",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "share",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/description",
+      "type": "file",
+      "mode": 420,
+      "bytes": 73,
+      "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee"
+    },
+    {
+      "path": "share/git-core/templates/hooks",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/hooks/applypatch-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 478,
+      "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7"
+    },
+    {
+      "path": "share/git-core/templates/hooks/commit-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 896,
+      "sha256": "1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437"
+    },
+    {
+      "path": "share/git-core/templates/hooks/fsmonitor-watchman.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4726,
+      "sha256": "e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0"
+    },
+    {
+      "path": "share/git-core/templates/hooks/post-update.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 189,
+      "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-applypatch.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 424,
+      "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-commit.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1649,
+      "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-merge-commit.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 416,
+      "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-push.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1374,
+      "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-rebase.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4898,
+      "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-receive.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 544,
+      "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989"
+    },
+    {
+      "path": "share/git-core/templates/hooks/prepare-commit-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1492,
+      "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619"
+    },
+    {
+      "path": "share/git-core/templates/hooks/push-to-checkout.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2783,
+      "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f"
+    },
+    {
+      "path": "share/git-core/templates/hooks/sendemail-validate.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2308,
+      "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92"
+    },
+    {
+      "path": "share/git-core/templates/hooks/update.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3650,
+      "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106"
+    },
+    {
+      "path": "share/git-core/templates/info",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/info/exclude",
+      "type": "file",
+      "mode": 420,
+      "bytes": 240,
+      "sha256": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1"
+    }
+  ],
+  "excluded": [
+    {
+      "path": "bin/scalar",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2319792,
+      "sha256": "b3e561cd3c2f3fff77954f638d91ad8a0c4fcf73e6dbffbd0ff45caba3d63f1d"
+    },
+    {
+      "path": "etc",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "etc/gitconfig",
+      "type": "file",
+      "mode": 420,
+      "bytes": 630,
+      "sha256": "f37eb06cf8567109e92f5fe8db2f59ac16a93264970a5481696cbb8f1ee70e20"
+    },
+    {
+      "path": "libexec/git-core/NOTICE",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2597,
+      "sha256": "f573f5d21d5d8a054aad1ffcbe0165391a4d93a5aa3e23c3db0752759adfd50c"
+    },
+    {
+      "path": "libexec/git-core/git-archimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 37002,
+      "sha256": "423a582bee7b4db64eac6eaef3c851070428aef7431d4a9bd14115648b4c6741"
+    },
+    {
+      "path": "libexec/git-core/git-credential",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-cache",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-cache--daemon",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-manager",
+      "type": "file",
+      "mode": 493,
+      "bytes": 83205255,
+      "sha256": "10e81cec39c86bd66b9623b427ee369b25b30abe93d579ecba6804ff7d624ee1"
+    },
+    {
+      "path": "libexec/git-core/git-credential-store",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cvsexportcommit",
+      "type": "file",
+      "mode": 493,
+      "bytes": 13149,
+      "sha256": "fc4063528a80294ba3e12688a13ec233a186d2390072abcd539985ee24ee85c9"
+    },
+    {
+      "path": "libexec/git-core/git-cvsimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 32138,
+      "sha256": "46595b2c7c149920fba439fa0d7502330afb5c4f894ded91f85c1e9e2485a219"
+    },
+    {
+      "path": "libexec/git-core/git-cvsserver",
+      "type": "file",
+      "mode": 493,
+      "bytes": 163282,
+      "sha256": "0a8006c6594d9f1594de21537ca5fda9b8bf477016e3a5ce741d6448a5251d4f"
+    },
+    {
+      "path": "libexec/git-core/git-daemon",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2274064,
+      "sha256": "68e4fabf4c05a7f7bca9e9a2f83fa5224b047407996851c87b580c38969b1d1e"
+    },
+    {
+      "path": "libexec/git-core/git-difftool--helper",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2660,
+      "sha256": "eafba74e4934494c0017f8b06375b3c7e67c84ac285b8492976c51de2f7da619"
+    },
+    {
+      "path": "libexec/git-core/git-filter-branch",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15791,
+      "sha256": "62285b171fa3f70ece4eb5b8283f60a4d112b65f0cb6b9e593b1f16b93248282"
+    },
+    {
+      "path": "libexec/git-core/git-http-backend",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2270256,
+      "sha256": "354ea3b13e6642226f60b2a07577592fe6444b3b4f91fc7cdc602571cee4e11d"
+    },
+    {
+      "path": "libexec/git-core/git-http-fetch",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2324336,
+      "sha256": "7eb2fbac85a101e36d81776cf3bbb45396acc2f93bdcade351008ffde638435e"
+    },
+    {
+      "path": "libexec/git-core/git-http-push",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2332432,
+      "sha256": "7e92bf63918582a00597290989b98289af7cdcef1cd4c26b6f7f5afb306478c8"
+    },
+    {
+      "path": "libexec/git-core/git-imap-send",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2333040,
+      "sha256": "8d43a970c8419152925a70e583eb24f9e6591a2fc218e19e8e5bbc46036917e4"
+    },
+    {
+      "path": "libexec/git-core/git-instaweb",
+      "type": "file",
+      "mode": 493,
+      "bytes": 22158,
+      "sha256": "084135cf0780a9c19f046c86d9fc3754fdd59d30c8762850d47f3d5d1ab1d738"
+    },
+    {
+      "path": "libexec/git-core/git-lfs",
+      "type": "file",
+      "mode": 493,
+      "bytes": 12964024,
+      "sha256": "6b92b05c4588b4a5373b2b4102dbb302757d8ec6671da67cf9e4f9ccb01cd349"
+    },
+    {
+      "path": "libexec/git-core/git-merge-octopus",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2477,
+      "sha256": "c5d08a8c4e5afc8b48d965c309d3b98930592da304cf04ac265c8b24ea3d6891"
+    },
+    {
+      "path": "libexec/git-core/git-merge-one-file",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3695,
+      "sha256": "496bd3daaca988726b23252e8032f8e3cc38913dbe2a0d9f1bafd7b7276ae717"
+    },
+    {
+      "path": "libexec/git-core/git-merge-resolve",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1226,
+      "sha256": "5638e11ae0ffa26607545afc060cc603083863acb1f7c723547d6dc1d3ff29c9"
+    },
+    {
+      "path": "libexec/git-core/git-mergetool",
+      "type": "file",
+      "mode": 493,
+      "bytes": 11693,
+      "sha256": "445d33f9aa9e1f93afda20fab277904599151af08463316ad45ff0a650031d10"
+    },
+    {
+      "path": "libexec/git-core/git-mergetool--lib",
+      "type": "file",
+      "mode": 420,
+      "bytes": 10908,
+      "sha256": "3fd517e10d0cd0febd5bdda9c7ba2189646fb2747345cd8d0bc5ddea4c42f05c"
+    },
+    {
+      "path": "libexec/git-core/git-quiltimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3696,
+      "sha256": "a103092c9c97d3b202477ae1391ea56b3c30ad40a2cef152dca6980fb5e57fa4"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ext",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-fd",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ftp",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ftps",
+      "type": "symlink",
+      "mode": 511,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-request-pull",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3992,
+      "sha256": "679c05f4a1fde059dc14e583deb3b63f4ba3f79697c08bb69af2b6130c0bd104"
+    },
+    {
+      "path": "libexec/git-core/git-send-email",
+      "type": "file",
+      "mode": 493,
+      "bytes": 71394,
+      "sha256": "7a4726e6d26a49f15359134a11d8bd8960dc55e01cc1ac3755dd58ce738162d9"
+    },
+    {
+      "path": "libexec/git-core/git-sh-i18n",
+      "type": "file",
+      "mode": 420,
+      "bytes": 1680,
+      "sha256": "ce32161a654587f3dc88b97569abb1e5f54d34b1394f15e142a6e3d16bd92d7f"
+    },
+    {
+      "path": "libexec/git-core/git-sh-i18n--envsubst",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2257536,
+      "sha256": "aade559746e0e93c4770c6befa3fa5e0e1270b4a746fed3c22776872c9ed6e52"
+    },
+    {
+      "path": "libexec/git-core/git-sh-setup",
+      "type": "file",
+      "mode": 420,
+      "bytes": 8398,
+      "sha256": "59445c54657ed5fbc6676ec0ce2eb23deb3d1fd388ad71819d24c18fd9282e5a"
+    },
+    {
+      "path": "libexec/git-core/git-shell",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2257616,
+      "sha256": "11bd741362af9f70c4f32bb0a86cea300cf752a2e92fb82450cfcded23e25e45"
+    },
+    {
+      "path": "libexec/git-core/git-submodule",
+      "type": "file",
+      "mode": 493,
+      "bytes": 10493,
+      "sha256": "55a1a450b48fb98cc8c3f5745c411e3391ac7659f46eb4b7eef9053aa3614353"
+    },
+    {
+      "path": "libexec/git-core/git-web--browse",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4401,
+      "sha256": "5c0d1d91dadfba3fe353add1f07be76016a7c6a3b2260ff9dfec5491fcd9e5e6"
+    },
+    {
+      "path": "libexec/git-core/libHarfBuzzSharp.so",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2119208,
+      "sha256": "95fad4b704332ff1a9d7e137ab5d1849b8711099be61fd5d264afe0562b306a2"
+    },
+    {
+      "path": "libexec/git-core/libSkiaSharp.so",
+      "type": "file",
+      "mode": 493,
+      "bytes": 9244960,
+      "sha256": "a009dee86e037173654eb19b91365e7d545814b7f632240049596c04342fcf02"
+    },
+    {
+      "path": "libexec/git-core/mergetools",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/mergetools/araxis",
+      "type": "file",
+      "mode": 420,
+      "bytes": 515,
+      "sha256": "49aa2286e6ec2d7c0fb4077a2f9c5a757537476c07f517694fcc79dca021aa31"
+    },
+    {
+      "path": "libexec/git-core/mergetools/bc",
+      "type": "file",
+      "mode": 420,
+      "bytes": 584,
+      "sha256": "e54e6e1b38bbcd7ededcad7d6e05638453dd4c10631e392ecebfae8d396b01b6"
+    },
+    {
+      "path": "libexec/git-core/mergetools/codecompare",
+      "type": "file",
+      "mode": 420,
+      "bytes": 510,
+      "sha256": "7ee88c614edf10653d6c66f94a6f19a469551cd21aab224ad97101661cda0dc2"
+    },
+    {
+      "path": "libexec/git-core/mergetools/deltawalker",
+      "type": "file",
+      "mode": 420,
+      "bytes": 818,
+      "sha256": "4c64c36c09ba536fc5bd822be2750f6f6dd74b5c2feffc5564b5d51d55f120c1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/diffmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 460,
+      "sha256": "d1b72ad340d905e6ea652069b870fcac2cbfa5296e13b35701d99d3cabc7bfbf"
+    },
+    {
+      "path": "libexec/git-core/mergetools/diffuse",
+      "type": "file",
+      "mode": 420,
+      "bytes": 395,
+      "sha256": "ba5c97c501cae4219a7f4db36ea3934dbde0768a06818b1d49acc63070acbdaf"
+    },
+    {
+      "path": "libexec/git-core/mergetools/ecmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 453,
+      "sha256": "2d23869a9a5c52a45d1d76fff9b446a77fd2205a1db63090fa072ea3e12d5fa6"
+    },
+    {
+      "path": "libexec/git-core/mergetools/emerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 535,
+      "sha256": "014c19e4a9c4227cc08b53703ada35283882ecabada96198ca98c7238cfc9135"
+    },
+    {
+      "path": "libexec/git-core/mergetools/examdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 493,
+      "sha256": "162a10db12c2574d424172fdf00c1b097e0c1be900458da27d4619a9005d281d"
+    },
+    {
+      "path": "libexec/git-core/mergetools/guiffy",
+      "type": "file",
+      "mode": 420,
+      "bytes": 432,
+      "sha256": "294fd58816e5105234628d99af3c64bcc105826171da32ea8134649d9592613b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/gvimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 29,
+      "sha256": "bc1d96063154a0e5a7f55f5f3579d275c124e84ba33eb50db2f5802e259b479f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/kdiff3",
+      "type": "file",
+      "mode": 420,
+      "bytes": 818,
+      "sha256": "b5c69d346db89853a21287b3b2b9f0f923123b691e9f0ebeb0422125fdd8a5ac"
+    },
+    {
+      "path": "libexec/git-core/mergetools/kompare",
+      "type": "file",
+      "mode": 420,
+      "bytes": 264,
+      "sha256": "1e57841ff2f88c6d66cb979b43f382a3e476a747825c1abd32a95f0c26e64b6f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/meld",
+      "type": "file",
+      "mode": 420,
+      "bytes": 2213,
+      "sha256": "8913bd55b2ab6afd4b9776b18cc7b409e134beeb3dd63aa05d21b53fe027312b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/nvimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 29,
+      "sha256": "bc1d96063154a0e5a7f55f5f3579d275c124e84ba33eb50db2f5802e259b479f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/opendiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 418,
+      "sha256": "b43bb602aff994bc92f007d72398cb1439bfaa8d5eb5df3cc99f9e6aaec73901"
+    },
+    {
+      "path": "libexec/git-core/mergetools/p4merge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 784,
+      "sha256": "4d1f6e3cdd1a06d600c672ee4ca88d83b50b8cf42c4f7be0fac323b5c4b32993"
+    },
+    {
+      "path": "libexec/git-core/mergetools/smerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 423,
+      "sha256": "a40d6cae6fa097464595c94ffcca127672b7838d21c5b47efad880fd6afe04f5"
+    },
+    {
+      "path": "libexec/git-core/mergetools/tkdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 403,
+      "sha256": "f1c788423c7a7792319168ce5c5c871918b7f6f428c7304e511692702bf260d9"
+    },
+    {
+      "path": "libexec/git-core/mergetools/tortoisemerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 761,
+      "sha256": "6d0a7e1f66eb108327816949b6cbaef0c727d05fc77c60870a2555b401a93c5b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/vimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 18438,
+      "sha256": "07fa80716e5e8a4b0449a8ff471d0221c34265b9ee80d939bbd7e1a2744f7bd1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/vscode",
+      "type": "file",
+      "mode": 420,
+      "bytes": 373,
+      "sha256": "58677f9c457844c3138fa66905a54a9670954ff9721c1f03c229176b7feaafe1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/winmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 510,
+      "sha256": "18e584efa573fef5a04d5701fa237f83dfa5fb058b790c6aaff27eba33835f07"
+    },
+    {
+      "path": "libexec/git-core/mergetools/xxdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 913,
+      "sha256": "9184e4eab6bb40f09834f27dca31244e8f9028047a97d07467d9c340abb82a87"
+    },
+    {
+      "path": "libexec/git-core/scalar",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2319792,
+      "sha256": "b3e561cd3c2f3fff77954f638d91ad8a0c4fcf73e6dbffbd0ff45caba3d63f1d"
+    },
+    {
+      "path": "share/bash-completion",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/bash-completion/completions",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/bash-completion/completions/git",
+      "type": "file",
+      "mode": 420,
+      "bytes": 94695,
+      "sha256": "8a9645b600726af2ad5b85bf4b5c9e715a4bf1cde6138548300d73b3c3887b8f"
+    },
+    {
+      "path": "share/gitweb",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/gitweb/gitweb.cgi",
+      "type": "file",
+      "mode": 493,
+      "bytes": 254010,
+      "sha256": "5ecd352fcb052539cbfc97a567b5a906523cb8687bf13f053605753b8091ff8b"
+    },
+    {
+      "path": "share/gitweb/static",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/gitweb/static/git-favicon.png",
+      "type": "file",
+      "mode": 420,
+      "bytes": 115,
+      "sha256": "1804b48a915671fb8566d9723d96e4550aa7b7e75c3ee3c564eee2653a9d24a3"
+    },
+    {
+      "path": "share/gitweb/static/git-logo.png",
+      "type": "file",
+      "mode": 420,
+      "bytes": 207,
+      "sha256": "ecc07dc6faa45d6368fa2867483636e6b2579f1eeac1a9fb174bd9388d982714"
+    },
+    {
+      "path": "share/gitweb/static/gitweb.css",
+      "type": "file",
+      "mode": 420,
+      "bytes": 10664,
+      "sha256": "690b4c88faa34dea3b8edd5f92fbee4010dd30d2e316c4ec142b4559dd62b74e"
+    },
+    {
+      "path": "share/gitweb/static/gitweb.js",
+      "type": "file",
+      "mode": 420,
+      "bytes": 48825,
+      "sha256": "f6f00cf926604d41601b7174b04c5dd51cd6bc373f4a822183f2edcf714cdf6b"
+    },
+    {
+      "path": "share/locale",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/bg",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/bg/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/bg/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 992304,
+      "sha256": "157f9aa8dbdb03bcf23fccd17ec26bdcf9b7bf3b32ea68d30c948a694b9f2847"
+    },
+    {
+      "path": "share/locale/ca",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ca/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ca/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 709694,
+      "sha256": "559ced8c2a9f79419a9453d23a1ce2b239590e42c01d6576e586ff685b80e072"
+    },
+    {
+      "path": "share/locale/de",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/de/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/de/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 707546,
+      "sha256": "b90b5ccb22768cebf8f6b905543a3c9fde50ed466613634426407bdd8cdf49c3"
+    },
+    {
+      "path": "share/locale/el",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/el/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/el/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 179872,
+      "sha256": "2669269e7a0280d1b361b9b2152562a279c1c9657a49236a9a88f328ca0e2fca"
+    },
+    {
+      "path": "share/locale/es",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/es/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/es/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 640766,
+      "sha256": "4eb92837e56e853682ddae187aabaac8899dcb7d2a69ba111b97f3e91cde153d"
+    },
+    {
+      "path": "share/locale/fr",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/fr/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/fr/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 742804,
+      "sha256": "5f83b5cdeec44e683352d7812646e5c391323cb5c7e891531363a5ff7a42fb3a"
+    },
+    {
+      "path": "share/locale/ga",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ga/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ga/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 735895,
+      "sha256": "556c68562a818368170afce02bfdd4e19caf055b521374b2a602ea86b546d91a"
+    },
+    {
+      "path": "share/locale/id",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/id/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/id/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 703701,
+      "sha256": "974e12886c05c2a8ec0b6a28339100d1f5a8aa41f5e380ffef3998258fe3c382"
+    },
+    {
+      "path": "share/locale/is",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/is/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/is/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 1899,
+      "sha256": "136a545344034f3424bbb1e76312c244086eb11e6408f49e9f974989c7d82c1d"
+    },
+    {
+      "path": "share/locale/it",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/it/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/it/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 602751,
+      "sha256": "f7b1e6943e543f80dc786004161877c5db34f534a3403cc38bf24711fa7dbef8"
+    },
+    {
+      "path": "share/locale/ko",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ko/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ko/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 450662,
+      "sha256": "084d548c84877c84a17c78380cce89040bb3f1f6a6efb0d794e563c03f5082c3"
+    },
+    {
+      "path": "share/locale/pl",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/pl/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/pl/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 613499,
+      "sha256": "d52bb9be5f8d97bfc4636d1cd6e1cb7b87605f30d62dbc5399e3479831077165"
+    },
+    {
+      "path": "share/locale/pt_PT",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/pt_PT/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/pt_PT/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 487475,
+      "sha256": "fdb8d46fb1e11b9abb58585611f68a698bade600d3122fd47bec70b3df4970a4"
+    },
+    {
+      "path": "share/locale/ru",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ru/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/ru/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 466094,
+      "sha256": "29b76342db1cacbc78a6ccee0149ff35699e3708f5aa6ffd6229320f8841514d"
+    },
+    {
+      "path": "share/locale/sv",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/sv/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/sv/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 709442,
+      "sha256": "0348a48fd5c2677da7682e8dceb31a0f4015ad48f1a0a6043e51061180c6d4f5"
+    },
+    {
+      "path": "share/locale/tr",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/tr/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/tr/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 722085,
+      "sha256": "2813b7f37974c14a18334863f4f224426c73e7c2e13261027a3d0874b3589651"
+    },
+    {
+      "path": "share/locale/uk",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/uk/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/uk/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 921554,
+      "sha256": "e03099f7a95ea3e9f0244932b1a6572314e14eac9acb86f14d07465d0dafb8ed"
+    },
+    {
+      "path": "share/locale/vi",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/vi/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/vi/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 763649,
+      "sha256": "7121eaaf07b40fd9b81387cee69848ffb06753a2f612d0a815caaf87038bfaf8"
+    },
+    {
+      "path": "share/locale/zh_CN",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/zh_CN/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/zh_CN/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 664882,
+      "sha256": "1b5ce7b7aef27e0d91f925a08fb8da77c75930a05219a7db27698435195074df"
+    },
+    {
+      "path": "share/locale/zh_TW",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/zh_TW/LC_MESSAGES",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/locale/zh_TW/LC_MESSAGES/git.mo",
+      "type": "file",
+      "mode": 420,
+      "bytes": 667150,
+      "sha256": "c2b8599ceac4aef11b47c7e1703f97c3de0ca967cb08d2c36a484df019bdef08"
+    },
+    {
+      "path": "share/perl5",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/FromCPAN",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/FromCPAN/Error.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 24923,
+      "sha256": "266508fb57f519288a48e52d18eaf2f92b4652dbaeb4b46bbb1e40a5338cf7dd"
+    },
+    {
+      "path": "share/perl5/FromCPAN/Mail",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/FromCPAN/Mail/Address.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 6990,
+      "sha256": "f65a3f10f2ae55ca2cb7908678c6f1eb9077b41ecbe65dbb67eec3f743ecdc1a"
+    },
+    {
+      "path": "share/perl5/Git",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/Git.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 48387,
+      "sha256": "f797504db05192c01300f6eecdc70d46e7f066c44fc43487a2908ee8cc54a3ab"
+    },
+    {
+      "path": "share/perl5/Git/I18N.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 2816,
+      "sha256": "a73f5be847a95142b333f650fe3c975485b6a933fefea108b55a6336196cf18b"
+    },
+    {
+      "path": "share/perl5/Git/IndexInfo.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 848,
+      "sha256": "f5beaa7a049976c4ec96ba6688adcc335bd55ad41bf3d33c46c01987117e3064"
+    },
+    {
+      "path": "share/perl5/Git/LoadCPAN",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/Git/LoadCPAN.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 3435,
+      "sha256": "9bcfffb41c0141646c9354d35f2d42a4c3253ff8828cae3c81577cb222aec0b1"
+    },
+    {
+      "path": "share/perl5/Git/LoadCPAN/Error.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 182,
+      "sha256": "b9dd586a71ae9a38a5d829eb0412fd374501975e2cfb28bce8f34f7fb2e8aef6"
+    },
+    {
+      "path": "share/perl5/Git/LoadCPAN/Mail",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/Git/LoadCPAN/Mail/Address.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 198,
+      "sha256": "0ade4c2914a4edc0a7e37f97041fdcc3a3017b99f313f44952f5e90af14c929a"
+    },
+    {
+      "path": "share/perl5/Git/Packet.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 4184,
+      "sha256": "690ba199ff160980d0e2d49c3b97d3a2428e5f355881a5259e5e97bffdd6f2cf"
+    },
+    {
+      "path": "share/perl5/Git/SVN",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/Git/SVN.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 72828,
+      "sha256": "c965eed229f138502f86eca9604fb3ae918f98e4225d58b6fab94915f7196108"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Editor.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 17013,
+      "sha256": "c46dbfba0a62a4d0632bc3927b1747037e2cf6853930ac016786c7e39fe766a5"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Fetcher.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 18617,
+      "sha256": "d848d026662c027d9605185619394e8c3a9b9bd8b021256769281d6e9f48c793"
+    },
+    {
+      "path": "share/perl5/Git/SVN/GlobSpec.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 1849,
+      "sha256": "d8599d5813eff549dbfb31b171e988f855e5da83d912bf3ed437b4b267114da8"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Log.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 9613,
+      "sha256": "b7c7d47b964fe5ff3c3157c38598e12fdcb06ef1ced3a16687ed29a351153803"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Memoize",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/perl5/Git/SVN/Memoize/YAML.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 1799,
+      "sha256": "2575632bc1649518fbd19a9cbaa188940362de51a4400932607c6518185e791f"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Migration.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 8196,
+      "sha256": "430ddece25a88f962332541e95b3e86af11e772b6a064fd767ee3d3f517c4af2"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Prompt.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 5370,
+      "sha256": "cdb76d3cb74ab51a37a4c2f4cb222a530f6f97321c069c792706b9e7da5352ec"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Ra.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 19431,
+      "sha256": "7b3c8e1dd516cbb6240e594985d6149fbe1fec87788c3299916edbf9a0d2e667"
+    },
+    {
+      "path": "share/perl5/Git/SVN/Utils.pm",
+      "type": "file",
+      "mode": 420,
+      "bytes": 4637,
+      "sha256": "33d9334d8059682c4084015f0659f730c55d05fd54ff41767bb89a3decfa55de"
+    },
+    {
+      "path": "ssl",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "ssl/cacert.pem",
+      "type": "file",
+      "mode": 420,
+      "bytes": 186446,
+      "sha256": "3ff344e30b9b1ed2971044eabb438a08f2e2245ddb5f8ab1a3ad8b63ab4eaf91"
+    }
+  ]
+}

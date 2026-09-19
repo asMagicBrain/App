@@ -1,0 +1,11 @@
+.aa-dialog{width:min(460px,calc(100vw - 32px))}
+.aa-dialog .aa-provider{width:100%}
+.aa-divider{display:flex;align-items:center;gap:12px;margin:18px 0 12px;color:var(--fw-muted);font-size:12px}
+.aa-divider::before,.aa-divider::after{content:"";flex:1;height:1px;background:var(--fw-line)}
+.aa-secondary{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.aa-status{min-height:20px;margin:12px 0 0;color:var(--fw-muted);font-size:12px}
+.aa-sent{margin:16px 0;overflow-wrap:anywhere}
+.aa-dialog .ac-field input[readonly]{color:var(--fw-muted);background:var(--fw-chrome)}
+.fw-window .aa-dialog .ac-primary:hover:not(:disabled){background:var(--fw-text);color:var(--fw-bg);filter:brightness(.9)}
+.aa-reconnect{margin-top:16px}
+@media(max-width:480px){.aa-dialog{width:calc(100vw - 24px)}.aa-secondary button{flex:1}}

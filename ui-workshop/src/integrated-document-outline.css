@@ -1,0 +1,17 @@
+.ido-panel{position:relative;flex:none;display:flex;flex-direction:column;min-height:0;min-width:0;width:var(--panel-resize-width,240px);max-width:45%;background:var(--fw-panel,var(--fw-bg))}
+.ido-panel .do-tracked-content{display:flex;flex-direction:column;flex:1;min-height:0}
+.ido-panel .do-panel{width:100%;flex:1;overflow:hidden}
+.ido-panel .do-header{height:41px;min-height:41px;padding:4px 8px 4px 16px}
+.ido-panel .ido-close{width:28px;height:28px;padding:5px}
+.ido-panel .do-navigation{flex:1}
+/* Below desktop width the outline docks in a short row, without covering the
+   document or creating another window. Its width follows the available space. */
+@media(max-width:760px){
+ .fw-body:has(>.ido-panel){display:grid;grid-template-columns:42px minmax(0,1fr);grid-template-rows:minmax(0,1fr) min(190px,30%)}
+ .fw-body:has(>.ido-panel)>.fw-rail{grid-column:1;grid-row:1 / -1}
+ .fw-body:has(>.ido-panel)>.fw-main{grid-column:2;grid-row:1}
+ .ido-panel{grid-column:2;grid-row:2;width:auto;max-width:none}
+ .ido-panel .do-panel{border-left:0;border-top:1px solid var(--fw-line)}
+ .ido-panel>.panel-resize-handle{display:none}
+ .ido-panel .do-header{min-height:35px;height:35px;padding:3px 8px 3px 12px}
+}

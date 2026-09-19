@@ -1,0 +1,18 @@
+name: Suggest an improvement
+description: Share an idea that would help you use asMagicBrain.
+body:
+  - type: markdown
+    attributes:
+      value: Please check existing issues for similar ideas and leave out private information.
+  - type: textarea
+    id: need
+    attributes:
+      label: What would you like to do?
+      description: Tell us what gets in your way and how a change would help.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea (optional)
+      description: Describe a possible solution or an example from another app.

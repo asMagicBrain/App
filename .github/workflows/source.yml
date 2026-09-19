@@ -1,0 +1,80 @@
+name: Source checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    name: Source (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            gitleaks-asset: gitleaks_8.30.1_linux_x64.tar.gz
+            gitleaks-sha256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+          - os: macos-15
+            gitleaks-asset: gitleaks_8.30.1_darwin_arm64.tar.gz
+            gitleaks-sha256: b40ab0ae55c505963e365f271a8d3846efbc170aa17f2607f13df610a9aeb6a5
+    env:
+      ASMB_ACCOUNT_CONFIG: offline
+      ASMB_TEST_ROOT: ${{ github.workspace }}/../asMagicBrain-Test
+      CI: '1'
+      STORYBOOK_DISABLE_TELEMETRY: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan source and history for secrets
+        env:
+          GITLEAKS_ASSET: ${{ matrix.gitleaks-asset }}
+          GITLEAKS_SHA256: ${{ matrix.gitleaks-sha256 }}
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/gitleaks-$GITLEAKS_VERSION"
+          archive="$RUNNER_TEMP/$GITLEAKS_ASSET"
+          mkdir -p "$install_dir"
+          curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error \
+            --output "$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v$GITLEAKS_VERSION/$GITLEAKS_ASSET"
+          printf '%s  %s\n' "$GITLEAKS_SHA256" "$archive" | shasum -a 256 --check
+          tar -xzf "$archive" --directory "$install_dir" gitleaks
+          "$install_dir/gitleaks" version
+          "$install_dir/gitleaks" git --config .gitleaks.toml --log-opts='--all' \
+            --no-banner --no-color --redact=100 --exit-code=1 .
+          "$install_dir/gitleaks" dir --config .gitleaks.toml \
+            --no-banner --no-color --redact=100 --exit-code=1 .
+      - name: Use Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run source tests
+        run: npm test
+      - name: Check public documentation
+        run: node tools/check-public-docs.mjs
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Build source targets
+        run: npm run build
+      - name: Preserve in-repository failure logs
+        if: ${{ failure() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: source-test-failure-${{ matrix.os }}
+          path: |
+            ${{ env.ASMB_TEST_ROOT }}/runs/source-unit-*/tests.log
+            ${{ env.ASMB_TEST_ROOT }}/runs/source-unit-*/result.json
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,5 @@
+.wde.rex{padding:0;min-height:120px;flex:1}
+.wde-heading{padding:4px 8px 12px;flex:none}.wde-heading h2{margin:0;font-size:14px;font-weight:600}.wde-heading>span{color:var(--fw-muted);font-size:12px;display:block;margin-top:3px}
+.wde-viewport{min-height:64px}.wde-node{gap:6px}.wde-node .rex-name{font-size:14px}.wde-node[data-work-directory-path=asMagicBrain]{font-weight:600}
+.wde-loading{color:var(--fw-muted);font-size:12px;padding-right:4px}.wde-status{padding:4px 8px;color:var(--fw-muted);font-size:12px}
+.wde-error{padding:8px;margin:0;font-size:12px;overflow-wrap:anywhere}.wde-error p{margin:0 0 6px}.fw-window .wde-error button{width:auto;min-height:28px;border:1px solid var(--fw-line);border-radius:6px;padding:3px 8px}

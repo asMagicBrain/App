@@ -1,0 +1,159 @@
+.rfe{display:flex;flex:1;min-height:0;overflow:hidden;background:var(--fw-bg);color:var(--fw-text);font-size:14px;line-height:1.5;text-align:left}.rfe *{box-sizing:border-box}.rfe button,.rfe select,.rfe input{font:inherit;color:inherit}.rfe button{cursor:pointer}.rfe button:disabled,.rfe select:disabled,.rfe input:disabled{color:var(--fw-muted);cursor:default;opacity:.58}.rfe svg{width:16px;height:16px;flex:none}.rfe button:focus-visible,.rfe select:focus-visible,.rfe-resizer:focus-visible{outline:2px solid #0969da;outline-offset:-2px}.rfe-sidebar{width:var(--rfe-sidebar-width);flex:none;display:flex;flex-direction:column;min-height:0;background:var(--fw-bg)}.rfe-sidebar>header{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;gap:8px;padding:16px;min-height:64px}.rfe-sidebar-header>.rfe-repository-rename{grid-column:1}.rfe-sidebar-header>strong{grid-column:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfe-sidebar-header>.rfe-sidebar-search{grid-column:3}.fw-window .rfe-sidebar-header>.rfe-icon{padding:0}.rfe-icon{height:32px;width:32px;display:inline-flex;align-items:center;justify-content:center;flex:none;border:0;border-radius:6px;background:transparent}.rfe button:not(:disabled):hover{background:var(--fw-hover)}.rfe-sidebar-tools{display:flex;gap:8px;padding:0 16px 12px}.rfe-branch{display:flex;align-items:center;gap:8px;min-width:0;flex:1;height:32px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-chrome);padding:0 12px;overflow:hidden;white-space:nowrap}.rfe-triangle{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid currentColor;margin-left:auto}.rfe-file-search{height:32px;display:flex;align-items:center;gap:8px;margin:0 16px 16px;border:1px solid var(--fw-line);border-radius:6px;padding:0 8px;color:var(--fw-muted);opacity:.58}.rfe-file-search kbd{margin-left:auto}.rfe kbd{font:11px ui-monospace,monospace;border:1px solid var(--fw-line);border-radius:3px;padding:0 3px}.rfe-tree{overflow:auto;flex:1;padding:0 8px 20px}.rfe-tree-row{display:flex;align-items:center;gap:8px;width:100%;min-height:32px;background:transparent;border:0;border-radius:6px;text-align:left;padding-right:8px;position:relative}.rfe-tree-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rfe-tree-row.is-current{background:var(--fw-hover);font-weight:600}.rfe-tree-row.is-current:before{position:absolute;content:'';width:3px;left:-8px;top:4px;bottom:4px;background:#0969da;border-radius:2px}.rfe-tree-row>svg{color:var(--fw-muted)}.rfe-tree-chevron{width:12px;height:16px;flex:none;display:flex;align-items:center;justify-content:center}.rfe-tree-chevron svg{width:12px;height:12px}.rfe-tree-chevron.is-open{transform:rotate(90deg)}.rfe-resizer{width:1px;background:var(--fw-line);position:relative;flex:none;cursor:col-resize;touch-action:none}.rfe-resizer:after{content:'';position:absolute;left:-3px;right:-3px;top:0;bottom:0;z-index:2}.rfe-resizer:hover{background:#0969da}.rfe-main{display:flex;flex-direction:column;min-width:0;min-height:0;flex:1;padding:16px}.rfe-context{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:32px;margin-bottom:16px}.rfe-path{display:flex;align-items:center;gap:8px;min-width:0;white-space:nowrap}.rfe-repository{font-weight:600;color:#4493f8}.rfe-path input{width:clamp(100px,13vw,220px);min-width:0;height:32px;border:1px solid var(--fw-line);border-radius:6px;padding:5px 12px;background:var(--fw-bg)}.rfe-path>span:not(.rfe-repository){color:var(--fw-muted)}.rfe-path strong{font-size:12px;font-weight:400}.rfe-actions{display:flex;gap:8px;flex:none}.rfe-actions button{height:32px;padding:0 12px;font-weight:500;background:var(--fw-chrome);border:1px solid var(--fw-line);border-radius:6px}.rfe-actions .rfe-commit:disabled{background:var(--fw-hover);color:var(--fw-muted);opacity:.7}.rfe-editor-frame{border:1px solid var(--fw-line);border-radius:6px;display:flex;flex-direction:column;min-height:0;flex:1;overflow:hidden}.rfe-toolbar{height:48px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:var(--fw-chrome);border-bottom:1px solid var(--fw-line)}.rfe-modes{display:flex;gap:4px}.rfe-modes button{height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;background:transparent}.rfe-modes button[aria-selected=true]{font-weight:600;background:var(--fw-bg);border-color:var(--fw-line)}.rfe-settings{display:flex;align-items:center;gap:8px}.rfe-settings select{height:28px;background:var(--fw-chrome);border:1px solid var(--fw-line);border-radius:6px;font-size:12px;padding:0 8px}.rfe-show-diff{border:0;background:transparent;font-size:12px}.rfe-source{min-height:0;flex:1;overflow:hidden}.rfe-source[hidden]{display:none}.rfe-source .cm-editor{height:100%;font:12px/20px ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,monospace}.rfe-source .cm-scroller{overflow:auto;font-family:inherit;line-height:20px}.rfe-source .cm-content{padding:8px 0}.rfe-source .cm-line{padding:0 16px 0 8px}.rfe-source .cm-gutters{border:0;min-width:48px}.rfe-source .cm-lineNumbers .cm-gutterElement{padding:0 12px 0 12px;min-width:48px}.rfe-source .cm-focused{outline:none}.rfe-footer{flex:none;font-size:12px;color:var(--fw-muted)}.rfe-footer>div{padding:5px 12px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}.rfe-footer>div>span{margin-left:auto;font-size:11px}.rfe-footer>button{width:100%;text-align:left;padding:9px 12px;border:0;border-top:1px solid var(--fw-line);background:var(--fw-chrome);font-size:12px}.rfe-preview{flex:1;min-height:0;overflow:auto;border:0!important;border-radius:0!important;margin:0!important}.rfe-preview article{max-width:1012px;margin:0 auto;padding:32px!important}.rfe-preview pre{white-space:pre-wrap;padding:32px;font:12px/20px ui-monospace,monospace}.rfe-error,.rfe-loading{padding:8px 12px;margin-bottom:8px;border:1px solid var(--fw-line);border-radius:6px}.rfe-error{color:#f85149}@media(max-width:1000px){.rfe-context{align-items:flex-start;flex-wrap:wrap}.rfe-path{flex-wrap:wrap}.rfe-context .rfe-actions{margin-left:auto}.rfe-sidebar{max-width:36%}}@media(max-width:650px){.rfe-main{padding:8px}.rfe-sidebar{width:220px;max-width:38%}.rfe-sidebar-tools{padding-left:8px;padding-right:8px;gap:0}.rfe-file-search{margin-left:8px;margin-right:8px}.rfe-toolbar{height:auto;min-height:48px;flex-wrap:wrap;gap:6px;padding:6px}.rfe-settings{gap:4px}.rfe-settings select{padding:0 3px}.rfe-path input{width:130px}.rfe-footer>div>span{margin-left:0}.rfe-preview article{padding:16px!important}}
+
+.rfe-tree-name{min-width:0;flex:1}.rfe-notice{margin:0;padding:6px 12px;border-bottom:1px solid var(--fw-line)}
+/* Keep repository editor controls above the window's generic button reset. */
+.fw-window .rfe .rfe-branch{border:1px solid var(--fw-line);background:var(--fw-panel,var(--fw-chrome));border-radius:6px}
+.fw-window .rfe .rfe-actions button{border:1px solid var(--fw-line);background:var(--fw-panel,var(--fw-chrome));border-radius:6px}
+.fw-window .rfe .rfe-actions .rfe-commit:disabled{background:var(--fw-hover)}
+.fw-window .rfe .rfe-toolbar{background:var(--fw-panel,var(--fw-chrome))}
+.fw-window .rfe .rfe-settings select{background:var(--fw-panel,var(--fw-chrome))}
+.fw-window .rfe .rfe-footer>button{background:var(--fw-panel,var(--fw-chrome));border-top:1px solid var(--fw-line)}
+.fw-window .rfe .rfe-modes{gap:0;border:1px solid var(--fw-line);border-radius:6px;overflow:hidden;background:var(--fw-panel,var(--fw-chrome))}
+.fw-window .rfe .rfe-modes button{height:30px;border:0;border-radius:0;background:transparent}
+.fw-window .rfe .rfe-modes button+button{border-left:1px solid var(--fw-line)}
+.fw-window .rfe .rfe-modes button[aria-selected=true]{background:var(--fw-bg);font-weight:600}
+.rfe-path input{width:180px}
+.rfe-tree-row[aria-expanded]>svg{color:#54aeff;fill:currentColor;stroke:currentColor}
+/* Code and Edit share the selected theme; reference mode uses the shared dark syntax palette. */
+.rfe-source .cm-editor{background:var(--fw-bg);color:var(--fw-text)}
+.rfe-source .cm-content{caret-color:var(--fw-text)}
+.rfe-source .cm-cursor,.rfe-source .cm-dropCursor{border-left-color:var(--fw-text)}
+.rfe-source .cm-gutters{background:var(--fw-bg);color:var(--fw-muted)}
+.rfe-source .cm-activeLine,.rfe-source .cm-activeLineGutter{background:color-mix(in srgb,var(--fw-text) 4%,transparent)}
+.rfe-source .cm-selectionBackground,.rfe-source .cm-focused .cm-selectionBackground{background:color-mix(in srgb,var(--fw-accent,#edbd65) 28%,transparent)!important}
+.rfe-source .cm-selectionMatch{background:var(--fw-selected,#413725)}
+.rfe-source .cm-foldPlaceholder{background:var(--fw-panel,var(--fw-chrome));border-color:var(--fw-line);color:var(--fw-muted)}
+.rfe-source .cm-specialChar{color:var(--fw-danger,#ffaba6)}
+.rfe-source .source-token-heading{color:var(--fw-syntax-heading,#9abaff);font-weight:700}
+.rfe-source .source-token-strong{font-weight:700}
+.rfe-source .source-token-emphasis{font-style:italic}
+.rfe-source .source-token-strike{text-decoration:line-through}
+.rfe-source .source-token-link{color:var(--fw-syntax-link,#83c8ff);text-decoration:underline;text-underline-offset:2px}
+.rfe-source .source-token-code{color:var(--fw-syntax-code,#d4a4ef)}
+.rfe-source .source-token-value{color:var(--fw-syntax-value,#8bceb5)}
+.rfe-source .source-token-markup{color:var(--fw-syntax-markup,#afb2bb)}
+.rfe-source .source-token-invalid{text-decoration:underline wavy var(--fw-danger,#ffaba6)}
+.rfe-narrow{position:relative}.rfe-narrow .rfe-sidebar{position:absolute;inset:0 auto 0 0;width:min(300px,85%);max-width:none;z-index:5;box-shadow:8px 0 24px #0003;border-right:1px solid var(--fw-line)}.rfe-narrow .rfe-resizer{display:none}.fw-window .rfe .rfe-drawer-backdrop{position:absolute;inset:0;z-index:4;background:#0004!important;border:0;border-radius:0;width:100%;height:100%}.rfe-narrow .rfe-context{gap:8px}.rfe-narrow .rfe-path{flex-wrap:wrap;gap:6px}.rfe-narrow .rfe-path input{width:140px}.rfe-narrow .rfe-actions{flex-wrap:wrap;margin-left:0;gap:6px;max-width:100%}.rfe-narrow .rfe-actions button{font-size:12px;padding:0 8px}.rfe-narrow .rfe-toolbar{flex-wrap:wrap;height:auto;gap:8px;padding:8px;align-items:flex-start}.rfe-narrow .rfe-settings{flex-wrap:wrap;max-width:100%}.rfe-narrow .rfe-settings select{font-size:11px;max-width:100%}.rfe-narrow .rfe-repository{overflow-wrap:anywhere;white-space:normal}.rfe-narrow .rfe-footer>div{font-size:10px}
+.rfe-discard-dialog{width:min(420px,calc(100vw - 32px));padding:24px;background:var(--fw-bg);color:var(--fw-text);border:1px solid var(--fw-line);border-radius:12px;box-shadow:0 16px 48px #0004}.rfe-discard-dialog::backdrop{background:#0006}.rfe-discard-dialog h2{margin:0 0 12px;font-size:20px}.rfe-discard-dialog p{margin:0 0 24px;font-size:14px}.rfe-discard-dialog>div{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px}.fw-window .rfe .rfe-discard-dialog button{padding:6px 12px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-panel,var(--fw-chrome));font-size:14px}.fw-window .rfe .rfe-discard-dialog .rfe-discard-action{color:#cf222e}
+
+.fw-hide-unavailable .rfe [data-unavailable]{display:none!important}
+/* Full file view (blob) precedes the editable state. */
+.fw-window .rfe .rfe-path>.rfe-repository{padding:0;border:0;background:transparent;color:#4493f8;font-weight:600;font-size:16px}
+.rfe .rfe-path>.rfe-file-name{font-size:16px;font-weight:600}
+/* The viewer scrolls above its status bar; the editor keeps its CM6 flex layout. */
+.rfe-main-scroll{display:contents}
+.rfe-file-mode .rfe-main{overflow:hidden;padding:0}
+.rfe-file-mode .rfe-main-scroll{display:block;flex:1;min-height:0;overflow:auto;padding:16px}
+.rfe-view-footer{display:flex;align-items:center;flex-wrap:wrap;gap:8px;flex:none;border-top:1px solid var(--fw-line);background:var(--fw-bg);font-size:12px;color:var(--fw-muted)}
+.rfe-view-footer .rfe-notice{flex:1;min-width:0;overflow-wrap:anywhere;border:0}
+.rfe-view-footer .rfe-management-review{padding:6px 12px;margin-left:auto}
+@media(max-width:650px){.rfe-file-mode .rfe-main-scroll{padding:8px}}
+.rfe-file-mode .rfe-context{min-height:32px;margin-bottom:16px}
+.rfe-file-commit{display:flex;align-items:center;gap:8px;min-height:46px;padding:8px 12px;margin-bottom:16px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-panel,var(--fw-chrome));font-size:12px}
+.rfe-author-avatar{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;background:var(--fw-hover);border:1px solid var(--fw-line);border-radius:50%;flex:none;font-size:11px}
+.rfe-commit-message{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rfe-commit-sha,.rfe-file-commit time{color:var(--fw-muted);white-space:nowrap}
+.rfe-file-mode .rfe-editor-frame{flex:none;overflow:visible;min-height:0}
+.rfe-file-mode .rfe-toolbar{height:46px;border-radius:6px 6px 0 0;gap:12px}
+.rfe-file-toolbar-left{display:flex;align-items:center;gap:16px;min-width:0}
+.rfe-file-metadata{font:12px/20px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--fw-muted);white-space:nowrap}
+.rfe-file-actions{display:flex;align-items:center;gap:0;flex:none}
+.fw-window .rfe .rfe-file-actions button{height:28px;padding:0 8px;font-size:12px;border:1px solid var(--fw-line);border-radius:0;background:var(--fw-panel,var(--fw-chrome));display:inline-flex;align-items:center;justify-content:center}
+.fw-window .rfe .rfe-file-actions button:first-child{border-radius:6px 0 0 6px}.fw-window .rfe .rfe-file-actions button:last-child{border-radius:0 6px 6px 0}.fw-window .rfe .rfe-file-actions button+button{border-left:0}.rfe-file-actions .rfe-triangle{margin:0}
+.rfe-file-mode .rfe-preview{overflow:visible;flex:none;border-radius:0 0 6px 6px!important}
+.rfe-file-mode .rfe-preview article{max-width:1076px;padding:32px!important}
+.rfe-file-mode .rfe-source{overflow:auto;flex:none;min-height:100px}
+.rfe-file-mode .rfe-source .cm-editor{height:auto;min-height:100px;border-radius:0 0 6px 6px}
+.rfe-file-mode .rfe-source .cm-scroller{overflow:visible}
+@media(max-width:1150px){.rfe-file-mode .rfe-toolbar{height:auto;min-height:46px;flex-wrap:wrap;padding:8px}.rfe-file-toolbar-left{gap:8px;flex-wrap:wrap}.rfe-file-actions{margin-left:auto}.rfe-file-commit{flex-wrap:wrap}.rfe-commit-message{min-width:100px}.rfe-file-commit time{margin-left:auto}}
+.rfe-narrow.rfe-file-mode .rfe-preview article{padding:16px!important}.rfe-narrow .rfe-file-actions{flex-wrap:wrap;margin-left:0}.rfe-narrow .rfe-file-metadata{font-size:10px}.rfe-narrow .rfe-file-commit{gap:6px}.rfe-narrow .rfe-commit-sha{display:none}
+
+/* GitHub uses a 1012px reading column, with padding outside that measure. */
+.rfe-preview article{max-width:1076px}
+.rfe-preview article code{font-size:85%;padding:.2em .4em;background:var(--fw-panel,var(--fw-chrome))}
+.fw-window .rfe-file-mode .rfe-context>button{border:1px solid var(--fw-line);background:var(--fw-panel,var(--fw-chrome))}
+
+/* File actions stay grouped like the reference, without joining unrelated controls. */
+/* Reserve one inline feedback slot so copying never adds a row or moves content. */
+.rfe-path-copy{display:inline-flex;align-items:center;gap:6px;flex:none}
+.rfe-path-copy-status{display:inline-block;width:104px;font-size:12px;line-height:20px;white-space:nowrap;color:var(--fw-muted)}
+.rfe-file-actions{gap:8px}
+.rfe-action-group{display:inline-flex;align-items:center}
+.fw-window .rfe .rfe-file-actions>button,.fw-window .rfe .rfe-file-actions>span>button:first-child{border-radius:6px}
+.fw-window .rfe .rfe-action-group button,.rfe .rfe-action-group .rfe-raw{height:28px;padding:0 8px;border:1px solid var(--fw-line);background:var(--fw-panel,var(--fw-chrome));border-radius:0;display:inline-flex;align-items:center;justify-content:center;color:var(--fw-text);font-size:12px;text-decoration:none}
+.fw-window .rfe .rfe-action-group>:first-child{border-radius:6px 0 0 6px}
+.fw-window .rfe .rfe-action-group>:last-child{border-radius:0 6px 6px 0}
+.fw-window .rfe .rfe-action-group>button+button,.fw-window .rfe .rfe-action-group>a+button{border-left:0}
+.rfe-raw:focus-visible{outline:2px solid #0969da;outline-offset:-2px}
+.rfe-file-mode.rfe-centered-source .rfe-source .cm-editor{max-width:1076px;margin:0 auto}
+.rfe-source .cm-foldGutter{min-width:16px}
+.rfe-source .cm-foldGutter .cm-gutterElement{padding:0 2px;cursor:pointer}
+.rfe-path{overflow-wrap:anywhere;white-space:normal}
+
+/* Local file creation and reviewed Git commits share the existing file frame. */
+.rfe-new-folder{margin-left:auto}.rfe-new-drafts{border-bottom:1px solid var(--fw-line);padding-bottom:8px;margin-bottom:8px}.rfe-new-drafts h3{font-size:12px;color:var(--fw-muted);margin:4px 8px 8px}.rfe-new-drafts .rfe-tree-row{gap:8px;padding:6px 8px}.rfe .rfe-path input{width:clamp(180px,24vw,380px)}.rfe-path-help{margin:0;padding:6px 12px;font-size:12px;color:var(--fw-muted)}
+.rfe-commit-dialog{width:min(760px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px;background:var(--fw-bg);color:var(--fw-text);border:1px solid var(--fw-line);border-radius:12px;box-shadow:0 16px 48px #0004;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.rfe-commit-dialog::backdrop{background:#0006}.rfe-commit-dialog h2{margin:0 0 8px;font-size:20px}.rfe-commit-dialog header p{margin:0 0 20px;color:var(--fw-muted)}.rfe-commit-dialog label{display:flex;flex-direction:column;gap:6px;font-weight:600;margin:0 0 16px}.rfe-commit-dialog input:not([type=radio]),.rfe-commit-dialog textarea{width:100%;min-width:0;border:1px solid var(--fw-line);border-radius:6px;padding:7px 10px;background:var(--fw-bg);color:var(--fw-text);font:inherit}.rfe-commit-dialog textarea{min-height:80px;resize:vertical}.rfe-author-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px}.rfe-commit-dialog .rfe-radio{flex-direction:row;align-items:center;font-weight:400;gap:8px}.rfe-radio input{margin:0}.rfe-unavailable{color:var(--fw-muted);opacity:.55}.rfe-commit-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:24px;padding-top:16px;border-top:1px solid var(--fw-line)}.fw-window .rfe-commit-dialog button{padding:6px 12px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-panel,var(--fw-chrome));font:inherit}.fw-window .rfe button.rfe-local-commit:not(:disabled){background:#238636;color:white;border-color:#2ea043}.fw-window .rfe button.rfe-local-commit:not(:disabled):hover{background:#2ea043}.rfe-review{margin-top:20px}.rfe-review h3{font-size:14px}.rfe-review details{border:1px solid var(--fw-line);border-radius:6px;margin:8px 0;overflow:hidden}.rfe-review summary{padding:8px 12px;background:var(--fw-panel,var(--fw-chrome));overflow-wrap:anywhere;cursor:pointer}.rfe-diff{display:grid;grid-template-columns:1fr 1fr;min-width:0}.rfe-diff>div{min-width:0}.rfe-diff>div+div{border-left:1px solid var(--fw-line)}.rfe-diff h4{font-size:12px;margin:0;padding:6px 10px;border-bottom:1px solid var(--fw-line)}.rfe-diff pre{font:12px/20px ui-monospace,monospace;overflow:auto;max-height:240px;margin:0;padding:8px 10px;white-space:pre}.rfe-folder-dialog{width:min(440px,calc(100vw - 32px))}.rfe-review .rfe-file-mode-change{font:12px ui-monospace,monospace;padding:8px 12px;margin:0;border-bottom:1px solid var(--fw-line)}
+@media(max-width:650px){.rfe-commit-dialog{padding:16px}.rfe-author-fields,.rfe-diff{grid-template-columns:1fr}.rfe-diff>div+div{border-left:0;border-top:1px solid var(--fw-line)}.rfe .rfe-path input{width:180px}.rfe-actions{flex-wrap:wrap}.rfe-path-help{font-size:11px}}
+.rfe-change-selection{border:1px solid var(--fw-line);border-radius:6px;padding:8px 12px;margin:20px 0;max-height:180px;overflow:auto}.rfe-change-selection legend{font-weight:600;padding:0 4px}.rfe-change-selection p{font-size:12px;color:var(--fw-muted);margin:0 0 8px}.rfe-commit-dialog .rfe-change-selection label{display:flex;flex-direction:row;align-items:center;gap:8px;margin:6px 0;font-weight:400;overflow-wrap:anywhere}.rfe-commit-dialog .rfe-change-selection input{width:auto;flex:none}.rfe-change-selection small{color:var(--fw-muted);margin-left:4px}
+
+.rfe-commit-dialog footer{position:sticky;bottom:-24px;background:var(--fw-bg);padding:16px 0 24px;z-index:1}@media(max-width:650px){.rfe-commit-dialog footer{bottom:-16px;padding-bottom:16px}}
+
+/* Folder navigation shares the file shell while the mounted source editor is hidden. */
+.rfe-editor-frame[hidden]{display:none}
+.rfe-breadcrumbs{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;font-size:16px}
+.rfe-breadcrumbs>span{color:var(--fw-muted)}
+.fw-window .rfe .rfe-breadcrumbs button{padding:0;border:0;background:transparent;color:var(--fw-link,var(--fw-accent,#4493f8));font-weight:600;font-size:16px;text-align:left;overflow-wrap:anywhere}
+.rfe-breadcrumbs .rfe-file-name{font-size:16px;overflow-wrap:anywhere}
+.rfe-directory-actions{display:flex;align-items:center;gap:8px;flex:none}
+.fw-window .rfe .rfe-directory-add{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 12px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-panel,var(--fw-chrome));font-size:12px;font-weight:600}
+.rfe-tree-row .rfe-tree-chevron{width:12px;height:28px;flex:none}
+.fw-window .rfe .rfe-tree-chevron{border:0;padding:0;background:transparent;border-radius:4px}
+.fw-window .rfe .rfe-tree-link{display:flex;align-items:center;gap:8px;flex:1;min-width:0;min-height:32px;padding:4px 0;border:0;border-radius:4px;background:transparent;text-align:left;font-size:14px}
+.rfe-tree-link>svg{color:var(--fw-muted)}
+.rfe-tree-link[data-directory]>svg,.rfe-directory-entry[data-directory]>svg{color:var(--fw-link,var(--fw-accent,#54aeff));fill:currentColor;stroke:currentColor}
+.rfe-directory-table-frame{border:1px solid var(--fw-line);border-radius:6px;overflow:hidden}
+.rfe-directory-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
+.rfe-directory-table td,.rfe-directory-table th{height:40px;padding:8px 12px;border-bottom:1px solid var(--fw-line);vertical-align:middle;text-align:left}
+.rfe-directory-table th{background:var(--fw-panel,var(--fw-chrome));color:var(--fw-muted);font-size:12px;font-weight:400}
+.rfe-directory-table tr:last-child td{border-bottom:0}
+.rfe-directory-name-column{width:42%}
+.rfe-directory-date-column{width:112px}
+.rfe-directory-table .rfe-directory-date{width:112px;text-align:right;white-space:nowrap;font-size:12px;color:var(--fw-muted)}
+.rfe-directory-table .rfe-directory-message{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--fw-muted);font-size:12px}
+.rfe-directory-table tr:hover{background:var(--fw-hover)}
+.fw-window .rfe .rfe-directory-entry,.fw-window .rfe .rfe-parent-directory{display:inline-flex;align-items:center;gap:8px;max-width:100%;border:0;padding:0;background:transparent;text-align:left;font-size:14px}
+.rfe-directory-entry>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rfe-directory-entry:hover>span,.rfe-parent-directory:hover{text-decoration:underline}
+.rfe-directory-entry>svg{color:var(--fw-muted)}
+.rfe-parent-directory>svg{color:var(--fw-link,var(--fw-accent,#54aeff));fill:currentColor;stroke:currentColor}
+.rfe-directory-empty{padding:20px;margin:0;color:var(--fw-muted)}
+.rfe-directory-readme{margin-top:16px}
+.rfe-directory-readme>header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px;min-height:49px;border-bottom:1px solid var(--fw-line);font-size:14px}
+.rfe-directory-readme article{max-width:1076px;margin:0 auto;padding:32px}
+.rfe-directory-readme article code{font-size:85%;padding:.2em .4em;background:var(--fw-panel,var(--fw-chrome))}
+.rfe-narrow .rfe-directory-table .rfe-directory-message,.rfe-narrow .rfe-directory-message-column{display:none}
+.rfe-narrow .rfe-directory-name-column{width:auto}
+.rfe-narrow .rfe-directory-readme article{padding:16px}
+.rfe-narrow .rfe-directory-actions{margin-left:auto}
+
+.rfe-managed-tree{display:flex;flex-direction:column;overflow:hidden;padding-bottom:0}.rfe-managed-tree .rfe-new-drafts{flex:none;max-height:30%;overflow:auto}.rfe-management-paths,.rfe-trash-list{list-style:none;padding:0;max-height:260px;overflow:auto;overflow-wrap:anywhere}.rfe-trash-list li{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--fw-line)}.rfe-management-review{padding:6px 0;flex:none}.fw-window .rfe-management-review button,.fw-window .rfe-trash-list button{padding:5px 12px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-panel,var(--fw-chrome));font-size:12px}.rfe-management-dialog{max-width:calc(100vw - 32px)}
+
+.rfe-managed-tree{padding:0}.rfe-managed-tree .rfe-new-drafts{padding:0 8px}
+
+.rfe-author-preference{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 8px;color:var(--fw-muted);font-size:13px;line-height:1.5}
+.rfe-author-preference button{flex:none}
+@media(max-width:600px){.rfe-author-preference{align-items:flex-start;flex-direction:column}.rfe-actions{flex-wrap:wrap;justify-content:flex-end}}
+
+.rfe-repository-rename-dialog{width:min(440px,calc(100vw - 32px))}
+
+/* V3 belongs to the document column; sidebar and divider span the full work area. */
+.rfe-document-pane{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
+
+.rfe .cm-panels{background:var(--fw-chrome);color:var(--fw-text);border-color:var(--fw-line)}.rfe .cm-search{padding:8px 12px!important;display:flex;gap:8px;align-items:center;flex-wrap:wrap}.rfe .cm-search input{background:var(--fw-bg);color:var(--fw-text);border:1px solid var(--fw-line);border-radius:4px}.rfe .cm-search button{background:var(--fw-bg);color:var(--fw-text);border:1px solid var(--fw-line);border-radius:4px}.rfe .cm-searchMatch{background:#e3b34155}.rfe .cm-searchMatch-selected{background:#e3b341aa}
+/* Respond to space remaining beside both panels, not only window width. */
+.rfe-edit-mode .rfe-context{flex-wrap:wrap}
+.rfe-edit-mode .rfe-path{flex:1 1 480px;flex-wrap:wrap}
+.rfe-edit-mode .rfe-path>span,.rfe-edit-mode .rfe-path>strong{flex-shrink:0;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.rfe-edit-mode .rfe-path>.rfe-repository{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.rfe-edit-mode .rfe-path>input{flex:1 1 180px;width:auto;min-width:140px;max-width:380px}
+.rfe-edit-mode .rfe-actions{margin-left:auto}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "licenses": [
+    {
+      "name": "react-arborist",
+      "version": "3.16.0",
+      "file": "react-arborist-3.16.0.txt",
+      "sourceUrl": "https://raw.githubusercontent.com/jameskerr/react-arborist/d74c4ec696ba98c1a4e981075f6d60cdff3e290b/LICENSE",
+      "sha256": "f1dcfe846608164333e4662013cd41adcee862327ca0b93228fbc11418b299c8",
+      "retrievedOn": "2026-09-17",
+      "basis": "License retrieved at the exact source gitHead recorded by the react-arborist 3.16.0 npm release; bytes also match the maintainer current notice."
+    },
+    {
+      "name": "react-remove-scroll-bar",
+      "version": "2.3.8",
+      "file": "react-remove-scroll-bar-2.3.8.txt",
+      "sourceUrl": "https://raw.githubusercontent.com/theKashey/react-remove-scroll-bar/master/LICENSE",
+      "sha256": "a79aae0c0f21990d9d963bb3c5a79cdcea9a46f8523ba55c58d7fe776b6ebc84",
+      "retrievedOn": "2026-09-17",
+      "basis": "Installed package and exact-version npm registry metadata declare MIT. Notice text retrieved from the maintainer repository current license; not asserted to be present at the npm gitHead."
+    }
+  ]
+}

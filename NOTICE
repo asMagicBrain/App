@@ -1,0 +1,33 @@
+asMagicBrain
+Copyright (c) 2026 SONG Chaoyang
+Copyright (c) 2026 asMagicBrain contributors
+
+Author: SONG Chaoyang <AncoraSIR@gmail.com>
+Affiliation: Design and Learning Research Group
+Website: https://AncoraSIR.com
+
+Original asMagicBrain code and documentation are provided under the MIT
+License in LICENSE. Third-party software, adapted assets and their notices
+retain their respective licenses and copyrights. MIT does not relicense them.
+
+The macOS application includes Electron and its third-party notices, the
+production npm dependency notices, ripgrep, and a selected Git runtime from
+GitHub Desktop's desktop/dugite-native distribution. Git is licensed under
+GPL version 2. Its matching Git source, dugite-native build recipes, required
+SHA-1 collision-detection source and license notices accompany the bundled
+runtime in apps/native/dist-host/git/licenses. Keep this corresponding-source
+material when redistributing that runtime; an upstream URL alone does not
+replace the shipped source. See its SOURCE.md and pinned provenance.
+
+Theme color data is adapted from Primer's github-vscode-theme 6.3.5.
+Copyright (c) 2020 Primer. The upstream MIT notice remains at
+ui-workshop/src/github-themes/LICENSE.txt and in packaged dependency notices.
+The adaptation does not bundle or execute the VS Code extension.
+
+Supplemental notices for exact installed dependency versions whose npm
+packages omit license text are retained in apps/native/licenses, with source
+and hash provenance. Packaged third-party-license inventories and original
+notices, rather than this summary, identify the complete binary dependency
+closure. Preserve all such notices when redistributing.
+
+No trademark permission or endorsement by dependency authors is implied.

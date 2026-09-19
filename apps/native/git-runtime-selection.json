@@ -1,0 +1,3212 @@
+{
+  "schemaVersion": 1,
+  "included": [
+    {
+      "path": "bin",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "bin/git",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3406864,
+      "sha256": "8b0c175c430d35d8a790ca907a37ca8742966a15f0da0b75e6747e640e24460a"
+    },
+    {
+      "path": "bin/scalar",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1954024,
+      "sha256": "168dbc97f87b0a3d4fa4050e18a47c3e30e65ac4faefb8ad40aaa07983e38b1d"
+    },
+    {
+      "path": "libexec",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/git",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3406864,
+      "sha256": "8b0c175c430d35d8a790ca907a37ca8742966a15f0da0b75e6747e640e24460a"
+    },
+    {
+      "path": "libexec/git-core/git-add",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-am",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-annotate",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-apply",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-archimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-archive",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-backfill",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bisect",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-blame",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-branch",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bugreport",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-bundle",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cat-file",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-attr",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-ignore",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-mailmap",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-check-ref-format",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout--worker",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-checkout-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cherry",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cherry-pick",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-clean",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-clone",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-column",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit-graph",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-commit-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-config",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-count-objects",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-cache",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-cache--daemon",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-credential-store",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-cvsexportcommit",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-cvsimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-cvsserver",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-daemon",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1920008,
+      "sha256": "b9daae1560b485ad240808f248decad3489cd8da9f920246af01da01e804605b"
+    },
+    {
+      "path": "libexec/git-core/git-describe",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diagnose",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-files",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-pairs",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-diff-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-difftool",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-difftool--helper",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2660,
+      "sha256": "eafba74e4934494c0017f8b06375b3c7e67c84ac285b8492976c51de2f7da619"
+    },
+    {
+      "path": "libexec/git-core/git-fast-export",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fast-import",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fetch",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fetch-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-filter-branch",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15791,
+      "sha256": "62285b171fa3f70ece4eb5b8283f60a4d112b65f0cb6b9e593b1f16b93248282"
+    },
+    {
+      "path": "libexec/git-core/git-fmt-merge-msg",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-for-each-ref",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-for-each-repo",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-format-patch",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsck",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsck-objects",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-fsmonitor--daemon",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-gc",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-get-tar-commit-id",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-grep",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-hash-object",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-help",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-hook",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-http-backend",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1919472,
+      "sha256": "9413f7e2f59cd9c91a3e88867fda269f8b060f2ddbab38eeda8abc7d09700a75"
+    },
+    {
+      "path": "libexec/git-core/git-http-fetch",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1989440,
+      "sha256": "2bbccd7b0b3d88e68ed11d934bf5c5b028ad2e61d0f62c6bbab1239ade3a8456"
+    },
+    {
+      "path": "libexec/git-core/git-http-push",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1989920,
+      "sha256": "ac76f4c16047acd9169fb0bdc15502f76c480adfbbac9f622cf4ac5b891e271d"
+    },
+    {
+      "path": "libexec/git-core/git-imap-send",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1989568,
+      "sha256": "66040f9d5f59d85312df6bbe5009f3a296b2084498f9300f3727399ef23004c9"
+    },
+    {
+      "path": "libexec/git-core/git-index-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-init",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-init-db",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-instaweb",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-interpret-trailers",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-last-modified",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-log",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-files",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-remote",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-ls-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mailinfo",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mailsplit",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-maintenance",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-base",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-file",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-octopus",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2477,
+      "sha256": "c5d08a8c4e5afc8b48d965c309d3b98930592da304cf04ac265c8b24ea3d6891"
+    },
+    {
+      "path": "libexec/git-core/git-merge-one-file",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3695,
+      "sha256": "496bd3daaca988726b23252e8032f8e3cc38913dbe2a0d9f1bafd7b7276ae717"
+    },
+    {
+      "path": "libexec/git-core/git-merge-ours",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-recursive",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-resolve",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1226,
+      "sha256": "5638e11ae0ffa26607545afc060cc603083863acb1f7c723547d6dc1d3ff29c9"
+    },
+    {
+      "path": "libexec/git-core/git-merge-subtree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-merge-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mergetool",
+      "type": "file",
+      "mode": 493,
+      "bytes": 11693,
+      "sha256": "445d33f9aa9e1f93afda20fab277904599151af08463316ad45ff0a650031d10"
+    },
+    {
+      "path": "libexec/git-core/git-mergetool--lib",
+      "type": "file",
+      "mode": 420,
+      "bytes": 10908,
+      "sha256": "3fd517e10d0cd0febd5bdda9c7ba2189646fb2747345cd8d0bc5ddea4c42f05c"
+    },
+    {
+      "path": "libexec/git-core/git-mktag",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mktree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-multi-pack-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-mv",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-name-rev",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-notes",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-objects",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-redundant",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pack-refs",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-patch-id",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-prune",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-prune-packed",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-pull",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-push",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-quiltimport",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3696,
+      "sha256": "a103092c9c97d3b202477ae1391ea56b3c30ad40a2cef152dca6980fb5e57fa4"
+    },
+    {
+      "path": "libexec/git-core/git-range-diff",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-read-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rebase",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-receive-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-reflog",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-refs",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ext",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-fd",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ftp",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-remote-ftps",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-remote-http",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2005984,
+      "sha256": "a0119fd412990a160b9dd9c6866449970836801a78eef1e9dbc823a32a054690"
+    },
+    {
+      "path": "libexec/git-core/git-remote-https",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git-remote-http"
+    },
+    {
+      "path": "libexec/git-core/git-repack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-replace",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-replay",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-repo",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-request-pull",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3992,
+      "sha256": "679c05f4a1fde059dc14e583deb3b63f4ba3f79697c08bb69af2b6130c0bd104"
+    },
+    {
+      "path": "libexec/git-core/git-rerere",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-reset",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-restore",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rev-list",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rev-parse",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-revert",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-rm",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-send-email",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100,
+      "sha256": "8ac4e311ad34170915b56dfe797125f74d79bbf29d73f76c19f545b77873bb7d"
+    },
+    {
+      "path": "libexec/git-core/git-send-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-sh-i18n",
+      "type": "file",
+      "mode": 420,
+      "bytes": 1702,
+      "sha256": "9541c8494a94b1f0436952dc542441cbc0d40a572924af068a7454d41e3befe8"
+    },
+    {
+      "path": "libexec/git-core/git-sh-i18n--envsubst",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1902920,
+      "sha256": "0f9623c8ee88ce74cba324930064cf6f595d7bdb7549015f87ccabfa05532174"
+    },
+    {
+      "path": "libexec/git-core/git-sh-setup",
+      "type": "file",
+      "mode": 420,
+      "bytes": 8398,
+      "sha256": "59445c54657ed5fbc6676ec0ce2eb23deb3d1fd388ad71819d24c18fd9282e5a"
+    },
+    {
+      "path": "libexec/git-core/git-shell",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1902920,
+      "sha256": "67b1e6ec4fd239f9965f3abe271ed5be03e5dcc0b40793ded15fb0b83a0996ac"
+    },
+    {
+      "path": "libexec/git-core/git-shortlog",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-branch",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-show-ref",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-sparse-checkout",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stage",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stash",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-status",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-stripspace",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-submodule",
+      "type": "file",
+      "mode": 493,
+      "bytes": 10493,
+      "sha256": "55a1a450b48fb98cc8c3f5745c411e3391ac7659f46eb4b7eef9053aa3614353"
+    },
+    {
+      "path": "libexec/git-core/git-submodule--helper",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-switch",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-symbolic-ref",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-tag",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-unpack-file",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-unpack-objects",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-index",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-ref",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-update-server-info",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-upload-archive",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-upload-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-var",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-commit",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-pack",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-verify-tag",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-version",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-web--browse",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4401,
+      "sha256": "5c0d1d91dadfba3fe353add1f07be76016a7c6a3b2260ff9dfec5491fcd9e5e6"
+    },
+    {
+      "path": "libexec/git-core/git-whatchanged",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-worktree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/git-write-tree",
+      "type": "symlink",
+      "mode": 493,
+      "target": "git"
+    },
+    {
+      "path": "libexec/git-core/mergetools",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/mergetools/araxis",
+      "type": "file",
+      "mode": 420,
+      "bytes": 515,
+      "sha256": "49aa2286e6ec2d7c0fb4077a2f9c5a757537476c07f517694fcc79dca021aa31"
+    },
+    {
+      "path": "libexec/git-core/mergetools/bc",
+      "type": "file",
+      "mode": 420,
+      "bytes": 584,
+      "sha256": "e54e6e1b38bbcd7ededcad7d6e05638453dd4c10631e392ecebfae8d396b01b6"
+    },
+    {
+      "path": "libexec/git-core/mergetools/codecompare",
+      "type": "file",
+      "mode": 420,
+      "bytes": 510,
+      "sha256": "7ee88c614edf10653d6c66f94a6f19a469551cd21aab224ad97101661cda0dc2"
+    },
+    {
+      "path": "libexec/git-core/mergetools/deltawalker",
+      "type": "file",
+      "mode": 420,
+      "bytes": 818,
+      "sha256": "4c64c36c09ba536fc5bd822be2750f6f6dd74b5c2feffc5564b5d51d55f120c1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/diffmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 460,
+      "sha256": "d1b72ad340d905e6ea652069b870fcac2cbfa5296e13b35701d99d3cabc7bfbf"
+    },
+    {
+      "path": "libexec/git-core/mergetools/diffuse",
+      "type": "file",
+      "mode": 420,
+      "bytes": 395,
+      "sha256": "ba5c97c501cae4219a7f4db36ea3934dbde0768a06818b1d49acc63070acbdaf"
+    },
+    {
+      "path": "libexec/git-core/mergetools/ecmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 453,
+      "sha256": "2d23869a9a5c52a45d1d76fff9b446a77fd2205a1db63090fa072ea3e12d5fa6"
+    },
+    {
+      "path": "libexec/git-core/mergetools/emerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 535,
+      "sha256": "014c19e4a9c4227cc08b53703ada35283882ecabada96198ca98c7238cfc9135"
+    },
+    {
+      "path": "libexec/git-core/mergetools/examdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 493,
+      "sha256": "162a10db12c2574d424172fdf00c1b097e0c1be900458da27d4619a9005d281d"
+    },
+    {
+      "path": "libexec/git-core/mergetools/guiffy",
+      "type": "file",
+      "mode": 420,
+      "bytes": 432,
+      "sha256": "294fd58816e5105234628d99af3c64bcc105826171da32ea8134649d9592613b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/gvimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 29,
+      "sha256": "bc1d96063154a0e5a7f55f5f3579d275c124e84ba33eb50db2f5802e259b479f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/kdiff3",
+      "type": "file",
+      "mode": 420,
+      "bytes": 818,
+      "sha256": "b5c69d346db89853a21287b3b2b9f0f923123b691e9f0ebeb0422125fdd8a5ac"
+    },
+    {
+      "path": "libexec/git-core/mergetools/kompare",
+      "type": "file",
+      "mode": 420,
+      "bytes": 264,
+      "sha256": "1e57841ff2f88c6d66cb979b43f382a3e476a747825c1abd32a95f0c26e64b6f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/meld",
+      "type": "file",
+      "mode": 420,
+      "bytes": 2213,
+      "sha256": "8913bd55b2ab6afd4b9776b18cc7b409e134beeb3dd63aa05d21b53fe027312b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/nvimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 29,
+      "sha256": "bc1d96063154a0e5a7f55f5f3579d275c124e84ba33eb50db2f5802e259b479f"
+    },
+    {
+      "path": "libexec/git-core/mergetools/opendiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 418,
+      "sha256": "b43bb602aff994bc92f007d72398cb1439bfaa8d5eb5df3cc99f9e6aaec73901"
+    },
+    {
+      "path": "libexec/git-core/mergetools/p4merge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 784,
+      "sha256": "4d1f6e3cdd1a06d600c672ee4ca88d83b50b8cf42c4f7be0fac323b5c4b32993"
+    },
+    {
+      "path": "libexec/git-core/mergetools/smerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 423,
+      "sha256": "a40d6cae6fa097464595c94ffcca127672b7838d21c5b47efad880fd6afe04f5"
+    },
+    {
+      "path": "libexec/git-core/mergetools/tkdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 403,
+      "sha256": "f1c788423c7a7792319168ce5c5c871918b7f6f428c7304e511692702bf260d9"
+    },
+    {
+      "path": "libexec/git-core/mergetools/tortoisemerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 761,
+      "sha256": "6d0a7e1f66eb108327816949b6cbaef0c727d05fc77c60870a2555b401a93c5b"
+    },
+    {
+      "path": "libexec/git-core/mergetools/vimdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 18438,
+      "sha256": "07fa80716e5e8a4b0449a8ff471d0221c34265b9ee80d939bbd7e1a2744f7bd1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/vscode",
+      "type": "file",
+      "mode": 420,
+      "bytes": 373,
+      "sha256": "58677f9c457844c3138fa66905a54a9670954ff9721c1f03c229176b7feaafe1"
+    },
+    {
+      "path": "libexec/git-core/mergetools/winmerge",
+      "type": "file",
+      "mode": 420,
+      "bytes": 510,
+      "sha256": "18e584efa573fef5a04d5701fa237f83dfa5fb058b790c6aaff27eba33835f07"
+    },
+    {
+      "path": "libexec/git-core/mergetools/xxdiff",
+      "type": "file",
+      "mode": 420,
+      "bytes": 913,
+      "sha256": "9184e4eab6bb40f09834f27dca31244e8f9028047a97d07467d9c340abb82a87"
+    },
+    {
+      "path": "share",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/description",
+      "type": "file",
+      "mode": 420,
+      "bytes": 73,
+      "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee"
+    },
+    {
+      "path": "share/git-core/templates/hooks",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/hooks/applypatch-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 478,
+      "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7"
+    },
+    {
+      "path": "share/git-core/templates/hooks/commit-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 896,
+      "sha256": "1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437"
+    },
+    {
+      "path": "share/git-core/templates/hooks/fsmonitor-watchman.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4726,
+      "sha256": "e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0"
+    },
+    {
+      "path": "share/git-core/templates/hooks/post-update.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 189,
+      "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-applypatch.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 424,
+      "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-commit.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1649,
+      "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-merge-commit.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 416,
+      "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-push.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1374,
+      "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-rebase.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4898,
+      "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3"
+    },
+    {
+      "path": "share/git-core/templates/hooks/pre-receive.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 544,
+      "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989"
+    },
+    {
+      "path": "share/git-core/templates/hooks/prepare-commit-msg.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1492,
+      "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619"
+    },
+    {
+      "path": "share/git-core/templates/hooks/push-to-checkout.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2783,
+      "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f"
+    },
+    {
+      "path": "share/git-core/templates/hooks/sendemail-validate.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2308,
+      "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92"
+    },
+    {
+      "path": "share/git-core/templates/hooks/update.sample",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3650,
+      "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106"
+    },
+    {
+      "path": "share/git-core/templates/info",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/git-core/templates/info/exclude",
+      "type": "file",
+      "mode": 420,
+      "bytes": 240,
+      "sha256": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1"
+    }
+  ],
+  "excluded": [
+    {
+      "path": ".",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "etc",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "etc/gitconfig",
+      "type": "file",
+      "mode": 420,
+      "bytes": 630,
+      "sha256": "f37eb06cf8567109e92f5fe8db2f59ac16a93264970a5481696cbb8f1ee70e20"
+    },
+    {
+      "path": "libexec/git-core/Atlassian.Bitbucket.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 95744,
+      "sha256": "dfa836c097d32258d9f3b0a914543ad3b2da6ae6f6ac427fe31ed9e7470e7a60"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Base.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1907200,
+      "sha256": "c2cdc98eb560bb3311d261463da9f8042c597bc74267c2d4d798b7147646a2df"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Controls.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1021952,
+      "sha256": "aed04c176bfa2a473663f693b431693c5e587693cc85f3b07d930c2f9eb2be8c"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.DesignerSupport.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 208384,
+      "sha256": "1448f888cd4e805830248d5dbc7c7b8b9780fbcbd3472651570b8503350e2f51"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Desktop.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 14848,
+      "sha256": "c194862a6267412f0692af0e0dc08f5a16550f163efc1fa9f431e999a8ed98d9"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Dialogs.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 242176,
+      "sha256": "4ca52b81dc03fc7b7fd3b7ecd75e14e3438aa67610b63f83a7bb287bb76f42bd"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.FreeDesktop.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 201216,
+      "sha256": "661fa2fc49fd611747996c63544389f90f4e25369c18db26ba522f1596e64425"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Markup.Xaml.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 83456,
+      "sha256": "ff4b6ec0bab6cf816cb2779c0832397fbd45ac56d957e1b2acf6ba4949c3297d"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Markup.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 60928,
+      "sha256": "73e6de0c16c23433323a817b95efd342595c15cba08224ae070516f0d497b64d"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Metal.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 13824,
+      "sha256": "c85825469d88c20c13689f5a6af114f23200188b824fb34382e1fe369ca56bf4"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.MicroCom.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15360,
+      "sha256": "bdf80944f530919660734bf62c980de80d4bde9aac461e3ad58c49b493dd2681"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Native.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 269312,
+      "sha256": "32c5e8fab627125917c99066259fe35b4e7949550eafb3d77353f320e82dd8b8"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.OpenGL.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 94720,
+      "sha256": "16ad044e12dd54aedf57a703457f4af05d67c630fb119f356832aad0fac749af"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Remote.Protocol.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 70144,
+      "sha256": "1247e198670f0ec152dcddc7ab1b0920afdbe6fa19566b3e85a5cadee1e27242"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Skia.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 123392,
+      "sha256": "b65b0d87a8593688965ec01cb81b0fb51f25c78c28ff567564cdce1749f96cdb"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Themes.Fluent.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 569856,
+      "sha256": "73ce7680f00b399aea50a3c940a80abf49b6fc125a94ed16ffa4ab082477a7a6"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Vulkan.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 175104,
+      "sha256": "9e09e65a61e6ba25d9b0a40ce77124892ba73a2c995d02f7b79b2921e6793d63"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.Win32.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 714240,
+      "sha256": "1c11dc6885993caee9dc1340f9a88e7d60d83af589b9cde9326fb54deb476bac"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.X11.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 309248,
+      "sha256": "d66aef8827b6a038cd77b865c241544bc818970a1ac8bd0b0af67848a10aabf4"
+    },
+    {
+      "path": "libexec/git-core/Avalonia.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4096,
+      "sha256": "1af86d0197cd0e552cebff5db7d5ea1fdd62629f1b626d0a170d97914c40551a"
+    },
+    {
+      "path": "libexec/git-core/GitHub.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 146432,
+      "sha256": "4032a9c9f55c1361a644c570fb8ee46f3c678e8586a33561116fd7dab7c3318a"
+    },
+    {
+      "path": "libexec/git-core/GitLab.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 61440,
+      "sha256": "7865d18d8272ad104c8dd3ef51313180e2f818b4b08ba6e18a533fface3a468a"
+    },
+    {
+      "path": "libexec/git-core/HarfBuzzSharp.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 116768,
+      "sha256": "1ecdd2cef4870292a652e9584e5dae98842f5a7ba8b26dfe6bdcd4cf353d223a"
+    },
+    {
+      "path": "libexec/git-core/MicroCom.Runtime.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 14336,
+      "sha256": "59839e18e46b06ab23b633944ae3c3b552a300c5da389da870dfa980bcef93c1"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.AzureRepos.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 60928,
+      "sha256": "4256aa7793a6738dad45d04e970818000cad08301e3f3a50f529c251e06d87f1"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.CSharp.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 892752,
+      "sha256": "0d47e34850103bc0a63e8cf05639efa01a83fd8fd17bc55ff0f4e17559df3763"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.Identity.Client.Extensions.Msal.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 66400,
+      "sha256": "c870717a01751953d40376e1e662127626951871c592235dca806db23ca724e7"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.Identity.Client.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1220960,
+      "sha256": "f9bc295d0011112fe4d7d8a728a27a38627739df6cd144c8402b5dae03bf40af"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.IdentityModel.Abstractions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19504,
+      "sha256": "24e97b54b6b5c234a124a336757e3116617ac6c30b655cdae74517dc2ecb5746"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.VisualBasic.Core.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1334608,
+      "sha256": "4b27d2c7d111d1ad0010fa2202bfde6056e963416adea6ae72bd0b39c10e4407"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.VisualBasic.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "4397352b4306f9dd85c48de25bf37512e142fd1aceade0ee884a064b88df1470"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.Win32.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "2c7b8ea81f857228ba4b6de54ab40dd5dcd96a2c67cc62e8768d4e097b0bf48d"
+    },
+    {
+      "path": "libexec/git-core/Microsoft.Win32.Registry.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 34640,
+      "sha256": "e59525585c5dd9e0332716893984ff80ed5c74da0bfe92014c86a9fc71f9ab46"
+    },
+    {
+      "path": "libexec/git-core/NOTICE",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2597,
+      "sha256": "f573f5d21d5d8a054aad1ffcbe0165391a4d93a5aa3e23c3db0752759adfd50c"
+    },
+    {
+      "path": "libexec/git-core/SkiaSharp.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 437288,
+      "sha256": "fd58d57ff4ae221b385449b90bd582b9ce47e56727cf024bcee53660c5bfbe6e"
+    },
+    {
+      "path": "libexec/git-core/System.AppContext.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "706138fe4b36e10344c6bc388daf2c5a07c1b9e69fdd10689ec6d9a064ac7504"
+    },
+    {
+      "path": "libexec/git-core/System.Buffers.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "c5c4337281d3c4ba68de0afa0acafa04be9bf280d0bc0ba0eba4ec086abfc3ff"
+    },
+    {
+      "path": "libexec/git-core/System.Collections.Concurrent.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 254288,
+      "sha256": "23443452a1478130eb3f0ba3da216bb0616cf76456a63d87a839fc52eb536753"
+    },
+    {
+      "path": "libexec/git-core/System.Collections.Immutable.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1117008,
+      "sha256": "3cfcae470d3c8a189c2870071d697459f426d8c3bb453c101eb403107264dadc"
+    },
+    {
+      "path": "libexec/git-core/System.Collections.NonGeneric.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 104272,
+      "sha256": "6cc2e9b0cd470fd5930e380bca6e03c45f9f21610464c6b60bd000daf737c249"
+    },
+    {
+      "path": "libexec/git-core/System.Collections.Specialized.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 105296,
+      "sha256": "1c61e49556792bbf0c541405d16d3753345a7ec0d8c8e6c065a482077bef96c3"
+    },
+    {
+      "path": "libexec/git-core/System.Collections.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 328528,
+      "sha256": "1875a0cf97c50721f6dec803f3c0180c62929e47ac44835f5d9a3b8fb0aeaace"
+    },
+    {
+      "path": "libexec/git-core/System.CommandLine.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 205216,
+      "sha256": "2158cfc2c484ebdec95fd9959c7eecaebe44657e1e1dee5abb78fc971276829f"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.Annotations.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 215888,
+      "sha256": "4e1228307a78cb3049bee155236cf3d6de62ee7f42d0b7e2b19ee11d06c923ff"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.DataAnnotations.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "d7e2e66fa1465c4c66e158cb204e9b7638b299c63d804ea2466c9400d67c917c"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.EventBasedAsync.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 39248,
+      "sha256": "74ff07f8fe2a41f4ac820ae206f6c4bcb82da374902ec7b5fa15380d74cb520b"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 80208,
+      "sha256": "ff4326256c1d9be1cbd045b56dcc6487d89bf1119acabe8c2f68a52af56c1058"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.TypeConverter.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 874320,
+      "sha256": "54a15fcca06a45f204c069d952a3eefd37b0ef13316746199e886d53c04e8ccb"
+    },
+    {
+      "path": "libexec/git-core/System.ComponentModel.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "07316f35ddc291339c8447bb30340f385fb1df6f6f51ee5074590beb4edbe2a1"
+    },
+    {
+      "path": "libexec/git-core/System.Configuration.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19280,
+      "sha256": "bdb5fd24745ece3dffb55ff05b0d64bcf092aa1d8b1d47eac11d893eb6d591cf"
+    },
+    {
+      "path": "libexec/git-core/System.Console.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 226128,
+      "sha256": "a18edc4a834c591f54a77868e32b6ce6d896a128873bcabdbbf6e0fca094f7ce"
+    },
+    {
+      "path": "libexec/git-core/System.Core.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 23376,
+      "sha256": "a0a29ce9d3b7ebbecfabff5b017ee0cee3ae97929134f9d03f01597edee0e33d"
+    },
+    {
+      "path": "libexec/git-core/System.Data.Common.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3228496,
+      "sha256": "c40d253824968494682c444fff755384aba2fc8ba4a687996d2ca25b722a802d"
+    },
+    {
+      "path": "libexec/git-core/System.Data.DataSetExtensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "997fb836b9e1ed3e13f13b0e060cd14b0394a154dee09b7fdfb40978166b60e4"
+    },
+    {
+      "path": "libexec/git-core/System.Data.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 25424,
+      "sha256": "1a8619bafd78a46ebaa1e00daf789bcff6e6b9554f1dc75aa5a7e7e2c9f616d3"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.Contracts.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "4e1fded652221008cbfbc4226cc0b89a08daf081490b3c3b7bd0429d71338530"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.Debug.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "5fdad207792be96d53351adc0746ba63a6a06330556c376eaf9beceb7c121a07"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.DiagnosticSource.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 558416,
+      "sha256": "2edf413fc8f19873f077ed941a6a3768810539d92fdaf9ed2b0ffcadde8767bf"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.FileVersionInfo.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 45904,
+      "sha256": "bdec917037aaf4a736c7b7fc457c0587b89e9d84c2203ac2e1a4910de3310ace"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.Process.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 271184,
+      "sha256": "eda63d649c1b3dd305b566383e8334a2264a98cc3f368f42e9bad2a748905268"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.StackTrace.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 35664,
+      "sha256": "009344732591a6edb7928718b427e2c8c7c735a67e818c8ec14bef4774196c22"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.TextWriterTraceListener.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 65360,
+      "sha256": "1ab9da11b18d7a5c05563957ac9a69b9518850ad2eae2f8f669b18956abdf0f9"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.Tools.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "ae257d9087af8ede1a2a123f4e013dface3504070224d127c883d21c7b1edf37"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.TraceSource.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 150864,
+      "sha256": "32b3afe2f95406c5bb46f4af29d6882949275ffd5f7a1e2fd579ac8f5fc90ec4"
+    },
+    {
+      "path": "libexec/git-core/System.Diagnostics.Tracing.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "622034df5049de61a2d7e596a21cb6da307a0b210e51ca719fa3d994f5255083"
+    },
+    {
+      "path": "libexec/git-core/System.Drawing.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 128336,
+      "sha256": "067cef1b02d34cb0893a3c07642c397a66cb46893daadeb39e3af215c5fd12fe"
+    },
+    {
+      "path": "libexec/git-core/System.Drawing.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 20304,
+      "sha256": "887e9db6b2f66d862c6f0ca949b66ec0e40ed3312c1dfa15af5ac83415655703"
+    },
+    {
+      "path": "libexec/git-core/System.Dynamic.Runtime.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "0c5f87e969fe63176acd51a7d4ecaf0e1f0fa446d8daca59c2adf21fa19eeb47"
+    },
+    {
+      "path": "libexec/git-core/System.Formats.Asn1.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 249680,
+      "sha256": "33e4d0d15f3465931702f5588061af481da9bcadee8eb1c27fe16f961879adc8"
+    },
+    {
+      "path": "libexec/git-core/System.Formats.Tar.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 309584,
+      "sha256": "bc46d98a8feaa62fb7606e55c692f8a86a7ac4ad99b6971ce07659e733348880"
+    },
+    {
+      "path": "libexec/git-core/System.Globalization.Calendars.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "53ce276656a512a5848bb0b05b87176bde7447639fc47427994946349196c438"
+    },
+    {
+      "path": "libexec/git-core/System.Globalization.Extensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "55a11113dfae0727ebac5a7c066b2c5d22bfbdbde1527d3d05f5ab0a7760a665"
+    },
+    {
+      "path": "libexec/git-core/System.Globalization.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "74f238e1fc86ee4457906a08e6801d0b4fb6077eb3f44228b5466df633420cc0"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Compression.Brotli.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 82768,
+      "sha256": "3aa029a723e47d2c59af77c2ab17a8291e8a5ba0c44f12c4ef3351c80dde8d76"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Compression.FileSystem.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "f8a9c747a7088f8ab73795f2c1f41ed15ce650e2cbd428af3fe076658a5285b5"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Compression.ZipFile.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 105808,
+      "sha256": "6dea120ecef3c0bf11590db2f703d3903a1e34f0573e87c9e704d994a8080722"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Compression.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 463696,
+      "sha256": "578ed2775fc7e801e6fa9bf15118bfbf1ba5616262736a23430d44cb5b00ba8e"
+    },
+    {
+      "path": "libexec/git-core/System.IO.FileSystem.AccessControl.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 33616,
+      "sha256": "69b670a4d1f3ebd9fefc9dd0ab545bd03f53209f56f4b275e3f56077d540bece"
+    },
+    {
+      "path": "libexec/git-core/System.IO.FileSystem.DriveInfo.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 91984,
+      "sha256": "bac29bbcf26cd201b196dd10d30e0a4844010527080882e4d4e2fbd456144b88"
+    },
+    {
+      "path": "libexec/git-core/System.IO.FileSystem.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "e6a09eff9a4db6a2c765a6cbe1ed9b2cc4d12d0ae84c96b1d565fa141421eaa3"
+    },
+    {
+      "path": "libexec/git-core/System.IO.FileSystem.Watcher.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 121680,
+      "sha256": "0e2e5fa9afba658bf9750d76b5256b5c585a1b07cda9fcaeed4a4af2381a0969"
+    },
+    {
+      "path": "libexec/git-core/System.IO.FileSystem.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "4bab36962b345bd182bada6451ade3cfd8755f20e76e62263221950cc050a74b"
+    },
+    {
+      "path": "libexec/git-core/System.IO.IsolatedStorage.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 83792,
+      "sha256": "21d8739f5769563e342869546c7b3718fd261f259b08ad9e87d26558469cf6e7"
+    },
+    {
+      "path": "libexec/git-core/System.IO.MemoryMappedFiles.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 96592,
+      "sha256": "45b2c50d83649a650c79b75241ae19c814df0f9a41bd5dc0e0664ad860594a23"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Pipelines.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 198480,
+      "sha256": "8df9a78459173a66386489070a3b42a257400f593b8e42abdc8a24b84fe2bc7b"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Pipes.AccessControl.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 24400,
+      "sha256": "f7deb5488a18f86151248f92f1fdad9d145c3b2911e83a049e926aed5a00d0dd"
+    },
+    {
+      "path": "libexec/git-core/System.IO.Pipes.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 145744,
+      "sha256": "10d2d916888e63969f82a093540e8b14a8a5163c42757aebf39b54ee6da7d34b"
+    },
+    {
+      "path": "libexec/git-core/System.IO.UnmanagedMemoryStream.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "96c4c69043daa1b337c346ea68c95b27fdfe1eae50bc532b63112354c4e8c5dc"
+    },
+    {
+      "path": "libexec/git-core/System.IO.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "4f3704f51ffa98c0b4d9a57e1eb1c74a2059d4ac4391f71d8b30e50c2a49bdb3"
+    },
+    {
+      "path": "libexec/git-core/System.Linq.AsyncEnumerable.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1492816,
+      "sha256": "ae73897986a7e1e9419a660ace9256aff428172f608257d06e72841366047574"
+    },
+    {
+      "path": "libexec/git-core/System.Linq.Expressions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 4651856,
+      "sha256": "3c89a0ceaafd7d0c9db7f2a8d19fda76210151a91b885a390528e0ec63025ff3"
+    },
+    {
+      "path": "libexec/git-core/System.Linq.Parallel.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 892240,
+      "sha256": "a24027da1ad9b86f348ce14ba9e6d68edf19321fda10b6d1c630b4c97646462c"
+    },
+    {
+      "path": "libexec/git-core/System.Linq.Queryable.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 213328,
+      "sha256": "e60d4218fc2cfdc90567d3703dcb8517228b396d52881564c77bc571ea31ec5c"
+    },
+    {
+      "path": "libexec/git-core/System.Linq.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 794960,
+      "sha256": "82f7994bc69ca06f65918404ba54863b20551e8140501611d0fc2e2b217b3e39"
+    },
+    {
+      "path": "libexec/git-core/System.Memory.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 164688,
+      "sha256": "ce190541f803427b19399b9149b3c8d119e1c6805d143f85e4f77bc159068a92"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Http.Json.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 129360,
+      "sha256": "bc39f738608087cecfd7e2b3bb051840001cf3a09de68e2c8eaab9309eec02e6"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Http.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1964368,
+      "sha256": "3a3c1eaa05445661f55a630c104f6ebce180a3d0bf27d979361de2a581f12f99"
+    },
+    {
+      "path": "libexec/git-core/System.Net.HttpListener.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 329040,
+      "sha256": "2b1ef098bb5dd068982c26f1081247626cc6a63e0108f54bbcf93f6e19de198e"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Mail.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 542032,
+      "sha256": "fa0d81e19e10f45e407ca275d6034eaf2e62e49ead0f360996e96889570b47e5"
+    },
+    {
+      "path": "libexec/git-core/System.Net.NameResolution.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 109904,
+      "sha256": "87b874fd7e22520f03833d387671d8f0da48d6dd068e0c03d4adfa3a44666cb6"
+    },
+    {
+      "path": "libexec/git-core/System.Net.NetworkInformation.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 154448,
+      "sha256": "478e00d5c05d2092cf210b427b80c364238b5a3c3b1d0131d2d5eb82cc5fc7e4"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Ping.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 99152,
+      "sha256": "461f78d3d061f5e68ec0793cb1453d87166ce951043df294a78c4d2374ba3947"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 244560,
+      "sha256": "84ed7bced8839631944acccb9fefdb8f316f3a323aa135c438f0415ab96eb75b"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Quic.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 386384,
+      "sha256": "cd58edfa1a11d71b0e51e1b812b3137397e4a6a5030309a7d8fe422be1b857c8"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Requests.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 420176,
+      "sha256": "0be1cd7f85b2b0f5103b624f80b5fbd39658335aabe54054dd7af524bbb2d304"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Security.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 860496,
+      "sha256": "4520035ab18c70060f4fbbb0dbf2bd30a5b76f9726df33b9ac4bfe5caae1ca30"
+    },
+    {
+      "path": "libexec/git-core/System.Net.ServerSentEvents.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 77648,
+      "sha256": "858ab3fb0d4fe4aab0db3de949c40c1f0ad59997f7c4271018239090eef19ca6"
+    },
+    {
+      "path": "libexec/git-core/System.Net.ServicePoint.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "ec77251a6508a7a55037c937a3a20658afae17df556bc7f6229bf2fdf71af8b4"
+    },
+    {
+      "path": "libexec/git-core/System.Net.Sockets.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 702288,
+      "sha256": "0b0d6cadcc6db76b5c2053267ce69802d6f6dbe01a6faf43b27f4f05b98568e2"
+    },
+    {
+      "path": "libexec/git-core/System.Net.WebClient.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 175952,
+      "sha256": "a3ffe069b6dd6f87309a21dacd270c9f1d4f87b02d54549dd7dbf52c9975d10b"
+    },
+    {
+      "path": "libexec/git-core/System.Net.WebHeaderCollection.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 62288,
+      "sha256": "15baeb965c8ad8f32d04b89e15a2fec984ad50eaa4e4d4f95281f70ccfa70dca"
+    },
+    {
+      "path": "libexec/git-core/System.Net.WebProxy.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 34640,
+      "sha256": "e17fc616087d620ba88c769e971a035248d9a8d7995050e2e09b93c731c5e63a"
+    },
+    {
+      "path": "libexec/git-core/System.Net.WebSockets.Client.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 99664,
+      "sha256": "c2c6db27b8fcf14dcbfa14c823b8334e992ad612abce58fb7b836151bb48a41e"
+    },
+    {
+      "path": "libexec/git-core/System.Net.WebSockets.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 259408,
+      "sha256": "676ec9ac1b5a31840ddfc8c072f93dceb72cc225bbef075082727dbfcd09f1cc"
+    },
+    {
+      "path": "libexec/git-core/System.Net.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "b4930ac750899e4e43a86be6bfbbdb81826a864c2573c9f798df9b8aa2e45998"
+    },
+    {
+      "path": "libexec/git-core/System.Numerics.Vectors.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "2495c7f5212516138254a1253a21e302b45f70b1b54e0c31dc6ac93346529a93"
+    },
+    {
+      "path": "libexec/git-core/System.Numerics.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "ff218ea9bbeb2b6d808fffbdf9483b46de8afbebf1b4b95a7dd2c7a471554639"
+    },
+    {
+      "path": "libexec/git-core/System.ObjectModel.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 77648,
+      "sha256": "aeec84f2d1350e99fc7f63b0b7447376e1a8a9715e720666778e031c9d3488c6"
+    },
+    {
+      "path": "libexec/git-core/System.Private.CoreLib.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17092432,
+      "sha256": "751692c150a4ab7046a8e980049c9c97a9853a7b50dce8297f35b454949ae458"
+    },
+    {
+      "path": "libexec/git-core/System.Private.DataContractSerialization.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2397008,
+      "sha256": "1e1742b56dcb87e802a24fa4352ddaa19dccb65870269a1fc2e2f92db3fb653b"
+    },
+    {
+      "path": "libexec/git-core/System.Private.Uri.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 265552,
+      "sha256": "b449b504cd58c0e0de8978fe1db1ae530eabd6cb5f8cea4396cb222e8da6e2ff"
+    },
+    {
+      "path": "libexec/git-core/System.Private.Xml.Linq.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 441168,
+      "sha256": "00d2aec1d87c3f10cfec243995ee80bd239e47da167cb085be41e83e88928f80"
+    },
+    {
+      "path": "libexec/git-core/System.Private.Xml.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 9001808,
+      "sha256": "1097babb83698be483bf48ab64e62a5e90dfe24604034641f2b77f0f8aa62d91"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.DispatchProxy.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 72528,
+      "sha256": "ac2a5c67520125a1d40753755271cb7877ac9beff4fb95592b9e4eb8925b0832"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Emit.ILGeneration.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "fccae2e597506bc1ae824e825c817cee0305a3af0f1040188a0579e281c7107b"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Emit.Lightweight.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "6cd7513906c48caee45f2b56c3c2ae14d13bd63ddbbb88e1b60b4f37608bb4c3"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Emit.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 344400,
+      "sha256": "4add76868700a278b9512b9b2dd476f9762e83fa58a40939c7735839ac374ad6"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Extensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "3b58692977f4910f7295c120b9ccb07eb76250f71992c9b2a4c817fc82cd0087"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Metadata.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1276240,
+      "sha256": "c3cc517a100fda41d0ffea88c497f908484889212d49f23f08ea2b239111693e"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "56108fd52698abacfb2f18c8412233fc71c9f8557bb1264c0f16b6a624da7db4"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.TypeExtensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 34128,
+      "sha256": "031d4be4fe219f2e8d27dea75b63f1287f39d888ccccd48b6672763c686d7a0d"
+    },
+    {
+      "path": "libexec/git-core/System.Reflection.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "2601195d4b3655fab730f8d2ae388f3948d920ac3faeb402730b36e70d34727b"
+    },
+    {
+      "path": "libexec/git-core/System.Resources.Reader.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "0870bce2eea61b098d7a057e37c1641038a171dc7c853edee0cea314379d39a6"
+    },
+    {
+      "path": "libexec/git-core/System.Resources.ResourceManager.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "a1ef0f88e6b74fd8cd24621f61f660e2102a6b731f9082e8de2a18245ef2215e"
+    },
+    {
+      "path": "libexec/git-core/System.Resources.Writer.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 45392,
+      "sha256": "29d401f30ab6ae2fb6f3859c429606f6ab8a90288afa725f236039560bedfe69"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.CompilerServices.Unsafe.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "f8b3dcb91cb5920b343e427ca921f92a00e2a31f84e3e4a8b3b66f6cf4c0205c"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.CompilerServices.VisualC.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 18768,
+      "sha256": "f7367cc8e1179dc9c69f54df57be5c1bface233c1034318a164a0f0bfc967450"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Extensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17744,
+      "sha256": "f3a3d2b36b2cf520d714a88fadd78de270fd98ee38e56e18b8184ee4e014b620"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Handles.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "9576a7c53e33e94303215a8863bc90de914bc9af4fc31f745c8afe7746b8159d"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.InteropServices.JavaScript.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 39760,
+      "sha256": "0d9a0a4b61028717663ab87ffdec4a9d990084a07fef7d49ed73d9a2892ca040"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.InteropServices.RuntimeInformation.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "991cfeb58dab052e6b8c7f71b3fa03fa8c967218ddcf355f1bf4675696b30e7f"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.InteropServices.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 111440,
+      "sha256": "40ccc46658d6dfb17801b954e35b72c877791f74390bf1df652245a4dc6b7c33"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Intrinsics.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "a37bab2599bf59697a92561fbdb2f5e880c90e4fe31dc07d3c8b95d4fd637ecb"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Loader.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "32214ee8231fa435de6202a76b5d6dcb8ee1f590a49b182d62ab08360a279557"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Numerics.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 366416,
+      "sha256": "1684baf29cb25518438cafa1a018b7797f8d877b4884f0b3cf9083763b2e6407"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Serialization.Formatters.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 128848,
+      "sha256": "9d1adde00a82cee94655cf574e97a1178e62d0f328a4b2bbcc3ff429cde46c79"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Serialization.Json.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "b663304ab3a224261331338503a16e41080057fb1f2d7f24d06e538fd1eb437d"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Serialization.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 30032,
+      "sha256": "2039c6fce2a1a7f435682a9bd42d935c783ad1cdac94bce454e70ea3c097abbb"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Serialization.Xml.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "ad6fbe402e81cf1a427a6f9cdfef6a5b06414ebd76afb782eb89bc2ca1bf8513"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.Serialization.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "040b3116362f788121c5823920571a192e4da8f41131af948837ad8649faf599"
+    },
+    {
+      "path": "libexec/git-core/System.Runtime.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 44880,
+      "sha256": "baecec05267f3bf3eabdf61999ce21e7b53e13cbf4ec824c5ca60bb869cce4ad"
+    },
+    {
+      "path": "libexec/git-core/System.Security.AccessControl.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 59728,
+      "sha256": "34d8380915da8eb80333b1c8eabfb801a32fe1415d38e2890bf20bcfa24c1405"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Claims.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 102224,
+      "sha256": "78ce12000a19ee6052164f5a351473f8b85751ea484b52e54125b326e4d2a515"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.Algorithms.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "285d16a8bc144897ede23c6ae204cc31a0dbf5c3cf999e447454af7fb7d04487"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.Cng.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "04aef1bb3034752de3d8e54a7352f62320d21f7a287bd1b36f43ade2706591be"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.Csp.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "dfd007ceb16d443331882204a38fe32f047026ce461e13f8d7ef07f5dd5d760a"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.Encoding.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "5a9afd5d16efcb0fd3034257ae18ca0978ce94a9d7c2f7ee2b22fe17f87b8143"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.OpenSsl.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "39e16b21addd4f1904e7e849ec79071fe11203142a75aec702b0be247995e0ef"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.Primitives.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "ab3126ab7942ef0ae8b4b12560c48bfd58a312f653c1cf82c08c32ff471f528b"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.ProtectedData.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 25232,
+      "sha256": "80566f0839ece5946e66bf9f00d723e59e371ba1341a18e00c7c7a7c49298e1d"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.X509Certificates.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "989b74b4123d3522063685a079c8ef1152bf32f18b5ca39969a2559222c3791d"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Cryptography.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2459472,
+      "sha256": "95b93551b17c5bbfb527d9463458bfff20ff7bccbcca1d2b23ec13c8d7f7c131"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Principal.Windows.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 39248,
+      "sha256": "c3e04467e5e0d1a7b8b5f01ff7cab4a2ab6584857164c6594029198a17d1e573"
+    },
+    {
+      "path": "libexec/git-core/System.Security.Principal.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "a6492523afc481a123641344b526df88082b2d48d324345537d245327ed88a5d"
+    },
+    {
+      "path": "libexec/git-core/System.Security.SecureString.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "65c91f258cad6b1131e51a4a95cd51357312ee19ef10c74ca58864bbce9aca0e"
+    },
+    {
+      "path": "libexec/git-core/System.Security.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 18256,
+      "sha256": "c1708c7bd8e78f50a6c4ed3b852637c7e70362c9af3ff6e8bdbe9244fc4fd409"
+    },
+    {
+      "path": "libexec/git-core/System.ServiceModel.Web.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "7b148a5e14bc906c6d3a7dd7f6f95ec6ae9ae6f982f13490b4d2500b8e742d96"
+    },
+    {
+      "path": "libexec/git-core/System.ServiceProcess.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "3c41aec28c436419abbac4533100bce648efb5d174be9b1608735fa29affd08a"
+    },
+    {
+      "path": "libexec/git-core/System.Text.Encoding.CodePages.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 869200,
+      "sha256": "50f59a57349e07cbc8eb4ef5b571d72e6f8b4bf6f2fdadbfdae0eb347e2a7ee8"
+    },
+    {
+      "path": "libexec/git-core/System.Text.Encoding.Extensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "5026610aa6a419af3506b068d86080f1252863542f5006e830a924026dd8a82b"
+    },
+    {
+      "path": "libexec/git-core/System.Text.Encoding.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "a127c18c1fee4a45436d95690e37903db15e959367ac643772a6ad9d13e00731"
+    },
+    {
+      "path": "libexec/git-core/System.Text.Encodings.Web.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 122192,
+      "sha256": "f0c94e750ad421eb5cec75c9f9eb579f5b83e0f6c931c268bad8e547451032f9"
+    },
+    {
+      "path": "libexec/git-core/System.Text.Json.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2101584,
+      "sha256": "925759819166f330eef62cc33aa15ddc34016c1bde52977be72d4c6edd798d3e"
+    },
+    {
+      "path": "libexec/git-core/System.Text.RegularExpressions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1159504,
+      "sha256": "6ae4e96a09a1a14a2c7b15a7d09727bf5ad71f032f321a4e2e1649353ad8d4aa"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.AccessControl.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 34640,
+      "sha256": "87998fad1db2927b7788a04e11fb1baef6ba3127e3e8ee997009dd5281d1a7d6"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Channels.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 165200,
+      "sha256": "b282e7a0ec2b14e656c1ba1caea1bac2a25cf702f2b97c367f01fa4c3e151481"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Overlapped.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "9a879516b7410e3bcb1d10857f69bd048eba13b94926ec538c88e15d01261dde"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Tasks.Dataflow.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 532304,
+      "sha256": "c61e1b8c68b19ca191c618732b7f561f36f9b5def84030a84c18a235d6a31ef5"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Tasks.Extensions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "5330168b1410f3ae7444ac1da182b4dae8895c9f703c429a9de46d809378d82b"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Tasks.Parallel.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 133968,
+      "sha256": "f7d9705a6bf3edadb6261526250a8b60f7dbb3202e1636a4edcab9cf6ed85482"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Tasks.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "bdff879d56c22f297acdded761c9ba305f64b421d27e07b5a0860b5bb97deb9f"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Thread.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "3bc4a0d57124c2a70146317e1b224c38daac89c0da1691c467a1999712b0684f"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.ThreadPool.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "2d47b2f33a7eeb72c1615967a56d59068028e3faabfcc1ffeb38224098a91cc7"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.Timer.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "e8b07be182d808ed48460e43ddc9af1a7e83a63e4fd57797061df675598feace"
+    },
+    {
+      "path": "libexec/git-core/System.Threading.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 80208,
+      "sha256": "90d5ec1962ac55ed81e718a4801962eeca61a4484a4f24cd962425db868938cc"
+    },
+    {
+      "path": "libexec/git-core/System.Transactions.Local.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 400720,
+      "sha256": "f0dfa7d03a34a1efa1d5d91685413b6639cf9a257a0204cfccfdb97efcdf5fd2"
+    },
+    {
+      "path": "libexec/git-core/System.Transactions.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16720,
+      "sha256": "b0069b7fbf4366b874a757a7522407ed6790e5e1edade18901f841f53ff851ec"
+    },
+    {
+      "path": "libexec/git-core/System.ValueTuple.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "fecabbb96d610d2c5b8bba9d28251d4dd9fb23861bd6d75f6038d583756f8dff"
+    },
+    {
+      "path": "libexec/git-core/System.Web.HttpUtility.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 56656,
+      "sha256": "686f1217d7a5ea54a897211d34e7f2ce0289467cdc645218d8acc2367fa5e9ad"
+    },
+    {
+      "path": "libexec/git-core/System.Web.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15184,
+      "sha256": "ff90b9df7cccc52601113fdcd912e2e43b75dc55e0afc163fbea575cff38576c"
+    },
+    {
+      "path": "libexec/git-core/System.Windows.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "15de2db21b7fa78a90a9d5394061862d8b0f7170dd497cf52c331c48770600df"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.Linq.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "0c4c6008307512993991ada5a321532e8ccaa6956782c03cf60bdaaaaf97b6be"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.ReaderWriter.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 21840,
+      "sha256": "24d23854a138092d9e52c5b23ef2717fc1317f4f097f87d9d4abe6bbe21447d1"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.Serialization.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "09d3e142db7fcfe653f71940550b3b4b28068af15e23a27cb821e46383989761"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.XDocument.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "3698cefe42a425899ee5b477db06a5b4ff92db960334ddeb11be9cfa4f2bbb57"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.XPath.XDocument.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17232,
+      "sha256": "6be100f9e22ce90a9e24f67700d78065070b3e1ec5693f3e21a7399dfbf6e3a9"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.XPath.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "82c064884bc2742921cff099343198f39dddacd80aa51a9625813eec8a1cf283"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.XmlDocument.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15696,
+      "sha256": "4f07cc3ca11f8f440ed7b37555bb63224ec7e957b878b534bd3eedfcd8352950"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.XmlSerializer.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 17744,
+      "sha256": "a0fe36f5eba2d8286cbf27cdde2dd215b85d51874ab99445213fd0c988d7d8ce"
+    },
+    {
+      "path": "libexec/git-core/System.Xml.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 23376,
+      "sha256": "9523782e9ad765bd855b462f9e7fc5630dcb8f88c4ceb5b5aaa60ebdc310b0c2"
+    },
+    {
+      "path": "libexec/git-core/System.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 50512,
+      "sha256": "d1700c2eb7132b9eeae32bc8700928aa6c3296eb08741536ef3b9c6a7fca7788"
+    },
+    {
+      "path": "libexec/git-core/Tmds.DBus.Protocol.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 175616,
+      "sha256": "9cf9b11274b89da9ac27c66e3729d41dcb5f36b68e904a10a20f913c249679c8"
+    },
+    {
+      "path": "libexec/git-core/WindowsBase.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 16208,
+      "sha256": "badc3c16e1911812c0809e4524e95c27855aa54714ed7738c5a9099687a31612"
+    },
+    {
+      "path": "libexec/git-core/createdump",
+      "type": "file",
+      "mode": 493,
+      "bytes": 206096,
+      "sha256": "c2eba8bd8442d654979087251822814f7db5a88d76e7ac542ea8ba5a8012019f"
+    },
+    {
+      "path": "libexec/git-core/cs",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/cs/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "80a66497a01e9ea5be7d68ce19069719751c4b720f9774660c09ab33ac8f8e6e"
+    },
+    {
+      "path": "libexec/git-core/de",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/de/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "3dfa07de8267c771be47a10217e2eafd0e57e68933c536a239b65284dc6f09da"
+    },
+    {
+      "path": "libexec/git-core/es",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/es/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "4283743428f7abb509eab0d523d8000ee7a89fd354dc1db96dc8424b37ce714f"
+    },
+    {
+      "path": "libexec/git-core/fr",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/fr/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "e52478e38b6ac9ecd85999aa5ad181097c41833c9adba62b87bd9fa443b2a8ea"
+    },
+    {
+      "path": "libexec/git-core/gcmcore.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 479744,
+      "sha256": "69d2072c886aac2c0160efc9bc67e7d465cf97775d6312d841d2729c8f048eff"
+    },
+    {
+      "path": "libexec/git-core/git-credential-manager",
+      "type": "file",
+      "mode": 493,
+      "bytes": 158448,
+      "sha256": "e4fb541bd91a8fe60c446e6870d3621129f2aa7759954856cc7d81b4703cff1b"
+    },
+    {
+      "path": "libexec/git-core/git-credential-manager.deps.json",
+      "type": "file",
+      "mode": 493,
+      "bytes": 44913,
+      "sha256": "ff5be128ab2b7b858119259c837c6f8f9fa2e08e051d839d75388b12f2b8a9f8"
+    },
+    {
+      "path": "libexec/git-core/git-credential-manager.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 122368,
+      "sha256": "e284f92c31dee96c2f5e67b72dcbd965c65e97b7dcf733eb3f8eb9aa8ea2e2a9"
+    },
+    {
+      "path": "libexec/git-core/git-credential-manager.runtimeconfig.json",
+      "type": "file",
+      "mode": 493,
+      "bytes": 359,
+      "sha256": "1bd9c91bf8440d42fc502b79dbf753964c5b06f56c2d71fc54574530da387da7"
+    },
+    {
+      "path": "libexec/git-core/git-lfs",
+      "type": "file",
+      "mode": 493,
+      "bytes": 12511008,
+      "sha256": "48bb6497160105ef852044da75147acee19502efd5f164b9a4429c3a60be7d4a"
+    },
+    {
+      "path": "libexec/git-core/it",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/it/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "291da56b4c02bded6ad0e707999370b1e6ad592b74c4691e299c8097fbe44f97"
+    },
+    {
+      "path": "libexec/git-core/ja",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/ja/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "8b03127957ea51ca2c4e17512d9b84fb545b6c6995047e96c7c1b674d2a3fc83"
+    },
+    {
+      "path": "libexec/git-core/ko",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/ko/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19344,
+      "sha256": "b4d7904ec3b87b632cec7fd479c6feb063caa7394c79c7f5165df506a45ee0ba"
+    },
+    {
+      "path": "libexec/git-core/libAvaloniaNative.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1372448,
+      "sha256": "5e22f6ccd1bcd5f34cab92a77ebb9908a7df38eb8ae7c474c050e6bbe2967b2b"
+    },
+    {
+      "path": "libexec/git-core/libHarfBuzzSharp.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2714688,
+      "sha256": "e1f500709d2347cd69f5a8edf666752d6339af564f34c1c3bb583cee269b85a0"
+    },
+    {
+      "path": "libexec/git-core/libSkiaSharp.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 15115904,
+      "sha256": "e53a574581f5ec9e64df1da4efe5ef35d6c97d3e3a46b8ccd9154796897ee60f"
+    },
+    {
+      "path": "libexec/git-core/libSystem.Globalization.Native.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 155024,
+      "sha256": "f83188a7f5283ab514e9fab2b21c30584f1ef0cf49ad55a5dcb78b2a2a214367"
+    },
+    {
+      "path": "libexec/git-core/libSystem.IO.Compression.Native.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 976928,
+      "sha256": "1c2aa328175e29a62d12400da982f62c9131ec71edb639c2bbfcb09f9ad39b3e"
+    },
+    {
+      "path": "libexec/git-core/libSystem.Native.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 161840,
+      "sha256": "8c5ca8d44afb3142d33cf79ae7c74d3c4226ceb178421d4552adfabd72ef10ca"
+    },
+    {
+      "path": "libexec/git-core/libSystem.Net.Security.Native.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 86368,
+      "sha256": "86a49611b7b67fbe3a8e2859a359755f6eb9be254e7cbdc8ae5bce3ddcd99dc2"
+    },
+    {
+      "path": "libexec/git-core/libSystem.Security.Cryptography.Native.Apple.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 184048,
+      "sha256": "c2a94c266c008100aef8a89b6c0137293d7e99acafb333640b5908d0bb66c480"
+    },
+    {
+      "path": "libexec/git-core/libclrgc.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 903440,
+      "sha256": "0dae9bdfdce7e6ce35520e2be80b0fc06e68a0ceb43ce4cb44dcac4ef03ba50a"
+    },
+    {
+      "path": "libexec/git-core/libclrgcexp.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 982272,
+      "sha256": "da9a8a1fe6f9d347e479010559a27affb0fa2a4c0bc3340ed432e54d78e44035"
+    },
+    {
+      "path": "libexec/git-core/libclrjit.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 3100912,
+      "sha256": "84407d9cc4beccc52e24fed4f0343ee51380843cf1833a20a79c9584b6ab678b"
+    },
+    {
+      "path": "libexec/git-core/libcoreclr.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 6216272,
+      "sha256": "48768daf31b2e5d9298927a8176ebbc5cb0732ed1953d5561e6980b43429003f"
+    },
+    {
+      "path": "libexec/git-core/libhostfxr.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 425376,
+      "sha256": "19040a14bf49ce9232e2ce04ee1502b91e5b6080f23d1085a7f7c5f2f408a401"
+    },
+    {
+      "path": "libexec/git-core/libhostpolicy.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 422960,
+      "sha256": "e91f86b0313a1aeee87fd0489ab5a51ddd6b91c50784d34d74ee7b9db5ff3ebb"
+    },
+    {
+      "path": "libexec/git-core/libmscordaccore.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 2407888,
+      "sha256": "462f7403db624606771bd0763306a2766852b9528ab81eed23ff98a9ab4a60fd"
+    },
+    {
+      "path": "libexec/git-core/libmscordbi.dylib",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1786400,
+      "sha256": "f07d54058b59f1e0a38cf0bee199490b23a33d786e59a8e3186a327941e25699"
+    },
+    {
+      "path": "libexec/git-core/mscorlib.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 59728,
+      "sha256": "b987cb42a6f2403ade46c42037f16c5dd86bfd060648a8476abba1f24c027a9f"
+    },
+    {
+      "path": "libexec/git-core/netstandard.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 100688,
+      "sha256": "9341b20674d0913960954d4b8456e4f0f6fb2ad4cf3b0e53dd732b125b87f014"
+    },
+    {
+      "path": "libexec/git-core/pl",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/pl/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "5a51caed53a75d8339df176c8f5118cf609f38e73e39097c6d7edf73721678a0"
+    },
+    {
+      "path": "libexec/git-core/pt-BR",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/pt-BR/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "8fd9272f780e6d46d69ff25bf320e7a5caf5d61fbfb0c89781fbc8f64dab6596"
+    },
+    {
+      "path": "libexec/git-core/ru",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/ru/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19344,
+      "sha256": "a56ee9d0fd2254b0581f256495b61cc24135a3f1fffdb4edd70db87eff6db3ab"
+    },
+    {
+      "path": "libexec/git-core/scalar",
+      "type": "file",
+      "mode": 493,
+      "bytes": 1954024,
+      "sha256": "168dbc97f87b0a3d4fa4050e18a47c3e30e65ac4faefb8ad40aaa07983e38b1d"
+    },
+    {
+      "path": "libexec/git-core/tr",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/tr/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "795abf08b10483a5d58a95dda7190fa62cfa56bfe91fba84dc71ff4918f6ef21"
+    },
+    {
+      "path": "libexec/git-core/uninstall.sh",
+      "type": "file",
+      "mode": 493,
+      "bytes": 992,
+      "sha256": "fbbe0704e74be30c0b9a6b23c7b381e7dc5b793bf1e96835bb3a053c3fb13f32"
+    },
+    {
+      "path": "libexec/git-core/zh-Hans",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/zh-Hans/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19360,
+      "sha256": "b964e741986ad049f2a66daffdfb4a44a1d2a63852245ee95ffc429ee6887891"
+    },
+    {
+      "path": "libexec/git-core/zh-Hant",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "libexec/git-core/zh-Hant/System.CommandLine.resources.dll",
+      "type": "file",
+      "mode": 493,
+      "bytes": 19344,
+      "sha256": "5536a72bf99553442693acd0bdfa5d0f8f892a422f088e3b4c612ea284c85fb9"
+    },
+    {
+      "path": "share/bash-completion",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/bash-completion/completions",
+      "type": "directory",
+      "mode": 493
+    },
+    {
+      "path": "share/bash-completion/completions/git",
+      "type": "file",
+      "mode": 420,
+      "bytes": 94695,
+      "sha256": "8a9645b600726af2ad5b85bf4b5c9e715a4bf1cde6138548300d73b3c3887b8f"
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+[
+  {
+    "id": "light-default",
+    "label": "GitHub Light Default",
+    "appearance": "light",
+    "variables": {
+      "--ws-bg": "#ffffff",
+      "--ws-chrome": "#ffffff",
+      "--ws-panel": "#f6f8fa",
+      "--ws-text": "#1f2328",
+      "--ws-muted": "#656d76",
+      "--ws-line": "#d0d7de",
+      "--ws-hover": "#eaeef280",
+      "--ws-accent": "#0969da",
+      "--ws-selected": "#afb8c133",
+      "--ws-danger": "#cf222e",
+      "--ws-syntax-heading": "#0550ae",
+      "--ws-syntax-link": "#0969da",
+      "--ws-syntax-code": "#0a3069",
+      "--ws-syntax-value": "#cf222e",
+      "--ws-syntax-markup": "#6e7781"
+    }
+  },
+  {
+    "id": "light-high-contrast",
+    "label": "GitHub Light High Contrast",
+    "appearance": "light",
+    "variables": {
+      "--ws-bg": "#ffffff",
+      "--ws-chrome": "#ffffff",
+      "--ws-panel": "#ffffff",
+      "--ws-text": "#0e1116",
+      "--ws-muted": "#0e1116",
+      "--ws-line": "#20252c",
+      "--ws-hover": "#e7ecf0",
+      "--ws-accent": "#0349b4",
+      "--ws-selected": "#acb6c033",
+      "--ws-danger": "#a0111f",
+      "--ws-syntax-heading": "#023b95",
+      "--ws-syntax-link": "#0349b4",
+      "--ws-syntax-code": "#032563",
+      "--ws-syntax-value": "#a0111f",
+      "--ws-syntax-markup": "#66707b"
+    }
+  },
+  {
+    "id": "light-colorblind",
+    "label": "GitHub Light Colorblind (Beta)",
+    "appearance": "light",
+    "variables": {
+      "--ws-bg": "#ffffff",
+      "--ws-chrome": "#ffffff",
+      "--ws-panel": "#f6f8fa",
+      "--ws-text": "#24292f",
+      "--ws-muted": "#57606a",
+      "--ws-line": "#d0d7de",
+      "--ws-hover": "#eaeef280",
+      "--ws-accent": "#0969da",
+      "--ws-selected": "#afb8c133",
+      "--ws-danger": "#b35900",
+      "--ws-syntax-heading": "#0550ae",
+      "--ws-syntax-link": "#0969da",
+      "--ws-syntax-code": "#0a3069",
+      "--ws-syntax-value": "#b35900",
+      "--ws-syntax-markup": "#6e7781"
+    }
+  },
+  {
+    "id": "dark-default",
+    "label": "GitHub Dark Default",
+    "appearance": "dark",
+    "variables": {
+      "--ws-bg": "#0d1117",
+      "--ws-chrome": "#0d1117",
+      "--ws-panel": "#010409",
+      "--ws-text": "#e6edf3",
+      "--ws-muted": "#7d8590",
+      "--ws-line": "#30363d",
+      "--ws-hover": "#6e76811a",
+      "--ws-accent": "#2f81f7",
+      "--ws-selected": "#6e768166",
+      "--ws-danger": "#f85149",
+      "--ws-syntax-heading": "#79c0ff",
+      "--ws-syntax-link": "#2f81f7",
+      "--ws-syntax-code": "#a5d6ff",
+      "--ws-syntax-value": "#ff7b72",
+      "--ws-syntax-markup": "#8b949e"
+    }
+  },
+  {
+    "id": "dark-high-contrast",
+    "label": "GitHub Dark High Contrast",
+    "appearance": "dark",
+    "variables": {
+      "--ws-bg": "#0a0c10",
+      "--ws-chrome": "#0a0c10",
+      "--ws-panel": "#010409",
+      "--ws-text": "#f0f3f6",
+      "--ws-muted": "#f0f3f6",
+      "--ws-line": "#7a828e",
+      "--ws-hover": "#9ea7b31a",
+      "--ws-accent": "#71b7ff",
+      "--ws-selected": "#9ea7b366",
+      "--ws-danger": "#ff6a69",
+      "--ws-syntax-heading": "#91cbff",
+      "--ws-syntax-link": "#71b7ff",
+      "--ws-syntax-code": "#addcff",
+      "--ws-syntax-value": "#ff9492",
+      "--ws-syntax-markup": "#bdc4cc"
+    }
+  },
+  {
+    "id": "dark-colorblind",
+    "label": "GitHub Dark Colorblind (Beta)",
+    "appearance": "dark",
+    "variables": {
+      "--ws-bg": "#0d1117",
+      "--ws-chrome": "#0d1117",
+      "--ws-panel": "#010409",
+      "--ws-text": "#c9d1d9",
+      "--ws-muted": "#8b949e",
+      "--ws-line": "#30363d",
+      "--ws-hover": "#6e76811a",
+      "--ws-accent": "#58a6ff",
+      "--ws-selected": "#6e768166",
+      "--ws-danger": "#d47616",
+      "--ws-syntax-heading": "#79c0ff",
+      "--ws-syntax-link": "#58a6ff",
+      "--ws-syntax-code": "#a5d6ff",
+      "--ws-syntax-value": "#ec8e2c",
+      "--ws-syntax-markup": "#8b949e"
+    }
+  },
+  {
+    "id": "dark-dimmed",
+    "label": "GitHub Dark Dimmed",
+    "appearance": "dark",
+    "variables": {
+      "--ws-bg": "#22272e",
+      "--ws-chrome": "#22272e",
+      "--ws-panel": "#1c2128",
+      "--ws-text": "#adbac7",
+      "--ws-muted": "#768390",
+      "--ws-line": "#444c56",
+      "--ws-hover": "#636e7b1a",
+      "--ws-accent": "#539bf5",
+      "--ws-selected": "#636e7b66",
+      "--ws-danger": "#e5534b",
+      "--ws-syntax-heading": "#6cb6ff",
+      "--ws-syntax-link": "#539bf5",
+      "--ws-syntax-code": "#96d0ff",
+      "--ws-syntax-value": "#f47067",
+      "--ws-syntax-markup": "#768390"
+    }
+  },
+  {
+    "id": "light",
+    "label": "GitHub Light (legacy)",
+    "appearance": "light",
+    "variables": {
+      "--ws-bg": "#fff",
+      "--ws-chrome": "#fff",
+      "--ws-panel": "#f6f8fa",
+      "--ws-text": "#24292e",
+      "--ws-muted": "#6a737d",
+      "--ws-line": "#e1e4e8",
+      "--ws-hover": "#ebf0f4",
+      "--ws-accent": "#0366d6",
+      "--ws-selected": "#e2e5e9",
+      "--ws-danger": "#cb2431",
+      "--ws-syntax-heading": "#005cc5",
+      "--ws-syntax-link": "#0366d6",
+      "--ws-syntax-code": "#032f62",
+      "--ws-syntax-value": "#d73a49",
+      "--ws-syntax-markup": "#6a737d"
+    }
+  },
+  {
+    "id": "dark",
+    "label": "GitHub Dark (legacy)",
+    "appearance": "dark",
+    "variables": {
+      "--ws-bg": "#24292e",
+      "--ws-chrome": "#24292e",
+      "--ws-panel": "#1f2428",
+      "--ws-text": "#e1e4e8",
+      "--ws-muted": "#959da5",
+      "--ws-line": "#1b1f23",
+      "--ws-hover": "#282e34",
+      "--ws-accent": "#79b8ff",
+      "--ws-selected": "#39414a",
+      "--ws-danger": "#f97583",
+      "--ws-syntax-heading": "#79b8ff",
+      "--ws-syntax-link": "#79b8ff",
+      "--ws-syntax-code": "#9ecbff",
+      "--ws-syntax-value": "#f97583",
+      "--ws-syntax-markup": "#6a737d"
+    }
+  }
+]

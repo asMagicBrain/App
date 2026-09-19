@@ -1,0 +1,14 @@
+title = "asMagicBrain public source secret scan"
+
+[extend]
+useDefault = true
+
+# This is the official Supabase *publishable* client identifier. It is shipped
+# intentionally and grants no service-role access. No secret/session token is
+# allowlisted. Keep this exception exact when reviewing configuration changes.
+[[allowlists]]
+description = "Official public Supabase client identifier"
+condition = "AND"
+paths = ['''apps/native/account-build-config\.mjs$''']
+regexTarget = "secret"
+regexes = ['''^sb_publishable_OqM2QiC02TXfR5xRXKg0ig_3YotINtN$''']

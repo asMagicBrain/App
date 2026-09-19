@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "distribution": "desktop/dugite-native",
+  "release": "v2.53.0-4",
+  "gitVersion": "2.53.0",
+  "platform": "linux",
+  "arch": "x64",
+  "releaseURL": "https://github.com/desktop/dugite-native/releases/tag/v2.53.0-4",
+  "upstreamCommit": "4098283a7ecb8a227b9d43580336c78a06f90e5d",
+  "gitCommit": "67ad42147a7acc2af6074753ebd03d904476118f",
+  "selectionSha256": "bebd786ee4eec522bfb4ea87718b0bf3b51d06d5a2dc6f1d369af6fdeca1c4b6",
+  "inputs": [
+    {
+      "filename": "dugite-native-v2.53.0-4098283-ubuntu-x64.tar.gz",
+      "url": "https://github.com/desktop/dugite-native/releases/download/v2.53.0-4/dugite-native-v2.53.0-4098283-ubuntu-x64.tar.gz",
+      "sha256": "cca76aa31ad9e835e771ee7f55b73934777fbd8d16757a10d307ba06de860901"
+    },
+    {
+      "filename": "dugite-native-4098283-source.tar.gz",
+      "url": "https://codeload.github.com/desktop/dugite-native/tar.gz/4098283a7ecb8a227b9d43580336c78a06f90e5d",
+      "sha256": "88ca6b778c3daac6c58bb760cd41099b1f348b07ef3d8daf551269a142bccb5f"
+    },
+    {
+      "filename": "git-67ad4214-source.tar.gz",
+      "url": "https://codeload.github.com/git/git/tar.gz/67ad42147a7acc2af6074753ebd03d904476118f",
+      "sha256": "89b73762be55037144c92eaf5d0657b644330770f66c584c1ba2e7b90b6218cf"
+    },
+    {
+      "filename": "sha1collisiondetection-855827c5-source.tar.gz",
+      "url": "https://codeload.github.com/cr-marcstevens/sha1collisiondetection/tar.gz/855827c583bc30645ba427885caa40c5b81764d2",
+      "sha256": "9bdeac6f97cc09b05343810c5da6f541c052a6f8b15e79959802ae96105b29da"
+    }
+  ],
+  "preparedManifestSha256": "baee10d45659af1ca0828b32b7158d3182b60321a91a58a4be1fb7ac27cf1a0f",
+  "sha1CollisionDetectionCommit": "855827c583bc30645ba427885caa40c5b81764d2",
+  "systemDependencies": {
+    "interpreter": "/lib64/ld-linux-x86-64.so.2",
+    "needed": [
+      "libc.so.6",
+      "libcurl.so.4",
+      "libz.so.1"
+    ],
+    "minimumGlibc": "2.34",
+    "ubuntuPackages": [
+      "libc6",
+      "libcurl4t64",
+      "zlib1g",
+      "ca-certificates"
+    ]
+  }
+}

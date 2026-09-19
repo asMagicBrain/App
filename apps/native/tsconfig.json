@@ -1,0 +1,5 @@
+{
+  "extends": "../../ui-workshop/tsconfig.json",
+  "include": ["renderer/**/*.ts", "renderer/**/*.tsx", "../../ui-workshop/src/**/*.ts", "../../ui-workshop/src/**/*.tsx"],
+  "exclude": ["dist", ".cache", "node_modules"]
+}

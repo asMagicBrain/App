@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "name": "ripgrep",
+  "version": "15.0.0",
+  "platform": "linux",
+  "arch": "x64",
+  "binaryPackage": "@vscode/ripgrep-linux-x64@1.18.0",
+  "binarySha256": "193906679498de4d939345b937fa24e0e69a03c244bd70c859f5e41232713f21",
+  "npmArchiveUrl": "https://registry.npmjs.org/@vscode/ripgrep-linux-x64/-/ripgrep-linux-x64-1.18.0.tgz",
+  "npmIntegrity": "sha512-mQ3bVrUpnD2vs7QT0vX90Lt0cnUq467uFtEktIdsJJmW296RoSULRGqWgzG1AKxyBpNDD6l4ZO4qKf6SgyC23Q==",
+  "upstreamRevision": "3a612f88b8",
+  "sourceUrl": "https://github.com/BurntSushi/ripgrep/tree/3a612f88b8",
+  "commonNotice": {
+    "file": "ripgrep-15.0.0-third-party.txt",
+    "sha256": "c1a129e75a98579a0d2c8b7010142b7be72cd991b65eaf900e647d7e6e293385"
+  },
+  "pcre2Version": "10.45",
+  "sljitCommit": "e51eabbfb8eabc6526f56e4e88b29fb10d1ee048",
+  "packagingRelease": "v15.0.1",
+  "packagingCommit": "67202aaafb17aecd9b5b7046d5b7baa92b05237a",
+  "packagingArchiveUrl": "https://github.com/microsoft/ripgrep-prebuilt/releases/download/v15.0.1/ripgrep-v15.0.1-x86_64-unknown-linux-musl.tar.gz",
+  "packagingArchiveSha256": "4499958bfd5252df3d9e7504127fd448e4a14fbf2805ef4f14baaa1bcf775188",
+  "rustVersion": "1.88.0",
+  "rustCommit": "6b00bc3880198600130e1cf62b8f8a93494488cc",
+  "rustStdArchiveUrl": "https://static.rust-lang.org/dist/rust-std-1.88.0-x86_64-unknown-linux-musl.tar.xz",
+  "rustStdArchiveSha256": "0c42b63c18a6343851e0f27aeb5cff73146c86fc95bc4e2bf51b726c4311249e",
+  "notices": [
+    {
+      "name": "Rust standard library",
+      "version": "1.88.0",
+      "file": "rust-1.88.0-library-COPYRIGHT.html",
+      "sha256": "3d3f60160f5214efa0a7fd804102d02ce9ea6af04b5249a19eeb243450246ae9",
+      "sourceUrl": "https://static.rust-lang.org/dist/rustc-1.88.0-x86_64-unknown-linux-gnu.tar.xz",
+      "archiveSha256": "b049fd57fce274d10013e2cf0e05f215f68f6580865abc52178f66ae9bf43fd8",
+      "archiveMember": "rustc-1.88.0-x86_64-unknown-linux-gnu/rustc/share/doc/rust/COPYRIGHT-library.html"
+    },
+    {
+      "name": "musl",
+      "version": "1.2.3",
+      "file": "musl-1.2.3-COPYRIGHT.txt",
+      "sha256": "f9bc4423732350eb0b3f7ed7e91d530298476f8fec0c6c427a1c04ade22655af",
+      "sourceUrl": "https://www.musl-libc.org/releases/musl-1.2.3.tar.gz",
+      "archiveSha256": "7d5b0b6062521e4627e099e4c9dc8248d32a30285e959b7eecaa780cf8cfd4a4",
+      "archiveMember": "musl-1.2.3/COPYRIGHT"
+    }
+  ],
+  "scope": "The exact npm Linux binary matches Microsoft ripgrep-prebuilt v15.0.1; it reports ripgrep 15.0.0 revision 3a612f88b8 and PCRE2 10.45. Preserve the common exact-revision Cargo/PCRE2/SLJIT notice superset plus these original Rust standard-library and musl notices. The upstream pinned build uses Rust 1.88.0; its musl recipe selects musl 1.2.3 with the recorded iconv security patches. ELF inspection confirms a static x64 executable with no dynamic interpreter, NEEDED, RPATH or RUNPATH. Actual Ubuntu execution verified version and PCRE2/JIT. Microsoft npm resolver and platform package licenses remain separate."
+}

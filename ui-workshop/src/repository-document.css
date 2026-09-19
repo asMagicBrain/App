@@ -1,0 +1,5 @@
+.rc-document .repository-local-image {display:block; max-width:100%; height:auto; margin:16px 0;}
+.rc-document .preview-image-placeholder {display:block; padding:12px; border:1px dashed var(--fw-line); color:var(--fw-muted); overflow-wrap:anywhere;}
+.repository-media {display:flex; flex-direction:column; align-items:center; padding:24px; min-height:240px;}
+.repository-media img,.repository-media video {display:block; max-width:100%; max-height:calc(100vh - 260px); object-fit:contain;}
+.rc-document [data-heading-anchor] {scroll-margin-top:16px;}

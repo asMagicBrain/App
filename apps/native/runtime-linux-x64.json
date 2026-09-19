@@ -1,0 +1,11 @@
+{
+  "version": "44.4.0",
+  "platform": "linux",
+  "arch": "x64",
+  "archive": "electron-v44.4.0-linux-x64.zip",
+  "archiveSha256": "db661711f521c2b9d53476fad313f473ea825b2da8f86eb68bb5ba33420c499d",
+  "downloadURL": "https://github.com/electron/electron/releases/download/v44.4.0/electron-v44.4.0-linux-x64.zip",
+  "checksumsURL": "https://github.com/electron/electron/releases/download/v44.4.0/SHASUMS256.txt",
+  "executable": ".tooling/electron-44.4.0-linux-x64/electron",
+  "scope": "Pinned Linux x64 runtime input for Ubuntu 24.04 preview; preparation alone does not imply native acceptance."
+}
