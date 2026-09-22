@@ -75,4 +75,6 @@ Before applying a reviewed operation, the broker reserves space for its maximum 
 
 There is no silent expiration of idempotency receipts. When full, the API refuses new mutations; the normal app remains available. `--timeout-ms` accepts 10–300000 ms; default 30000. A timeout never triggers an automatic retry.
 
+The CLI waits for its complete response to finish writing before exiting. Output has a separate 30-second bound; a broken or blocked output pipe returns a nonzero exit status without sending the request again or appending a second response. Treat incomplete output as an uncertain receipt and check the original operation's status.
+
 Scopes are cooperative same-user boundaries, not protection against a fully compromised operating-system account. Executable qualification and denied-path/race evidence belong in DevDocs; this guide defines the interface only.

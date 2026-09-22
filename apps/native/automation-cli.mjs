@@ -31,10 +31,27 @@ export async function sendAutomationRequest({connectionFile, request, timeoutMs 
   });
 }
 async function inputBytes(input) {const chunks = []; let size = 0; for await (const chunk of input) {const value = Buffer.from(chunk); size += value.length; if (size > AUTOMATION_MESSAGE_LIMIT) throw failure('LIMIT_EXCEEDED', 'The request exceeds the supported byte limit.'); chunks.push(value);} return Buffer.concat(chunks);}
+// The Electron entry exits immediately after runCli returns. A piped write can
+// still be queued even when write() returns true, so await its callback. Never
+// retry output: after a broken pipe the receiver may already have partial JSON.
+async function outputBytes(stdout, text) {
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = ok => {
+      if (settled) return; settled = true; clearTimeout(timer); stdout.off('close', closed);
+      // Writable may emit error just after invoking its failing write callback.
+      setImmediate(() => stdout.off('error', failed)); resolve(ok);
+    };
+    const failed = () => finish(false), closed = () => finish(false);
+    const timer = setTimeout(() => finish(false), 30000);
+    stdout.once('error', failed); stdout.once('close', closed);
+    try {stdout.write(text, error => finish(!error));} catch {finish(false);}
+  });
+}
 export async function runCli(args, {stdin = process.stdin, stdout = process.stdout} = {}) {
-  let id = null;
+  let id = null, output, code;
   try {
-    if (args.includes('--help')) {stdout.write('asMagicBrain --automation-cli --connection /absolute/connection.json [--request /absolute/request.json]\nWithout --request, read one JSON request from standard input. No automatic retries.\n'); return 0;}
+    if (args.includes('--help')) return await outputBytes(stdout, 'asMagicBrain --automation-cli --connection /absolute/connection.json [--request /absolute/request.json]\nWithout --request, read one JSON request from standard input. No automatic retries.\n') ? 0 : 1;
     const values = {};
     for (let index = 0; index < args.length; index += 2) {const key = args[index], value = args[index + 1]; if (!['--connection', '--request', '--timeout-ms'].includes(key) || !value || values[key] !== undefined) throw failure('INVALID_ARGUMENT', 'Use --connection and optional --request/--timeout-ms.'); values[key] = value;}
     if (!values['--connection'] || !path.isAbsolute(values['--connection'])) throw failure('INVALID_ARGUMENT', 'An absolute connection file is required.');
@@ -44,7 +61,8 @@ export async function runCli(args, {stdin = process.stdin, stdout = process.stdo
     let request; try {request = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes));} catch {throw failure('INVALID_REQUEST', 'Use a valid UTF-8 JSON request.');} if (typeof request?.requestId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(request.requestId)) id = request.requestId;
     const timeoutMs = values['--timeout-ms'] ? Number(values['--timeout-ms']) : 30000;
     if (!Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 300000) throw failure('INVALID_ARGUMENT', 'Timeout must be between 10 and 300000 ms.');
-    const reply = await sendAutomationRequest({connectionFile: values['--connection'], request, timeoutMs}); stdout.write(JSON.stringify(reply) + '\n'); return reply.ok ? 0 : 1;
-  } catch (error) {stdout.write(JSON.stringify(errorReply(id, error)) + '\n'); return 1;}
+    const reply = await sendAutomationRequest({connectionFile: values['--connection'], request, timeoutMs}); output = JSON.stringify(reply) + '\n'; code = reply.ok ? 0 : 1;
+  } catch (error) {output = JSON.stringify(errorReply(id, error)) + '\n'; code = 1;}
+  return await outputBytes(stdout, output) ? code : 1;
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await runCli(process.argv.slice(2));

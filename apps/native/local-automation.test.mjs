@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import net from 'node:net';
-import {Readable} from 'node:stream';
+import {Readable, Writable} from 'node:stream';
 import {testRoot} from '../../tools/development-paths.mjs';
 import {createLocalAutomation, readAutomationConnection, AUTOMATION_MESSAGE_LIMIT} from './local-automation.mjs';
 import {sendAutomationRequest, runCli} from './automation-cli.mjs';
@@ -18,7 +18,7 @@ async function fixture(t, handleRequest = async input => ({operation: input.oper
 async function raw(endpoint, value) {
   return new Promise((resolve, reject) => {const socket = net.createConnection(endpoint); let chunks = []; socket.on('error', reject); socket.on('connect', () => socket.write(typeof value === 'string' || Buffer.isBuffer(value) ? value : JSON.stringify(value) + '\n')); socket.on('data', chunk => chunks.push(chunk)); socket.on('end', () => {socket.destroy(); try {resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));} catch (error) {reject(error);}});});
 }
-const invokeCli = async (args, input = '') => {let output = ''; const code = await runCli(args, {stdin: Readable.from([input]), stdout: {write(value) {output += value;}}}); return {code, output, reply: JSON.parse(output)};};
+const invokeCli = async (args, input = '') => {let output = ''; const stdout = new Writable({write(value, _encoding, done) {output += value; done();}}); const code = await runCli(args, {stdin: Readable.from([input]), stdout}); return {code, output, reply: JSON.parse(output)};};
 test('private same-user endpoint authenticates one versioned request and strips token from service', async t => {
   let received; const f = await fixture(t, async input => {received = input; return {repositories: ['Granted']};});
   assert.equal((await fs.stat(f.directory)).mode & 0o7777, 0o700); assert.equal((await fs.stat(f.connectionFile)).mode & 0o7777, 0o600);

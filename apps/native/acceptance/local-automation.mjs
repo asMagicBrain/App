@@ -43,10 +43,15 @@ async function command(input, timeoutMs = 30000) {
     const child = spawn(target.executablePath, args, {cwd: output, env, stdio: ['ignore', 'pipe', 'pipe']}); let stdout = '', stderr = '';
     const deadline = setTimeout(() => {child.kill('SIGTERM'); reject(Error('CLI process did not exit after its own bounded timeout'));}, timeoutMs + 30000);
     child.stdout.on('data', bytes => {stdout += bytes;}); child.stderr.on('data', bytes => {stderr += bytes;});
-    child.once('error', error => {clearTimeout(deadline); reject(error);}); child.once('exit', (code, signal) => {clearTimeout(deadline); resolve({code, signal, stdout, stderr});});
+    child.once('error', error => {clearTimeout(deadline); reject(error);}); child.once('close', (code, signal) => {clearTimeout(deadline); resolve({code, signal, stdout, stderr});});
   });
   const lines = result.stdout.trim().split('\n').filter(Boolean); let reply; for (const line of lines) {try {const value = JSON.parse(line); if (value.protocolVersion === 1) reply = value;} catch {}}
-  assert.ok(reply, 'CLI emits versioned JSON'); assert.equal(reply.requestId, input.requestId); assert.equal(reply.ok ? 0 : 1, result.code);
+  await fs.writeFile(path.join(output, `cli-capture-${count}.json`), JSON.stringify({requestId: input.requestId, code: result.code, signal: result.signal, stdoutBytes: Buffer.byteLength(result.stdout), stdoutSha256: sha(result.stdout), stderrBytes: Buffer.byteLength(result.stderr), completeVersionedJson: Boolean(reply)}, null, 2) + '\n');
+  if (!reply) {
+    await fs.writeFile(path.join(output, `cli-incomplete-${count}.stdout`), Buffer.from(result.stdout).subarray(0, 2 * 1024 * 1024));
+    await fs.writeFile(path.join(output, `cli-incomplete-${count}.stderr`), Buffer.from(result.stderr).subarray(0, 65536));
+  }
+  assert.ok(reply, 'CLI emits versioned JSON after process and output pipes close'); assert.equal(reply.requestId, input.requestId); assert.equal(reply.ok ? 0 : 1, result.code);
   assert.ok(!Object.hasOwn(reply, 'token')); commands.push({request: input.requestId, operation: input.operation, code: result.code, reply});
   await fs.writeFile(path.join(output, `reply-${count}.json`), JSON.stringify(reply, null, 2) + '\n');
   return reply;
