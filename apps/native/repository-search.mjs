@@ -1,3 +1,4 @@
+import {storageWorkerEnvelope} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
@@ -34,7 +35,7 @@ export function createRepositorySearch({admit,ripgrepPath=path.join(here,'dist-h
     child.stdout.on('data',chunk=>{size+=chunk.length;if(size>limits.outputBytes)stop('SEARCH_LIMIT_EXCEEDED');else chunks.push(chunk);});child.stderr.resume();child.stdin.on('error',()=>{});
     child.once('error',()=>{failure??=error('SEARCH_FAILED');});
     child.once('close',code=>{clearTimeout(timer);clearTimeout(hard);controller.signal.removeEventListener('abort',abort);if(failure)return reject(failure);try{const reply=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(code!==0||reply.ok!==true)throw error(reply.code??'SEARCH_FAILED');resolve(reply.value);}catch(caught){reject(caught);}});
-    child.stdin.end(JSON.stringify({kind,input:value,roots:roots.map(root=>({repo:root.repo,path:root.pin.path,identity:root.pin.identity})),ripgrepPath,limits}));
+    child.stdin.end(JSON.stringify(storageWorkerEnvelope({kind,input:value,roots:roots.map(root=>({repo:root.repo,path:root.pin.path,identity:root.pin.identity})),ripgrepPath,limits})));
    });
    if(controller.signal.aborted)throw error('SEARCH_CANCELLED');if(!roots.length)throw error('SEARCH_UNAVAILABLE');for(const root of roots)checkDirectory(root.pin);return result;
   })();

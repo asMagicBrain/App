@@ -81,6 +81,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
     process: {argv: ['fixture', `--channel=${channel}`], env: environment, platform}, console: {error: (...args) => errors.push(args)},
     setTimeout: () => {const timer = {unref() {}}; timers.add(timer); return timer;}, clearTimeout: timer => timers.delete(timer),
     resolveNativeStartup: options => {if (startupError) throw startupError; return {configuration: resolveBuildConfiguration(options), testRoot: '/fixture/asMagicBrain-Test', paths: {dataRoot: '/fixture/data', profileRoot: '/fixture/profile', temporaryRoot: '/fixture/tmp'}};},
+    prepareNativeStorage: async () => ({context: null, profileLock: {release() {}}}),
     startupFailureMessage, ensurePhysicalDirectory: value => value,
     createLinuxRuntimeTemporaryDirectory: () => {temporaryAllocations++; if (temporaryError) throw temporaryError; return {directory: '/run/user/fixture/asmb-short', cleanup: () => events.push('linux-temp.cleanup')};},
     assertGitRuntime: () => ({kind:'bundled'}),

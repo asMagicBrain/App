@@ -28,7 +28,7 @@ function fixture({attributes} = {}) {
   write('apps/native/release.json', JSON.stringify({schemaVersion: 1, version: '0.2.10', buildNumber: 31, bundleId: 'org.asmagicbrain.preview'}) + '\n');
   write('docs/notes.md', '\ufeffRelease bytes\r\n'); write('docs/revision.md', '$Format:%H$\n'); write('tools/demo.sh', '#!/bin/sh\nexit 0\n', 0o755);
   if (attributes) write('.gitattributes', attributes);
-  for (const name of ['tools/export-source.mjs', 'tools/public-source-policy.mjs', 'apps/native/release-identity.mjs', 'packages/desktop-host/src/zip-import/index.mjs', 'packages/desktop-host/src/physical-roots.mjs', 'packages/source-foundation/src/domain/path-policy.mjs']) write(name, fs.readFileSync(path.join(sourceRoot, name)));
+  for (const name of ['tools/export-source.mjs', 'tools/public-source-policy.mjs', 'apps/native/release-identity.mjs', 'packages/desktop-host/src/zip-import/index.mjs', 'packages/desktop-host/src/physical-roots.mjs', 'packages/source-foundation/src/domain/path-policy.mjs', 'packages/source-foundation/src/adapters/storage-identity.mjs']) write(name, fs.readFileSync(path.join(sourceRoot, name)));
   git(root, 'init', '--initial-branch=main', '--object-format=sha1', '--template=');
   git(root, 'add', '--all'); git(root, 'commit', '--no-gpg-sign', '-m', 'Synthetic source export fixture'); git(root, 'tag', 'native-v0.2.10');
   const output = path.join(parent, 'export');

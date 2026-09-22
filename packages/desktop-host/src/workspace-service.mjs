@@ -1,3 +1,4 @@
+import {persistentIdentity} from '../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
@@ -26,7 +27,7 @@ export function createWorkspaceService({base,privateBase,builtinRepositories,rep
   const parentPin=pinDirectory(parent),target=path.join(parent,name);try{fs.mkdirSync(target,{mode:0o700});}catch(e){if(e.code!=='EEXIST')throw e;}
   const pin=pinDirectory(target);if((fs.statSync(target).mode&0o777)!==0o700)fail('INVALID_PRIVATE_ROOT');
   const fd=fs.openSync(parent,fs.constants.O_RDONLY|fs.constants.O_DIRECTORY|fs.constants.O_NOFOLLOW);
-  try{if(`${fs.fstatSync(fd).dev}:${fs.fstatSync(fd).ino}`!==parentPin.identity)fail('DENIED');fs.fsyncSync(fd);checkDirectory(parentPin);}finally{fs.closeSync(fd);}return pin;
+  try{if(persistentIdentity(fs.fstatSync(fd))!==parentPin.identity)fail('DENIED');fs.fsyncSync(fd);checkDirectory(parentPin);}finally{fs.closeSync(fd);}return pin;
  }
  const privatePin=directory(path.dirname(privateBase),path.basename(privateBase));
  let commitPreferences;
@@ -43,7 +44,7 @@ export function createWorkspaceService({base,privateBase,builtinRepositories,rep
    // Persist each new directory's name in its parent as well as the records.
    for(const pin of [privatePin,settings,root]){
     const parent=pinDirectory(path.dirname(pin.path)),fd=fs.openSync(parent.path,fs.constants.O_RDONLY|fs.constants.O_DIRECTORY|fs.constants.O_NOFOLLOW);
-    try{if(`${fs.fstatSync(fd).dev}:${fs.fstatSync(fd).ino}`!==parent.identity)fail('DENIED');fs.fsyncSync(fd);checkDirectory(parent);}finally{fs.closeSync(fd);}
+    try{if(persistentIdentity(fs.fstatSync(fd))!==parent.identity)fail('DENIED');fs.fsyncSync(fd);checkDirectory(parent);}finally{fs.closeSync(fd);}
    }
    commitPreferences=createCommitPreferencesStore({workspaceRoot:base,privateRoot:root.path,localOwnerId});
   }

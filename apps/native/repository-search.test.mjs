@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {pinDirectory} from '../../packages/desktop-host/src/physical-roots.mjs';
 import {createRepositorySearch,SEARCH_LIMITS} from './repository-search.mjs';
 import {createNativeService} from './host-service.mjs';
+import {runWithStorageIdentity} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 const id='search-fixture';
 function fixture(t,options={}){
  const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'search-'));const repository=path.join(root,'repo');fs.mkdirSync(repository);
@@ -16,6 +17,17 @@ function fixture(t,options={}){
  return {root,repository,search,write};
 }
 const query=(search,query,rest={})=>search.searchRepositoryText({requestId:id,repo:'repo',query,caseSensitive:false,...rest});
+test('search caller carries the mapped admitted root into its fixed worker',async t=>{
+ const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'mapped-search-')),source=path.join(root,'source');
+ fs.mkdirSync(source,{mode:0o700});fs.writeFileSync(path.join(source,'note.md'),'saved');
+ t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const stat=fs.lstatSync(root,{bigint:true}),context={schemaVersion:1,root,rootInode:String(stat.ino),owner:Number(stat.uid),currentDevice:Number(stat.dev),namespaceDevice:Number(stat.dev)+71,volumeId:'fixture-volume'};
+ await runWithStorageIdentity(context,async()=>{
+  const search=createRepositorySearch({admit:async()=>[{repo:'Fixture',pin:pinDirectory(source)}]});
+  try{assert.deepEqual((await search.listRepositoryFiles({requestId:'mapped-search',repo:'Fixture'})).paths,['note.md']);}
+  finally{await search.close();}
+ });
+});
 test('literal saved search uses bundled rg, Unicode UTF16 columns, CRLF and ignored/private exclusions',async t=>{
  const f=fixture(t);f.write('note.md','first\r\n😀 Ω a.b A.B\r\n');f.write('ignored.md','a.b');f.write('nested/.gitignore','skip.md\n');f.write('nested/skip.md','a.b');f.write('nested/keep.md','a.b');f.write('.gitignore','ignored.md\n');f.write('.github/config.txt','a.b');f.write('.asmb-secret/data','a.b');f.write('.git/config','a.b');
  const value=await query(f.search,'a.b');assert.deepEqual(value.matches.map(x=>[x.path,x.line,x.column,x.endColumn]),[['.github/config.txt',1,1,4],['nested/keep.md',1,1,4],['note.md',2,6,9],['note.md',2,10,13]]);assert.equal(value.matches.at(-1).lineText,'😀 Ω a.b A.B');

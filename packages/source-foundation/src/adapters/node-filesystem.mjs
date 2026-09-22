@@ -1,3 +1,4 @@
+import {persistentIdentity, persistentDevice, storageWorkerEnvelope} from './storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -17,7 +18,7 @@ const error = code => Object.assign(new Error(code), { code });
 const preflightFailures = new WeakSet();
 // Trusted in-process phase evidence, never a caller-supplied error code/field.
 export const isTransactionPreflightFailure = failure => preflightFailures.has(failure);
-const identity = stat => `${stat.dev}:${stat.ino}`;
+const identity = persistentIdentity;
 function directory(name) {
   const stat = fs.lstatSync(name);
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw error('UNSAFE_DIRECTORY');
@@ -51,7 +52,7 @@ function runWorker(parent, command, fields, limit = FILE_LIMIT, outputLimit = 48
   const result = spawnSync(process.execPath, [worker], {
     cwd: parent.path, shell: false, encoding: 'utf8', timeout: 30000,
     env: {PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})},
-    input: JSON.stringify({ command, identity: parent.identity, ...fields, limit }),
+    input: JSON.stringify(storageWorkerEnvelope({ command, identity: parent.identity, ...fields, limit })),
     maxBuffer: outputLimit,
   });
   if (result.error) throw error(result.error.code ?? 'WORKER_FAILED');
@@ -396,7 +397,7 @@ function createFilesystem(options, localExecute = null, captureParents = null) {
         if (!isExactDataRecord(file, ['path', 'hash', 'bytes', 'parentIdentity', 'parentDev']) || file.path !== paths[index]
           || typeof file.parentIdentity !== 'string' || !/^\d+:\d+$/u.test(file.parentIdentity)
           || !Number.isSafeInteger(file.parentDev) || file.parentDev !== repository.dev
-          || file.parentIdentity.split(':')[0] !== String(file.parentDev)
+          || file.parentIdentity.split(':')[0] !== String(persistentDevice(file.parentDev))
           || (file.bytes === null ? file.hash !== null : typeof file.bytes !== 'string' || file.bytes.length > 2 * fileLimit)) throw error('WORKER_FAILED');
         if (file.bytes !== null) {
           const bytes = Buffer.from(file.bytes, 'base64'); total += bytes.length;

@@ -1,9 +1,10 @@
+import {persistentIdentity} from '../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { portablePathKey } from '../../source-foundation/src/domain/path-policy.mjs';
 
 const fail = code => { throw Object.assign(new Error(code), { code }); };
-const identity = stat => `${stat.dev}:${stat.ino}`;
+const identity = persistentIdentity;
 export const contains = (parent, child) => child === parent || child.startsWith(parent + path.sep);
 const spellingCache = new Map();
 const directoryStamp = value => `${value.dev}:${value.ino}:${value.mode}:${value.uid}:${value.mtimeNs}:${value.ctimeNs}`;
@@ -48,7 +49,7 @@ export function pinDirectory(root) {
     current = path.join(current, part);
     const stat = fs.lstatSync(current);
     if (!stat.isDirectory() || stat.isSymbolicLink()) fail('DENIED');
-    chain.push({ path: current, identity: identity(stat), dev: stat.dev });
+    chain.push({ path: current, identity: identity(stat), rawIdentity: `${stat.dev}:${stat.ino}`, dev: stat.dev });
   }
   return Object.freeze({ path: root, identity: chain.at(-1).identity, dev: chain.at(-1).dev,
     chain: Object.freeze(chain.map(Object.freeze)) });
@@ -56,7 +57,7 @@ export function pinDirectory(root) {
 
 export function checkDirectory(pinned) {
   const live = pinDirectory(pinned.path);
-  if (live.chain.length !== pinned.chain.length || live.chain.some((entry, index) => entry.identity !== pinned.chain[index].identity)) fail('DENIED');
+  if (live.chain.length !== pinned.chain.length || live.chain.some((entry, index) => entry.rawIdentity !== pinned.chain[index].rawIdentity || entry.identity !== pinned.chain[index].identity)) fail('DENIED');
 }
 
 // These are read-only spelling checks. File bytes always come from the qualified

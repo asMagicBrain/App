@@ -1,14 +1,16 @@
+import {persistentIdentity, runStorageWorkerEnvelope} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import {isPortableRelativePath,portablePathKey} from '../../../source-foundation/src/domain/path-policy.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-const identity=value=>`${value.dev}:${value.ino}`;
+const identity=persistentIdentity;
 const managedName=value=>typeof value==='string'&&/^\.asmb-(?:repository-trash|docs-stage|docs-preserved)-[a-f0-9-]{36}$/.test(value);
 const name=value=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(value)&&isPortableRelativePath(value);
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const directory=value=>{const stat=fs.lstatSync(value);if(!stat.isDirectory()||stat.isSymbolicLink())fail('REPOSITORY_CHANGED');return identity(stat);};
 try{
- const input=fs.readFileSync(0,'utf8');if(input.length>2048)fail('INVALID_REQUEST');const request=JSON.parse(input);
+ const input=fs.readFileSync(0,'utf8');if(input.length>8192)fail('INVALID_REQUEST');await runStorageWorkerEnvelope(JSON.parse(input),request=>{
+ if(JSON.stringify(request).length>2048)fail('INVALID_REQUEST');
  const fields=request.operation==='reserve'?['operation','name','parentIdentity']:['operation','repository','name','identity','reservationIdentity','parentIdentity'];
  if(!exact(request,fields)||!['reserve','rename'].includes(request.operation)||!(name(request.name)||managedName(request.name)))fail('INVALID_REQUEST');
  const parent=fs.openSync('.',fs.constants.O_RDONLY|fs.constants.O_DIRECTORY|fs.constants.O_NOFOLLOW);
@@ -29,4 +31,5 @@ try{
   }
   process.stdout.write(JSON.stringify({ok:true,identity:directory(request.name)}));
  }finally{fs.closeSync(parent);}
+ });
 }catch(error){process.stdout.write(JSON.stringify({ok:false,code:error.code??'RENAME_FAILED'}));process.exitCode=1;}

@@ -1,3 +1,4 @@
+import {persistentIdentity} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -12,7 +13,7 @@ import {docsHash, verifyBundledDocsPayload} from './bundled-docs-manifest.mjs';
 const NAME = 'asMagicBrain-Docs';
 const fail = () => {throw Object.assign(Error('Documentation storage needs recovery. Existing documentation and user files are preserved.'), {code: 'DOCS_RECOVERY_REQUIRED'});};
 const exists = filename => {try {return fs.lstatSync(filename);} catch (error) {if (error.code === 'ENOENT') return null; throw error;}};
-const identity = stat => `${stat.dev}:${stat.ino}`;
+const identity = persistentIdentity;
 const markerName = '.git/asmagicbrain-docs.json';
 const idValid = value => typeof value === 'string' && /^\d+:\d+$/.test(value);
 const uuidValid = value => typeof value === 'string' && /^[a-f0-9-]{36}$/.test(value);

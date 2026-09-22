@@ -1,3 +1,4 @@
+import {persistentIdentity, storageWorkerEnvelope} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import {gitExecutable, gitEnvironment} from '../git-executable.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,7 +15,7 @@ import {isPortableRelativePath,portablePathKey} from '../../../source-foundation
 
 const execute=promisify(execFile),worker=fileURLToPath(new URL('./github-apply-worker.mjs',import.meta.url));
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-const digest=bytes=>createHash('sha256').update(bytes).digest('hex'),identity=s=>`${s.dev}:${s.ino}`;
+const digest=bytes=>createHash('sha256').update(bytes).digest('hex'),identity=persistentIdentity;
 const uuid=s=>typeof s==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(s);
 const oid=s=>typeof s==='string'&&/^[a-f0-9]{40}$/.test(s);
 const exists=p=>{try{return fs.lstatSync(p);}catch(e){if(e.code==='ENOENT')return null;throw e;}};
@@ -71,7 +72,7 @@ export function createGitHubApply({sourceRoot,sourceBindingRoot,privateRoot,snap
   check();checkDirectory(parent);const wait=remaining(),child=spawn(process.execPath,[worker],{cwd:parent.path,env:{...environment(),...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})},stdio:['pipe','pipe','pipe',...(fd===undefined?[]:[fd])]});let data='',timedOut=false;const timer=setTimeout(()=>{timedOut=true;child.kill('SIGKILL');},wait);child.stderr.resume();child.stdin.on('error',()=>{});child.stdout.on('data',b=>{data+=b;if(data.length>65536)child.kill('SIGKILL');});
   // Trusted constructor-only syscall fault seam; never part of a request DTO.
   const stopAfter=commandName==='publish'&&!workerFaultUsed?hooks.workerStopAfter:undefined;if(stopAfter)workerFaultUsed=true;
-  child.stdin.end(JSON.stringify({parentIdentity:parent.identity,command:commandName,...fields,...(stopAfter?{stopAfter}:{})}));const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',resolve);}).finally(()=>clearTimeout(timer));if(timedOut)fail('APPLY_TIMEOUT');check();checkDirectory(parent);let result;try{result=JSON.parse(data);}catch{fail('APPLY_RECOVERY_REQUIRED');}if(code!==0||!result.ok)fail(result.code??'APPLY_RECOVERY_REQUIRED');return result.value;
+  child.stdin.end(JSON.stringify(storageWorkerEnvelope({parentIdentity:parent.identity,command:commandName,...fields,...(stopAfter?{stopAfter}:{})})));const code=await new Promise((resolve,reject)=>{child.once('error',reject);child.once('close',resolve);}).finally(()=>clearTimeout(timer));if(timedOut)fail('APPLY_TIMEOUT');check();checkDirectory(parent);let result;try{result=JSON.parse(data);}catch{fail('APPLY_RECOVERY_REQUIRED');}if(code!==0||!result.ok)fail(result.code??'APPLY_RECOVERY_REQUIRED');return result.value;
  }
  function inspectMetadata(){
   check();for(const p of ['commondir','objects/info/alternates','objects/info/http-alternates','shallow','MERGE_HEAD','CHERRY_PICK_HEAD','REVERT_HEAD','rebase-merge','rebase-apply','sequencer'])if(exists(path.join(git.path,p)))fail('APPLY_UNSUPPORTED');

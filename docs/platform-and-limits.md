@@ -30,6 +30,7 @@ Removal leaves your repositories and profile in your home folder. [Back them up]
 
 - **Editing:** supported text files can be up to 1 MiB. Binary files and unsupported text encodings are read-only.
 - **Large files and repositories:** preview, import, and browsing have size limits. Split oversized imports and keep enough free disk space for copies and history.
+- **Storage:** keep managed data on a local filesystem whose volume has a stable UUID. Network filesystems and removable-storage configurations remain unsupported.
 - **Search:** results may be limited. Narrow your search if the app reports a limit.
 - **Commits:** large or binary changes may show a summary instead of a full text comparison. Commit a smaller selection if the app asks you to.
 

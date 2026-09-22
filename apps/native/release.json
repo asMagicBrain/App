@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "0.2.14",
-  "buildNumber": 40,
-  "bundleId": "org.asmagicbrain.preview",
-  "metadataRevision": 1
+  "version": "0.2.16",
+  "buildNumber": 42,
+  "bundleId": "org.asmagicbrain.preview"
 }

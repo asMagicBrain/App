@@ -1,3 +1,4 @@
+import {persistentIdentity, storageWorkerEnvelope} from '../../../source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -24,7 +25,7 @@ export function inspectExternalSources(sources){
     if(stat.isSymbolicLink())fail('SYMLINK_UNSUPPORTED');if(!stat.isDirectory()&&(!stat.isFile()||stat.nlink!==1))fail('UNSUPPORTED_FILE');
     if(found.has(filename))fail('DUPLICATE_SOURCE');found.add(filename);
     if(!externalMetadataName(path.basename(filename)))managementPath(path.basename(filename));
-    return {path:filename,identity:`${stat.dev}:${stat.ino}`,kind:stat.isDirectory()?'directory':'file'};
+    return {path:filename,identity:persistentIdentity(stat),kind:stat.isDirectory()?'directory':'file'};
   });
 }
 export function managementPath(relative) {
@@ -36,13 +37,13 @@ function exists(filename) { try { return fs.lstatSync(filename); } catch(error) 
 function names(filename){const handle=fs.opendirSync(filename),result=[];try{for(let entry=handle.readSync();entry;entry=handle.readSync()){if(result.length>=10000)fail('LIMIT_EXCEEDED');result.push(entry.name);}return result;}finally{handle.closeSync();}}
 function mutate(parent,command,fields={},input,at){
   const pinned=pinDirectory(parent);at?.('management-before-worker',{parent,command,...fields});
-  const result=spawnSync(process.execPath,[worker],{cwd:pinned.path,encoding:'utf8',env:{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})},input:JSON.stringify({command,parentIdentity:pinned.identity,...fields}),stdio:['pipe','pipe','pipe',input??'ignore'],maxBuffer:64*1024});
+  const result=spawnSync(process.execPath,[worker],{cwd:pinned.path,encoding:'utf8',env:{PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})},input:JSON.stringify(storageWorkerEnvelope({command,parentIdentity:pinned.identity,...fields})),stdio:['pipe','pipe','pipe',input??'ignore'],maxBuffer:64*1024});
   if(result.error)throw result.error;let response;try{response=JSON.parse(result.stdout);}catch{fail('WORKER_FAILED');}
   if(!response.ok)fail(response.error);checkDirectory(pinned);return response.value;
 }
 function syncDirectory(filename) {
   const pin=pinDirectory(filename),fd=fs.openSync(filename,fs.constants.O_RDONLY|fs.constants.O_DIRECTORY|fs.constants.O_NOFOLLOW);
-  try { if(`${fs.fstatSync(fd).dev}:${fs.fstatSync(fd).ino}`!==pin.identity)fail('CONFLICT');fs.fsyncSync(fd);checkDirectory(pin); } finally { fs.closeSync(fd); }
+  try { if(persistentIdentity(fs.fstatSync(fd))!==pin.identity)fail('CONFLICT');fs.fsyncSync(fd);checkDirectory(pin); } finally { fs.closeSync(fd); }
 }
 function fileHash(filename, linkedWith, checkCancelled=()=>{}) {
   const parent=pinDirectory(path.dirname(filename));
@@ -130,6 +131,17 @@ export function validateManagementPlan(plan){
 }
 export function validateManagedTrash(entry){
   if(!exact(entry,['format','trashId','path','snapshot'])||entry.format!=='tree-v1'||!uuid(entry.trashId))fail('RECOVERY_REQUIRED');managementPath(entry.path);validateSnapshot(entry.snapshot);
+}
+
+/** Read-only admission for a retained managed-Trash tree. This validates only
+ * the owned backing bytes; restore destination availability and capacity are
+ * intentionally outside preflight. */
+export function verifyManagedTrashBacking({privateRoot,entry}){
+  validateManagedTrash(entry);for(const child of entry.snapshot.entries)managementPath(child.path?`${entry.path}/${child.path}`:entry.path);
+  if(typeof privateRoot!=='string'||!path.isAbsolute(privateRoot)||path.normalize(privateRoot)!==privateRoot)fail('RECOVERY_REQUIRED');
+  const archive=pinDirectory(privateRoot),target=path.join(archive.path,entry.trashId),actual=scan(target);checkDirectory(archive);
+  if(!equivalent(actual,entry.snapshot,{privateModes:true})||actual.entries.some(item=>item.mode!==(item.type==='directory'?0o700:0o600)))fail('RECOVERY_REQUIRED');
+  return true;
 }
 
 /** Byte operations use host-owned staging and retained originals, never text decoding. */
@@ -300,7 +312,7 @@ export function createFileManagement({source,privateRoot,check,hooks={}}){
       const retained=old&&exists(old)?scan(old,{linkedWith:sourcePath(item.path)}):null;
       const staged=stage&&exists(stage)?scan(stage,{linkedWith:sourcePath(item.newPath)}):null;
       const reservationStat=item.newPath&&exists(sourcePath(item.newPath));
-      const reservation=destination?.type==='directory'&&destination.entries.length===1&&witness(plan,item.newPath)===`${reservationStat.dev}:${reservationStat.ino}`;
+      const reservation=destination?.type==='directory'&&destination.entries.length===1&&witness(plan,item.newPath)===persistentIdentity(reservationStat);
       if(original&&!equivalent(original,item.snapshot)||retained&&!subset(retained,item.snapshot)||staged&&!subset(staged,item.snapshot)||destination&&!equivalent(destination,item.snapshot)&&!reservation&&!(rollback&&subset(destination,item.snapshot)))fail('RECOVERY_REQUIRED');
       if(plan.operation==='trash'&&!original&&!equivalent(scan(archivePath(item.trashId)),item.snapshot,{privateModes:true}))fail('RECOVERY_REQUIRED');
       const after=(plan.operation==='copy'||plan.operation==='restore'||plan.operation==='import'||!original)&&(item.newPath?equivalent(destination,item.snapshot):!original);

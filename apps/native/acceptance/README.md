@@ -39,6 +39,7 @@ Use a desktop session, run pointer/keyboard campaigns serially, and close throug
 | `repository-management.mjs` | Menus, duplicate, Trash/restore, retained state. |
 | `integrated-outline.mjs` | Same-window outline, focus, geometry, drafts, restart. |
 | `public-docs.mjs` | Docs ordering, read-only guards, links, duplication, normal restart. |
+| `storage-recovery.mjs` | Packaged recovery confirmation, verified managed-data backup, namespace migration, preservation, and restart. |
 | `linux-desktop.mjs` | Installed Linux shortcuts/search/outline, choosers, reveal, URL dispatch, restart. |
 | `session-accounts.mjs` | Session account lifecycle with identified fixtures. |
 
@@ -51,6 +52,23 @@ ASMB_PACKAGED_EXECUTABLE=/absolute/path/asMagicBrain.app/Contents/MacOS/asMagicB
 ```
 
 This stays offline with synthetic repositories, isolated development data or a preview test home, and retained run output.
+
+### Packaged storage recovery
+
+Run the recovery campaign on macOS arm64 or Ubuntu 24.04 x64 in an actual desktop session. It creates a fresh preview test home under `ASMB_TEST_ROOT`; never point it at personal data. Bind it to the reviewed package and manifest:
+
+```sh
+export ASMB_TEST_ROOT=/absolute/path/asMagicBrain-Test
+export ASMB_ACCEPTANCE_RUN_ROOT="$ASMB_TEST_ROOT/runs/storage-recovery"
+export ASMB_PACKAGED_EXECUTABLE=/absolute/path/to/the/packaged/executable
+# Required on Linux; macOS otherwise uses package-manifest.json beside the app.
+export ASMB_PACKAGE_MANIFEST=/absolute/path/package-manifest.json
+node apps/native/acceptance/storage-recovery.mjs --run-isolated
+```
+
+The runner pauses for the real native recovery dialog. Observe it and choose **Back Up and Restore Access**; automation does not approve the dialog. The packaged app then verifies the backup, preserves the original source, Git, private drafts, app state, inodes and modes, exercises Save/Create through the shipped preload bridge, restarts without another prompt, and closes normally. Retain the run receipt, screenshots, package pins, backup receipt, renderer errors and close events.
+
+This campaign simulates only a prior device-number namespace by recording a different number; raw filesystem statistics are unchanged. It does not simulate a reboot, storage driver, physical volume change or failing disk. Qualification on an affected physical Mac is separate evidence and must identify the actual machine, filesystem and volume behavior rather than inheriting the simulated result.
 
 ## Installed Ubuntu checks
 
