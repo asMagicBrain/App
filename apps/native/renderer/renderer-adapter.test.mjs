@@ -22,7 +22,7 @@ async function withBridge(bridge, run) {
 
 // Execute the actual preload, then model Electron's documented Error boundary:
 // resolved plain objects are copied; rejected Errors retain message but lose code.
-async function withPreloadBoundary(invoke,run,{getPathForFile=file=>file.name?`/fixture/${file.name}`:''}={}){
+async function withPreloadBoundary(invoke,run,{getPathForFile=file=>file.name?`/fixture/${file.name}`:'',platform='darwin'}={}){
  const previous=globalThis.window;let exposed;const listeners=new Map(),sent=[];
  const electron={
   ipcRenderer:{invoke,on:(name,callback)=>listeners.set(name,callback),removeListener:name=>listeners.delete(name),send:(...args)=>sent.push(args)},webUtils:{getPathForFile},
@@ -31,10 +31,18 @@ async function withPreloadBoundary(invoke,run,{getPathForFile=file=>file.name?`/
    try{const result=value(...args);return result&&typeof result.then==='function'?result.then(value=>structuredClone(value),loseCode):result;}catch(error){return loseCode(error);}
   }):value]));}},
  };
- vm.runInNewContext(fs.readFileSync(new URL('../preload.cjs',import.meta.url),'utf8'),{require:name=>{assert.equal(name,'electron');return electron;}});
+ vm.runInNewContext(fs.readFileSync(new URL('../preload.cjs',import.meta.url),'utf8'),{process:{platform},require:name=>{assert.equal(name,'electron');return electron;}});
  globalThis.window={asMagicBrain:exposed};
  try{await run({wire:exposed,listeners,sent});}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 }
+
+test('preload advertises native macOS controls through the renderer adapter only on macOS',async()=>{
+ for(const platform of ['darwin','linux'])await withPreloadBoundary(async()=>({ok:true}),async({wire})=>{
+  assert.equal(wire.nativeWindowControls,platform==='darwin');
+  assert.equal(getNativeBridge().nativeWindowControls,platform==='darwin');
+  assert.equal(Object.isFrozen(getNativeBridge()),true);
+ },{platform});
+});
 
 test('actual preload transports all coded failures as plain replies through a lossy Error boundary',async()=>{
  const cases=[['catalog',undefined,'RECOVERY_REQUIRED'],['read',{repo:'Workspace',path:'note.md',ref:''},'NOT_FOUND'],['readAsset',{repo:'Workspace',path:'image.png',ref:''},'ASSET_UNAVAILABLE'],['revealItem',{repo:'Workspace',path:'README.md',ref:''},'REVEAL_NOT_FOUND'],['bootstrap','Workspace','REPOSITORY_CHANGED'],['request',{repo:'Workspace',operation:'save',args:{}},'CONFLICT'],['importArchive',{name:'Docs',bytes:new ArrayBuffer(0)},'NAME_EXISTS'],['createRepository',{name:'Docs',requestId:'1570c1ce-8353-43d5-bc83-275127788382'},'NAME_EXISTS'],['renameRepository',{repository:'Workspace',name:'Docs'},'RECOVERY_REQUIRED'],['prepareExternalFiles',[{name:'note.md'}],'SYMLINK_UNSUPPORTED'],['pickExternalFiles',undefined,'IMPORT_BUSY'],['importExternalFiles',{repo:'Workspace',destination:'',ticket:'fixture'},'IMPORT_CANCELLED'],['cancelExternalFiles',{ticket:'fixture'},'INVALID_REQUEST'],['getBuildConfiguration',undefined,'BUILD_CONFIGURATION_INVALID'],['getAppearance',undefined,'RECOVERY_REQUIRED'],['setAppearance',{themeId:'light-default',hideUnavailable:false},'CONFLICT'],['windowAction','close','SERVICE_CLOSED']];

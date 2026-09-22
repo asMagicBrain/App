@@ -1,0 +1,24 @@
+.pro-presentation {display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;border-bottom:1px solid var(--fw-line);font:12px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--fw-text);background:var(--fw-chrome);}
+.pro-presentation-label {font-weight:600;}
+.pro-presentation-options {display:flex;}
+.fw-window .pro-presentation button,.fw-window .pro-visual-heading button {border:1px solid var(--fw-line);border-radius:5px;background:var(--fw-bg);color:var(--fw-text);font:inherit;padding:5px 9px;cursor:pointer;}
+.pro-presentation-options button {border-radius:0;}
+.pro-presentation-options button:first-child {border-radius:5px 0 0 5px;}
+.pro-presentation-options button:last-child {border-radius:0 5px 5px 0;border-left:0;}
+.pro-presentation button[aria-pressed=true] {font-weight:600;background:var(--fw-hover,#303030);}
+.pro-presentation button:disabled {opacity:.5;cursor:default;}
+.pro-presentation button:focus-visible,.pro-visual-heading button:focus-visible {outline:2px solid var(--fw-accent,#9cbcf2);outline-offset:2px;}
+.pro-presentation-hint {color:var(--fw-muted);}
+.pro-visual-widget {width:var(--pro-content-width,100%);margin:8px 0;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-bg);color:var(--fw-text);overflow:hidden;font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;white-space:normal;}
+.pro-visual-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;border-bottom:1px solid var(--fw-line);background:var(--fw-chrome);font-size:12px;}
+.fw-window .pro-visual-heading button {padding:3px 8px;}
+.pro-visual-preview {padding:8px 12px;min-width:0;overflow:auto;}
+.pro-visual-preview .preview-math-display {margin:0;}
+.pro-visual-preview .technical-diagram {margin:0;}
+.pro-visual-error {color:var(--fw-muted);font-size:12px;}
+.pro-study-brand {display:grid;place-items:center;border:1px solid var(--fw-line);border-radius:4px;font-size:16px;font-weight:600;width:30px;height:30px;margin-right:6px;}
+.pro-study .fw-titlebar {gap:10px;}
+.pro-study-notice {padding:5px 12px;border-bottom:1px solid var(--fw-line);color:var(--fw-muted);font-size:12px;}
+.pro-study-document {height:100%;min-height:0;display:flex;flex:1;}
+.pro-study-document[hidden] {display:none;}
+.fw-window .pro-study-theme {border:1px solid var(--fw-line);border-radius:5px;padding:5px 9px;background:var(--fw-bg);}

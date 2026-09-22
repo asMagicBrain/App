@@ -1,0 +1,14 @@
+.preview-math {color:inherit; position:relative;}
+.preview-math-inline {display:inline;}
+/* KaTeX's .vlist-t2 has a -2px right margin: reserve its visible overhang
+   inside the scrollport so short subscript/radical formulas do not scroll. */
+.preview-math-inline .preview-math-render {display:inline-block;max-width:100%;vertical-align:middle;overflow-x:auto;overflow-y:hidden;padding:3px 2px 3px 0;}
+.preview-math-display {display:block; max-width:100%; margin:1em 0;}
+.preview-math .katex-display {overflow-x:auto; overflow-y:hidden; padding:6px 2px; margin:.5em 0;}
+.preview-math .katex {font-size:1.12em; color:inherit;}
+.preview-math .katex svg {width:100%;height:inherit;flex:none;}
+.preview-math [data-copy-math] {font:inherit; font-size:11px; color:var(--fw-muted); background:var(--fw-bg); border:1px solid var(--fw-line); border-radius:4px; padding:2px 5px; margin-inline-start:6px; cursor:pointer; vertical-align:middle;}
+.preview-math [data-copy-math]:focus-visible {outline:2px solid var(--fw-accent); outline-offset:2px;}
+.preview-math-error {display:inline-block; color:var(--fw-text); border:1px solid var(--fw-line); border-radius:4px; padding:6px; max-width:100%; overflow-wrap:anywhere;}
+.preview-math-error code {white-space:pre-wrap;}
+.technical-copy-status {font:inherit; font-size:11px; color:var(--fw-muted); margin-inline-start:6px;}

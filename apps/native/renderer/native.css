@@ -4,3 +4,7 @@ html,body,#root{width:100%;height:100%;margin:0;overflow:hidden}
 .fw-native .fw-titlebar{-webkit-app-region:drag}
 .fw-native .fw-titlebar button,.fw-native .fw-titlebar input,.fw-native .fw-titlebar select,.fw-native .rh-picker,.fw-native .ra-menu{-webkit-app-region:no-drag}
 .fw-native .fw-titlebar .rh-header{-webkit-app-region:no-drag}
+/* macOS draws the window edge and real traffic lights. Reserve their titlebar
+   area without layering HTML controls or a second rounded border over them. */
+.fw-native-macos{border:0;border-radius:0}
+.fw-native-controls-space{width:74px;height:100%;flex:none;-webkit-app-region:no-drag}

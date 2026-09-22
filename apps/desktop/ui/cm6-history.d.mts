@@ -12,4 +12,4 @@ export type EditorHistoryCache = Readonly<{
 }>;
 export function createEditorHistoryCache(): EditorHistoryCache;
 export function dispatchSourceTransactions(transactions: readonly Transaction[], view: { update(transactions: readonly Transaction[]): void },
-  bridge: { onChanges(changes: { from: number; to: number; insert: string }[], history?: RawHistoryRestore): void; onError(message: string): void }, rawHistory: RawHistory): boolean;
+  bridge: { beforeTransaction?(transaction: Transaction): void; onChanges(changes: { from: number; to: number; insert: string }[], history?: RawHistoryRestore): void; onError(message: string): void }, rawHistory: RawHistory): boolean;

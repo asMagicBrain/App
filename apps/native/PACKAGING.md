@@ -34,6 +34,10 @@ npm run native:package -- --channel=preview
 
 `release.json` owns version/build. Final packaging requires no tracked or untracked changes and an exact `native-v<version>` tag at HEAD. Authorized metadata reissues use `native-v<version>-metadata.<revision>`. See [version rules](../../contributing/releasing.md#version-and-source-identity).
 
+Advance the public version once per release. Retained internal test builds advance `buildNumber` and use `--candidate`, which creates unique test output without consuming a public version or final tag. A candidate may keep the current base version; label it with its candidate status, build number, and actual source commit. Its package metadata and manifest use `sourceTag: null`; the manifest retains input hashes and the dirty-source flag. Published or distributed final artifacts and tags remain immutable; a candidate does not replace them.
+
+On Linux, a candidate with the same base version has the same Debian package version, so its higher `buildNumber` does not advance package-manager upgrade ordering. Explicitly reinstall it in an isolated test environment. `--candidate` selects packaging behavior; use the development channel's isolated data or pair preview `--test-root` and `--test-user-home` for isolated application testing.
+
 | Target/channel | Final output |
 | --- | --- |
 | macOS development | `releases/<version>/asMagicBrain.app` |

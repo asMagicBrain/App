@@ -13,13 +13,15 @@ A repository's menu lets you rename, duplicate, reveal, or move it to Trash. Ren
 | Part of the window | What you can do |
 | --- | --- |
 | Window bar | Switch repositories, search, create or import, and toggle the sidebar or outline. |
-| Left rail | Change the theme or open account settings. |
+| Left rail | Open Plugins, change the theme, or open account settings. |
 | File sidebar | Browse files and folders, choose a revision, or use **Go to file**. |
 | File header | Read or copy the current file path. |
 | Document | Read **Preview**, inspect read-only **Code**, or choose **Edit**. |
 | Right outline | Jump to a Markdown heading. |
 
 Resize or collapse the file sidebar and outline to make room for your document. Opening either panel keeps your current editing session.
+
+Preview also supports offline [math and diagrams](math-and-diagrams.md), with source-copy controls and local error messages.
 
 Branch, tag, and historical views are read-only. Return to the working files before editing. The included documentation is also read-only; duplicate it to make personal notes.
 

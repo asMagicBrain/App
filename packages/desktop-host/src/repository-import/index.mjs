@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {Worker} from 'node:worker_threads';
+import {hashRawFile} from '../local-git/raw-file.mjs';
+import {ZIP_IMPORT_LIMITS} from '../zip-import/index.mjs';
 import {pinDirectory,checkDirectory} from '../physical-roots.mjs';
 import {portablePathKey,isPortableRelativePath} from '../../../source-foundation/src/domain/path-policy.mjs';
 import {copyLocalRepository} from './copy-repository.mjs';
@@ -54,6 +56,7 @@ function validRecord(record){
  const common=validRepositoryName(record?.name)&&typeof record.identity==='string'&&/^\d+:\d+$/.test(record.identity)&&Number.isSafeInteger(record.files)&&record.files>=0&&Number.isSafeInteger(record.bytes)&&record.bytes>=0;
  return common&&(record.schemaVersion===1&&/^[a-f0-9]{40}$/.test(record.head)&&/^[a-f0-9]{64}$/.test(record.archiveSha256)
   ||record.schemaVersion===2&&record.source==='local'&&validCreationId(record.creationId)&&validCreationId(record.stageId)&&validRepositoryName(record.requestName)&&record.head===null&&record.files===0&&record.bytes===0
+  ||record.schemaVersion===5&&record.source==='zip'&&validCreationId(record.creationId)&&validCreationId(record.stageId)&&validRepositoryName(record.requestName)&&typeof record.initializeHistory==='boolean'&&/^[a-f0-9]{64}$/.test(record.archiveSha256)&&(record.initializeHistory?/^[a-f0-9]{40}$/.test(record.head):record.head===null)
   ||record.schemaVersion===4&&record.source==='local-copy'&&typeof record.copySourceIdentity==='string'&&/^\d+:\d+$/.test(record.copySourceIdentity)&&validRepositoryName(record.copySourceName)&&validCreationId(record.creationId)&&validCreationId(record.stageId)&&validRepositoryName(record.requestName)&&(record.head===null||/^[a-f0-9]{40}$/.test(record.head))
   ||record.schemaVersion===3&&record.source==='github'&&validCreationId(record.creationId)&&validCreationId(record.stageId)&&validRepositoryName(record.requestName)&&(record.head===null||/^[a-f0-9]{40}$/.test(record.head))&&typeof record.branch==='string'&&record.branch.length>0&&record.branch.length<1024&&typeof record.sourceUrl==='string'&&(()=>{try{return canonicalGitHubUrl(record.sourceUrl)===record.sourceUrl;}catch{return false;}})());
 }
@@ -204,8 +207,8 @@ export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSI
  return {root:root.path,directory,ensure,list,assertKnown,provenance,assertAvailable,register,created,finishCreation,renameRegistration,retireRegistration,restoreRegistration,recover,check,writeRecord};
 }
 
-function runWorker(archivePath,destination){return new Promise((resolve,reject)=>{
- const worker=new Worker(new URL('./worker.mjs',import.meta.url),{workerData:{archivePath,destination,storageIdentity:currentStorageIdentity()}});let result;
+function runWorker(archivePath,destination,options={}){return new Promise((resolve,reject)=>{
+ const worker=new Worker(new URL('./worker.mjs',import.meta.url),{workerData:{archivePath,destination,...options,storageIdentity:currentStorageIdentity()}});let result;
  worker.once('message',message=>{result=message;});worker.once('error',reject);
  worker.once('exit',code=>{if(code!==0||!result)reject(Object.assign(new Error('IMPORT_FAILED'),{code:'IMPORT_FAILED'}));else if(!result.ok)reject(Object.assign(new Error(result.code),{code:result.code}));else resolve(result.value);});
 });}
@@ -284,7 +287,35 @@ export function createRepositoryImporter({base,builtinRepositories,hooks={}}){
    throw error;
   }finally{const live=exists(lockPath);if(live&&identity(live)===lockIdentity)fs.unlinkSync(lockPath);sync(pin.path);}
  }
- async function importArchive({name,archivePath}){
+ async function importIdempotentArchive({name,archivePath,requestId,initializeHistory}){
+  if(!validRepositoryName(name)||!validCreationId(requestId)||typeof initializeHistory!=='boolean')fail('INVALID_REQUEST');
+  const parent=pinDirectory(path.dirname(archivePath)),archive=hashRawFile(archivePath,{limit:ZIP_IMPORT_LIMITS.archiveBytes});checkDirectory(parent);
+  const request={schemaVersion:1,requestId,name,archiveSha256:archive.hash,initializeHistory};
+  const at=point=>hooks.at?.(point.replace(/^create-/,'zip-')),pin=catalog.ensure(),lockPath=path.join(pin.path,'import.lock');
+  if(lockActive(lockPath))fail('IMPORT_BUSY');
+  try{writeRecord(lockPath,{schemaVersion:1,pid:process.pid,token:randomUUID()});}catch(error){if(error.code==='EEXIST')fail('IMPORT_BUSY');throw error;}
+  const lockIdentity=identity(fs.lstatSync(lockPath)),stageId=randomUUID(),staging=path.join(catalog.root,`.asmb-import-${stageId}`),readyPath=path.join(pin.path,`${requestId}.ready.json`),requestPath=path.join(pin.path,`${requestId}.zip-request.json`);let stagePin,ready=false;
+  try{
+   let record=catalog.created(requestId,name,'zip');
+   if(exists(requestPath)){if(JSON.stringify(readRecord(requestPath))!==JSON.stringify(request))fail('REQUEST_CONFLICT');}
+   else {if(record||exists(readyPath))fail('RECOVERY_REQUIRED');writeRecord(requestPath,request);}
+   if(record&&(record.archiveSha256!==archive.hash||record.initializeHistory!==initializeHistory))fail('REQUEST_CONFLICT');
+   if(!record&&exists(readyPath)){record=readRecord(readyPath);if(!validRecord(record)||record.schemaVersion!==5||record.creationId!==requestId||record.requestName!==name||record.archiveSha256!==archive.hash||record.initializeHistory!==initializeHistory)fail('REQUEST_CONFLICT');ready=true;}
+   if(!record){
+    catalog.assertAvailable(name);fs.mkdirSync(staging,{mode:0o700});stagePin=pinDirectory(staging);sync(catalog.root);at('zip-staging');
+    const result=await runWorker(archivePath,staging,{initializeHistory,expectedArchiveSha256:archive.hash});checkDirectory(stagePin);checkDirectory(pin);catalog.assertAvailable(name);at('zip-initialized');
+    record={schemaVersion:5,source:'zip',creationId:requestId,stageId,requestName:name,name,identity:stagePin.identity,initializeHistory,...result,createdAt:new Date().toISOString()};
+    at('zip-before-ready');writeRecord(readyPath,record);ready=true;at('zip-ready');
+   }
+   const result=catalog.finishCreation(record,{at});return {name:result.name,organization:'asMagicBrain',head:result.head,files:result.files,bytes:result.bytes,excludedEntries:result.excludedEntries,requestId,archiveSha256:result.archiveSha256,initializeHistory:result.initializeHistory};
+  }catch(error){
+   if(stagePin&&!ready&&!exists(readyPath)){try{checkDirectory(stagePin);fs.rmSync(staging,{recursive:true});sync(catalog.root);}catch{}}
+   throw error;
+  }finally{const live=exists(lockPath);if(live&&identity(live)===lockIdentity)fs.unlinkSync(lockPath);sync(pin.path);}
+ }
+ async function importArchive({name,archivePath,requestId,initializeHistory=true}){
+  if(requestId!==undefined)return importIdempotentArchive({name,archivePath,requestId,initializeHistory});
+  if(initializeHistory!==true)fail('INVALID_REQUEST');
   catalog.assertAvailable(name);const pin=catalog.ensure(),lockPath=path.join(pin.path,'import.lock');
   if(lockActive(lockPath))fail('IMPORT_BUSY');
   try{writeRecord(lockPath,{schemaVersion:1,pid:process.pid,token:randomUUID()});}catch(e){if(e.code==='EEXIST')fail('IMPORT_BUSY');throw e;}
@@ -308,5 +339,13 @@ export function createRepositoryImporter({base,builtinRepositories,hooks={}}){
    throw error;
   }finally{const live=exists(lockPath);if(live&&identity(live)===lockIdentity)fs.unlinkSync(lockPath);sync(pin.path);}
  }
- return {catalog,importArchive,createRepository,cloneRepository,duplicateRepository};
+ function findCompletedImport({requestId,name,archiveSha256,initializeHistory}){
+  if(!validCreationId(requestId)||!validRepositoryName(name)||typeof archiveSha256!=='string'||!/^[a-f0-9]{64}$/.test(archiveSha256)||typeof initializeHistory!=='boolean')fail('INVALID_REQUEST');
+  const record=catalog.created(requestId,name,'zip');if(!record)return null;
+  if(record.archiveSha256!==archiveSha256||record.initializeHistory!==initializeHistory)fail('REQUEST_CONFLICT');
+  const token=readRecord(path.join(catalog.root,'.asmb-catalog',`${requestId}.zip-request.json`));
+  if(JSON.stringify(token)!==JSON.stringify({schemaVersion:1,requestId,name,archiveSha256,initializeHistory}))fail('RECOVERY_REQUIRED');
+  return {name:record.name,organization:'asMagicBrain',head:record.head,files:record.files,bytes:record.bytes,excludedEntries:record.excludedEntries,requestId,archiveSha256:record.archiveSha256,initializeHistory:record.initializeHistory};
+ }
+ return {catalog,importArchive,findCompletedImport,createRepository,cloneRepository,duplicateRepository};
 }

@@ -128,3 +128,73 @@ test('symlink inside private state is rejected without following it',async t=>{
  const f=await initialized(t),link=path.join(f.dataRoot,'state/native/unsafe-link');fs.symlinkSync(f.parent,link);
  await lockedPreflight(f,invoke=>rejectsUnsafe(invoke));assert.equal(fs.readlinkSync(link),f.parent);
 });
+
+async function stage4Profile(t,{hooks={}}={}){
+ const f=fixture(t);f.context.volumeId='a2ecb956-8e09-4de1-9e4f-bde230c018aa';
+ const {createPackageZip}=await import('../../packages/desktop-host/src/package-exchange/archive.mjs');
+ const files={'guide.md':'# Guide\nBase source\n','remove.md':'Old source\n','asmagicbrain.collection.json':JSON.stringify({schemaVersion:1,collectionId:'neutral',documents:[{id:'guide',path:'guide.md'}]})};
+ const archive=values=>createPackageZip(Object.entries(values).map(([path,text])=>({path,bytes:Buffer.from(text)})));
+ const service=await createNativeService({...f,storageIdentity:f.context,hooks}),repoId=(await service.catalog()).repositories.find(entry=>entry.name==='Workspace').stableId;
+ await service.setAutomationGrants({enabled:true,grants:[{repoId,scopes:['read','write','import','export']}]});
+ const imported=await service.automationRequest({requestId:'neutral-import',operation:'import.plan',args:{repoId,name:'Engineering',archiveBase64:archive(files).toString('base64')}});
+ await service.approveAutomation({operationId:imported.operationId,digest:imported.digest});
+ const registration=await service.reviewPackageBase({repo:'Engineering',bytes:archive(files),collectionId:'neutral',version:'1'});await service.registerPackageBase({repo:'Engineering',planId:registration.planId});
+ return {...f,service,files,archive,repoId,imported};
+}
+
+test('Stage 4 stores survive uniform device renumber with complete verified backup and no changes to old private bytes',async t=>{
+ const f=await stage4Profile(t);let service=f.service;
+ const update=await service.reviewPackageUpdate({repo:'Engineering',bytes:f.archive({...f.files,'guide.md':'# Guide\nUpdated source\n','new.md':'New source\n'}),semantics:'snapshot',version:'2'});
+ const applied=await service.applyPackageUpdate({repo:'Engineering',planId:update.planId,choices:update.rows.filter(row=>row.choices.length).map(row=>({path:row.path,choice:'use-incoming'}))});
+ await service.rollbackPackageUpdate({repo:'Engineering',operationId:applied.operationId});
+ const token=await request(service,'Engineering','inspectEntry',{path:'guide.md'});await request(service,'Engineering','manage',{operation:'move',items:[{path:'guide.md',newPath:'renamed.md',token:token.token}]});
+ const ref=await service.getReadingReference({repo:'Engineering',path:'renamed.md',ref:''});assert.equal(ref.status,'ready');
+ const write=await service.automationRequest({requestId:'create-note',operation:'write.plan',args:{repoId:f.repoId,path:'note.md',expectedHash:null,text:'Saved through shared authority'}});await service.approveAutomation({operationId:write.operationId,digest:write.digest});
+ const exportReview=await service.reviewPackageExport({repo:'Engineering',collectionId:'neutral',version:'1'});await service.buildPackageExport({repo:'Engineering',planId:exportReview.planId,kind:'offline'});
+ await service.close();
+ await lockedPreflight(f,invoke=>{const result=invoke();for(const fragment of ['/.asmb-reading/','/.asmb-automation/','/package-exchange/blobs/','.zip-request.json'])assert.ok(result.fingerprint.entries.some(entry=>entry.path.includes(fragment)&&entry.sha256),fragment);});
+ const before=snapshot(f.dataRoot).filter(entry=>entry.type==='file'),{prepareNativeStorage}=await import('./storage-admission.mjs');
+ const admission=await prepareNativeStorage({dataRoot:f.dataRoot,probe:()=>f.context.volumeId,confirmRecovery:async()=>true});
+ assert.equal(admission.context.namespaceDevice,f.context.namespaceDevice);assert.ok(admission.backupPath);
+ const receipt=JSON.parse(fs.readFileSync(path.join(admission.backupPath,'receipt.json')));assert.equal(receipt.status,'verified');
+ for(const file of before){assert.equal(sha(fs.readFileSync(path.join(f.dataRoot,file.path))),file.sha256);assert.equal(fs.lstatSync(path.join(f.dataRoot,file.path),{bigint:true}).ino.toString(),file.ino);assert.equal(receipt.files.find(row=>row.path===file.path)?.sha256,file.sha256);assert.equal(sha(fs.readFileSync(path.join(admission.backupPath,'managed-data',file.path))),file.sha256);}
+ service=await createNativeService({dataRoot:f.dataRoot,storageIdentity:admission.context,profileLock:admission.profileLock});
+ try{const resolved=await service.resolveReadingReference({reference:ref.reference});assert.equal(resolved.path,'renamed.md');assert.equal(resolved.status,'resolved');assert.equal((await service.packageStatus({repo:'Engineering'})).operations.at(-1).status,'rolled-back');assert.equal((await service.getAutomationStatus()).operations.find(op=>op.requestId==='neutral-import').status,'completed');assert.equal((await request(service,'Engineering','gitInspect')).head,null);}
+ finally{await service.close();}
+});
+
+test('Stage 4 malformed retained blobs and mismatched import request tokens fail closed before recovery',async t=>{
+ for(const damage of ['blob','request'])await t.test(damage,async t=>{
+  const f=await stage4Profile(t);await f.service.close();
+  if(damage==='blob'){const root=path.join(f.dataRoot,'state/native/Engineering/package-exchange/blobs'),name=fs.readdirSync(root)[0];fs.writeFileSync(path.join(root,name),'altered retained bytes');}
+  else{const root=path.join(f.dataRoot,'workspaces/asMagicBrain/.asmb-catalog'),name=fs.readdirSync(root).find(name=>name.endsWith('.zip-request.json')),filename=path.join(root,name),record=JSON.parse(fs.readFileSync(filename));record.archiveSha256='0'.repeat(64);fs.writeFileSync(filename,JSON.stringify(record));}
+  await lockedPreflight(f,invoke=>rejectsUnsafe(invoke));
+ });
+});
+
+test('Stage 4 interrupted outer exchange is refused during device rebind without applying or discarding it',async t=>{
+ let armed=false;const f=await stage4Profile(t,{hooks:{packageAt:phase=>{if(armed&&phase==='exchange-after-step')throw Error('Interrupted exchange');}}});
+ const review=await f.service.reviewPackageUpdate({repo:'Engineering',bytes:f.archive({...f.files,'guide.md':'New bytes'}),semantics:'snapshot',version:'2'});armed=true;
+ await assert.rejects(f.service.applyPackageUpdate({repo:'Engineering',planId:review.planId,choices:review.rows.filter(row=>row.choices.length).map(row=>({path:row.path,choice:'use-incoming'}))}));await f.service.close();
+ await lockedPreflight(f,invoke=>rejectsUnsafe(invoke));
+});
+
+test('authenticated but malformed Stage 4 payloads and applying automation receipts are never silently admitted',async t=>{
+ const {createPrivateStore}=await import('../../packages/desktop-host/src/private-store.mjs');
+ for(const damage of ['automation-digest','automation-applying','reading-path','exchange-path'])await t.test(damage,async t=>{
+  const f=await stage4Profile(t);await f.service.close();
+  runWithStorageIdentity(f.context,()=>{
+   const hostBindingHash=sha(JSON.stringify({kind:'native-profile',schemaVersion:1,path:f.dataRoot,identity:persistentIdentity(fs.lstatSync(f.dataRoot)),uid:process.getuid()}));
+   const exchange=damage==='exchange-path',reading=damage==='reading-path',name=reading?'.asmb-reading':'.asmb-automation';
+   const sourceRoot=path.join(f.dataRoot,'workspaces/asMagicBrain/Engineering'),privateRoot=path.join(f.dataRoot,'state/native',exchange?'Engineering/package-exchange/journal':name);
+   const bindingHash=exchange?sha(JSON.stringify({sourceRoot,sourceIdentity:persistentIdentity(fs.lstatSync(sourceRoot))})):sha(hostBindingHash+(reading?':reading:1':':automation:1'));
+   const store=createPrivateStore({privateRoot,bindingHash}),scan=store.scan(),state=structuredClone(scan.events.at(-1)?.payload??{schemaVersion:1,redirects:[]});
+   if(damage==='automation-digest')state.operations[0].digest='0'.repeat(64);
+   if(damage==='automation-applying'){state.operations[0].status='applying';delete state.operations[0].result;}
+   if(reading)state.redirects=[{repoId:'0'.repeat(64),documentId:'guide',from:'../outside.md',to:'guide.md'}];
+   if(exchange)state.registration.files[0].path='../outside.md';
+   store.append(scan,'draft',state);
+  });
+  await lockedPreflight(f,invoke=>rejectsUnsafe(invoke));
+ });
+});

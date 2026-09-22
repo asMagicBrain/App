@@ -82,5 +82,5 @@ export async function createDriver({executablePath,args,env={},output,workspaceP
   }
   async function screenshot(name){await page.screenshot({path:path.join(output,name+'.png'),timeout:120000});record('screenshot',{file:name+'.png'});}
   async function report(extra={}){await fs.writeFile(path.join(output,'native-last-stderr.log'),stderr.join(''));await fs.writeFile(path.join(output,'receipt.json'),JSON.stringify({platform:process.platform,arch:process.arch,metadata,executablePath,args,workspacePath,assertions:events,rendererErrors:errors,consoleErrors,...extra},null,2)+'\n');}
-  return {launch,closeNormally,screenshot,report,record,errors,get page(){return page;},get app(){return null;},workspacePath,output};
+  return {launch,closeNormally,screenshot,report,record,errors,consoleErrors,get page(){return page;},get app(){return null;},workspacePath,output};
 }

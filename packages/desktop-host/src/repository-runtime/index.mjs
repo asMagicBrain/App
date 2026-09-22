@@ -399,7 +399,7 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     if (documents.length !== state.documents.length) persist({ ...state, documents });
     return { status: 'adopted', count: references.length };
   }
-  function status() { load(); return { identity: { localOwnerId, localRootId, checkoutId }, draftCount: state.drafts.length,
+  function status() { load(); return { identity: { localOwnerId, localRootId, checkoutId }, draftCount: state.drafts.length, draftPaths: state.drafts.map(draft=>state.documents.find(document=>document.documentId===draft.documentId).path),
     recoveredDrafts: structuredClone(state.recoveredDrafts), recoveryRequired: Boolean(state.pending) || adapter.inspectRecovery().blocked, pending: state.pending ? { paths: state.pending.kind==='management'?state.pending.plan.items.flatMap(item=>[item.path,item.newPath].filter(Boolean)):state.pending.changes.map(v => v.path) } : null }; }
   load();
   // Persist the binding even before the first document: another folder/owner may not reuse this store.
