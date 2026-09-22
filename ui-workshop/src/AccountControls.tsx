@@ -35,6 +35,7 @@ export type AccountControlsProps = {
   onSignIn?(): void;
   onSignOut?(): void;
   onSettingsClose?(): void;
+  onAutomation?():void;
   initialSettingsOpen?: boolean;
   initialMenuOpen?: boolean;
 };
@@ -74,7 +75,7 @@ function MenuItem({children, icon, unavailable = false, disabled = false, onSele
 }
 
 export function AccountControls({preferences, loading, error, onReload, onSave, settingsRequest, onAppearance, application, account, connectedIdentity, connectionStatus, accountBusy = false, signInLabel = 'Sign in', signOutLabel = 'Sign out', allowDisconnect = false, onSignIn, onSignOut,
-  onSettingsClose, initialSettingsOpen = false, initialMenuOpen = false}: AccountControlsProps) {
+  onAutomation,onSettingsClose, initialSettingsOpen = false, initialMenuOpen = false}: AccountControlsProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(initialMenuOpen && !initialSettingsOpen && settingsRequest === 0);
@@ -127,6 +128,7 @@ export function AccountControls({preferences, loading, error, onReload, onSave, 
           </DropdownMenu.Group>}
           <DropdownMenu.Group>
             <MenuItem icon="settings" onSelect={openSettings}>Settings</MenuItem>
+            {onAutomation&&<MenuItem icon="agent" onSelect={()=>{setMenuOpen(false);onAutomation();}}>Local automation</MenuItem>}
             <MenuItem icon="agent" unavailable>Ask agent settings</MenuItem>
             <MenuItem icon="flask" unavailable>Feature preview</MenuItem>
             <MenuItem icon="appearance" onSelect={() => {handingOffFocus.current = true; onAppearance();}}>Appearance</MenuItem>

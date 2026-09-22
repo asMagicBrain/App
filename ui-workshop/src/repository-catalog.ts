@@ -1,7 +1,7 @@
 import {getNativeBridge, nativeOperation} from './native-bridge.mjs';
 import type {ClonedRepository, GitHubCloneInput, GitHubCloneProgress} from './native-types';
 
-export type RepositoryCatalogEntry = {name: string; privateRepo: boolean; builtin?: 'documentation'; readOnly?: boolean};
+export type RepositoryCatalogEntry = {stableId?:string; name: string; privateRepo: boolean; builtin?: 'documentation'; readOnly?: boolean};
 export type RepositoryCatalog = {
   capability?: string;
   organization: 'asMagicBrain';

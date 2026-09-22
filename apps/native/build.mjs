@@ -9,6 +9,7 @@ await import('./build-account-config.mjs');
 // Host dependency closure is compiled separately; renderer never receives Auth
 // SDK code, credentials or tenant configuration. The package manifest hashes it.
 await import('./build-sdk.mjs');
+await import('./build-offline-reader.mjs');
 if (!sourceOnly) {
   await import('./build-search.mjs');
   await import('./build-git.mjs');
@@ -20,5 +21,8 @@ await build({configFile: false, root: path.join(here, 'renderer'), base: './', e
     {find: /^@codemirror\//, replacement: path.join(appRoot, 'node_modules/@codemirror/')},
     {find: /^@lezer\//, replacement: path.join(appRoot, 'node_modules/@lezer/')},
   ], dedupe: ['react', 'react-dom', '@codemirror/state', '@codemirror/view']},
-  build: {outDir: path.join(here, 'dist'), emptyOutDir: true, sourcemap: false, target: 'es2022', reportCompressedSize: false},
+  build: {outDir: path.join(here, 'dist'), emptyOutDir: true, sourcemap: false, target: 'es2022', reportCompressedSize: false,
+    // Native CSP permits same-origin fonts only, including small KaTeX sizes.
+    assetsInlineLimit: filePath => /\.(woff2?|ttf|otf)$/i.test(filePath) ? false : undefined,
+  },
 });

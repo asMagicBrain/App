@@ -4,6 +4,7 @@
 
 - [Development](development.md): install dependencies, run the app, and choose checks.
 - [Architecture](architecture.md): source map, data ownership, and security boundaries.
+- [Bundled plugins](plugins.md): versioned contracts, shared CM6 sessions and lifecycle.
 - [Releases](releasing.md): versions, channels, package acceptance, and source exports.
 - [Native packaging](../apps/native/PACKAGING.md): platform commands and package contents.
 - [macOS signing and notarization](macos-signing.md): provisioned Developer ID delivery.

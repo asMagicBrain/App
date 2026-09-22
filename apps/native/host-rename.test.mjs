@@ -45,30 +45,33 @@ async function retained(f,repo,before){
 test('imported repository rename preserves every source/Git inode and byte, drafts, Trash, history and subsequent Save/commit across restart',async t=>{
  const f=await fixture(t);await f.service.importArchive({name:'Imported',bytes:archive(f.parent)});const state=await populate(f,'Imported');
  const source=inventory(f.root('Imported')),privateState=inventory(f.private('Imported')),rootId=identity(f.root('Imported')),head=git(f.root('Imported'),'rev-parse','HEAD').toString();
+ const beforeCatalog=(await f.service.catalog()).repositories,workspaceId=beforeCatalog.find(item=>item.name==='Workspace').stableId,repoId=beforeCatalog.find(item=>item.name==='Imported').stableId;assert.match(workspaceId,/^[a-f0-9]{64}$/);assert.match(repoId,/^[a-f0-9]{64}$/);assert.notEqual(repoId,workspaceId);
  const renamed=await f.service.renameRepository({repository:'Imported',name:'Renamed'});
- assert.deepEqual(renamed,{repository:'Renamed',previousName:'Imported',organization:'asMagicBrain',defaultRepository:'Workspace',repositories:[{name:'Workspace',privateRepo:true},{name:'Renamed',privateRepo:true}]});
+ assert.deepEqual(renamed,{repository:'Renamed',previousName:'Imported',organization:'asMagicBrain',defaultRepository:'Workspace',repositories:[{name:'Workspace',stableId:workspaceId,privateRepo:true},{name:'Renamed',stableId:repoId,privateRepo:true}]});
  assert.equal(fs.existsSync(f.root('Imported')),false);assert.equal(identity(f.root('Renamed')),rootId);assert.deepEqual(inventory(f.root('Renamed')),source);assert.deepEqual(inventory(f.private('Imported')),privateState);assert.equal(fs.existsSync(f.private('Renamed')),false);
- await retained(f,'Renamed',state);await assert.rejects(f.service.bootstrap('Imported'),{code:'UNKNOWN_REPOSITORY'});await f.restart();await retained(f,'Renamed',state);
+ await retained(f,'Renamed',state);await assert.rejects(f.service.bootstrap('Imported'),{code:'UNKNOWN_REPOSITORY'});await f.restart();await retained(f,'Renamed',state);assert.equal((await f.service.catalog()).repositories.find(item=>item.name==='Renamed').stableId,repoId);
  assert.equal(git(f.root('Renamed'),'rev-parse','HEAD').toString(),head);assert.equal((await f.service.read({repo:'Renamed',path:'README.md',ref:'refs/heads/main'})).content,state.opened.text);
  await f.request('Renamed','restore',{trashId:state.trashId});const restored=await f.request('Renamed','open',{path:'trash/note.md'});assert.equal(restored.documentId,state.trash.documentId);assert.equal(restored.draft.text,'private trash draft');
  const saved=await f.request('Renamed','save',{path:'README.md',baseHash:state.opened.sourceHash,text:'# Saved after repository rename\r\n'});assert.equal(saved.documentId,state.opened.documentId);
  const review=await f.request('Renamed','gitReview',{paths:['README.md']});await f.request('Renamed','gitCommit',{expectedHead:review.expectedHead,expectedIndexHash:review.expectedIndexHash,files:review.files.map(({path,expectedSourceHash,expectedSourceMode})=>({path,expectedSourceHash,expectedSourceMode})),message:'After rename',author});
  assert.equal(git(f.root('Renamed'),'show','HEAD:README.md').toString(),saved.text);assert.equal((await f.request('Renamed','open',{path:'trash/note.md'})).draft.text,'private trash draft');
- await f.service.renameRepository({repository:'Renamed',name:'Imported'});await f.restart();assert.deepEqual((await f.service.catalog()).repositories.map(r=>r.name),['Workspace','Imported']);assert.equal((await f.request('Imported','open',{path:'README.md'})).documentId,state.opened.documentId);
+ await f.service.renameRepository({repository:'Renamed',name:'Imported'});await f.restart();assert.deepEqual((await f.service.catalog()).repositories.map(r=>r.name),['Workspace','Imported']);assert.equal((await f.service.catalog()).repositories.find(item=>item.name==='Imported').stableId,repoId);assert.equal((await f.request('Imported','open',{path:'README.md'})).documentId,state.opened.documentId);
 });
 
 test('default Workspace rename remains default across restart without reseeding and shares author/appearance preferences',async t=>{
  const f=await fixture(t),state=await populate(f,'Workspace'),before=inventory(f.root('Workspace'));
+ const workspaceId=(await f.service.catalog()).repositories[0].stableId;assert.match(workspaceId,/^[a-f0-9]{64}$/);
  const prefs=await f.request('Workspace','getCommitPreferences');await f.request('Workspace','setCommitPreferences',{expectedRevision:prefs.revision,mode:'asmagicbrain',asmagicbrain:author,github:{name:'',email:''}});await f.service.setAppearance({themeId:'dark-default',hideUnavailable:true});
  await f.service.renameRepository({repository:'Workspace',name:'My-Workspace'});assert.deepEqual(inventory(f.root('My-Workspace')),before);await f.restart();
- const catalog=await f.service.catalog();assert.equal(catalog.defaultRepository,'My-Workspace');assert.deepEqual(catalog.repositories,[{name:'My-Workspace',privateRepo:true}]);assert.equal(fs.existsSync(f.root('Workspace')),false);await retained(f,'My-Workspace',state);
+ const catalog=await f.service.catalog();assert.equal(catalog.defaultRepository,'My-Workspace');assert.deepEqual(catalog.repositories,[{name:'My-Workspace',stableId:workspaceId,privateRepo:true}]);assert.equal(fs.existsSync(f.root('Workspace')),false);await retained(f,'My-Workspace',state);
  assert.deepEqual((await f.request('My-Workspace','getCommitPreferences')).asmagicbrain,author);assert.deepEqual(await f.service.getAppearance(),{themeId:'dark-default',hideUnavailable:true});assert.equal((await f.request('My-Workspace','gitInspect')).head,null);
  await f.service.renameRepository({repository:'My-Workspace',name:'My-Workspace'});assert.deepEqual(inventory(f.root('My-Workspace')),before);
 });
 
 test('reusing a renamed repository name allocates separate state and never inherits its drafts',async t=>{
- const f=await fixture(t),state=await populate(f,'Workspace');await f.service.renameRepository({repository:'Workspace',name:'Personal'});
+ const f=await fixture(t),state=await populate(f,'Workspace'),originalId=(await f.service.catalog()).repositories[0].stableId;await f.service.renameRepository({repository:'Workspace',name:'Personal'});
  await f.service.importArchive({name:'Workspace',bytes:archive(f.parent)});const imported=await f.request('Workspace','open',{path:'README.md'});
+ const rows=(await f.service.catalog()).repositories;assert.equal(rows.find(item=>item.name==='Personal').stableId,originalId);const newId=rows.find(item=>item.name==='Workspace').stableId;assert.match(newId,/^[a-f0-9]{64}$/);assert.notEqual(newId,originalId,'Reusing a folder name cannot inherit the previous repository identity');
  assert.notEqual(imported.documentId,state.opened.documentId);assert.equal(imported.draft,null);assert.deepEqual((await f.service.bootstrap('Workspace')).newDrafts,[]);assert.deepEqual(await f.request('Workspace','listTrash'),[]);
  await f.restart();await retained(f,'Personal',state);assert.equal((await f.request('Workspace','open',{path:'README.md'})).documentId,imported.documentId);assert.equal((await f.service.catalog()).defaultRepository,'Personal');
 });

@@ -35,13 +35,16 @@ test('documentation is last after creation, pinned repositories, rename and rest
   await f.service.renameRepository({repository: 'Workspace', name: 'Writing'});
   const rows = (await f.service.catalog()).repositories;
   assert.deepEqual(rows.map(item => item.name), ['Writing', 'Alpha', 'Zulu', docs]);
-  assert.deepEqual(rows.at(-1), {name: docs, privateRepo: false, builtin: 'documentation', readOnly: true});
+  const docsId = rows.at(-1).stableId; assert.match(docsId, /^[a-f0-9]{64}$/);
+  assert.deepEqual(rows.at(-1), {name: docs, stableId: docsId, privateRepo: false, builtin: 'documentation', readOnly: true});
+  assert.equal(new Set(rows.map(item => item.stableId)).size, rows.length);
   assert.equal((await f.service.bootstrap(docs)).readOnly, true);
   assert.equal((await request(f.service, docs, 'open', {path: 'README.md'})).readOnly, true);
   assert.equal((await f.service.read({repo: docs, path: 'README.md'})).content, '# Bundled user guide\n');
   const git = await request(f.service, docs, 'gitInspect'); assert.match(git.head, /^[a-f0-9]{40}$/);
   await f.service.revealItem({repo: docs, path: 'README.md'}); assert.equal(f.revealed[0], path.join(f.root(docs), 'README.md'));
-  await f.restart(); assert.deepEqual((await f.service.catalog()).repositories.map(item => item.name), ['Writing', 'Alpha', 'Zulu', docs]);
+  await f.restart(); const reopenedRows = (await f.service.catalog()).repositories; assert.deepEqual(reopenedRows.map(item => item.name), ['Writing', 'Alpha', 'Zulu', docs]);
+  assert.equal(reopenedRows.at(-1).stableId, docsId, 'Documentation identity survives reopening');
   assert.deepEqual((await f.service.getRepositoryPins()).pinnedRepositories, ['Writing', 'Zulu']);
 });
 

@@ -56,6 +56,9 @@ export function dispatchSourceTransactions(transactions, view, bridge, rawHistor
   const accepted = [];
   try {
     for (const transaction of transactions) {
+      // A retained session validates authority and the exact originating state
+      // before its raw source is touched. Existing editor bridges need no hook.
+      bridge.beforeTransaction?.(transaction);
       if (transaction.docChanged) {
         bridge.onChanges(sourceChanges(transaction.changes), rawHistory.restoreFrom(transaction));
         rawHistory.accept(transaction.state);

@@ -69,8 +69,8 @@ export async function readLocalRepositoryAsset(name,relative,base,revision='',op
   let bytes;
   if(revision){
     const refs=(await git(root,['for-each-ref','--format=%(refname)','refs/heads/','refs/tags/'])).split('\n').filter(Boolean);
-    if(!/^refs\/(heads|tags)\//.test(revision)||!refs.includes(revision))assetFailure('INVALID_REF');
-    const oid=await git(root,['rev-parse','--verify',`${revision}^{commit}`]);if(!/^[a-f0-9]{40,64}$/.test(oid))assetFailure('INVALID_REF');
+    if(!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(revision)&&(!/^refs\/(heads|tags)\//.test(revision)||!refs.includes(revision)))assetFailure('INVALID_REF');
+    const oid=await git(root,['rev-parse','--verify',`${revision}^{commit}`]);if(!/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(oid))assetFailure('INVALID_REF');
     let selected={type:'tree',sha:oid,mode:'040000'};
     for(const segment of relative.split('/')){
       if(selected.type!=='tree')assetFailure('UNSUPPORTED_ASSET');
@@ -132,7 +132,7 @@ export async function readLocalRepository(name, relative='', base, revision='', 
 async function readRevision(root,name,relative,revision) {
   if (typeof relative!=='string'||/[\\\0]/.test(relative)||path.isAbsolute(relative)||relative.split('/').some(p=>p==='..'||p==='.'||p.toLowerCase()==='.git')||(relative&&relative.split('/').some(p=>!p)))throw Error('Invalid path');
   const refs=(await git(root,['for-each-ref','--format=%(refname)','refs/heads/','refs/tags/'])).split('\n').filter(Boolean);
-  if(!refs.includes(revision)||!/^refs\/(heads|tags)\//.test(revision))throw Error('Unknown revision');
+  if(!(/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/.test(revision))&&(!refs.includes(revision)||!/^refs\/(heads|tags)\//.test(revision)))throw Error('Unknown revision');
   const oid=await git(root,['rev-parse','--verify',`${revision}^{commit}`]);
   if(!/^[a-f0-9]{40,64}$/.test(oid))throw Error('Unavailable revision');
   const tree=async object=> (await git(root,['ls-tree','-z',object],true)).split('\0').filter(Boolean).map(record=>{
@@ -164,5 +164,5 @@ async function readRevision(root,name,relative,revision) {
   const readmeEntry=rawEntries.find(e=>e.type==='blob'&&/^readme(?:\.md|\.markdown|\.txt)?$/i.test(e.name));
   const licenseEntry=rawEntries.find(e=>e.type==='blob'&&/^(?:license|licence)(?:\.md|\.txt)?$/i.test(e.name));
   const entryPath=entry=>entry?(relative?`${relative}/${entry.name}`:entry.name):null;
-  return {name,type:selected.type==='tree'?'directory':'file',selectedRef:revision,revisionName:revision.replace(/^refs\/(heads|tags)\//,''),revisionKind:revision.startsWith('refs/heads/')?'branch':'tag',branch:branch||'main',branches:refs.filter(r=>r.startsWith('refs/heads/')).map(r=>r.slice(11)),tags:refs.filter(r=>r.startsWith('refs/tags/')).map(r=>r.slice(10)),commitCount:Number(count)||0,commit:parseCommit(head),entries,readmePath:entryPath(readmeEntry),licensePath:entryPath(licenseEntry),readme:readmeEntry?await blobText(readmeEntry.sha):null,license:licenseEntry?await blobText(licenseEntry.sha):null,content:selected.type==='blob'?await blobText(selected.sha):null,contributors:[...new Set(people.split('\n').filter(Boolean))],languages:[]};
+  return {name,type:selected.type==='tree'?'directory':'file',selectedRef:revision,resolvedCommit:oid,revisionName:revision.replace(/^refs\/(heads|tags)\//,''),revisionKind:revision.startsWith('refs/heads/')?'branch':revision.startsWith('refs/tags/')?'tag':'commit',branch:branch||'main',branches:refs.filter(r=>r.startsWith('refs/heads/')).map(r=>r.slice(11)),tags:refs.filter(r=>r.startsWith('refs/tags/')).map(r=>r.slice(10)),commitCount:Number(count)||0,commit:parseCommit(head),entries,readmePath:entryPath(readmeEntry),licensePath:entryPath(licenseEntry),readme:readmeEntry?await blobText(readmeEntry.sha):null,license:licenseEntry?await blobText(licenseEntry.sha):null,content:selected.type==='blob'?await blobText(selected.sha):null,contributors:[...new Set(people.split('\n').filter(Boolean))],languages:[]};
 }

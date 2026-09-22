@@ -12,6 +12,8 @@ The preview targets Apple-silicon Macs and Ubuntu 24.04 x64. Check [Platforms an
 
 Download the Apple-silicon ZIP and unzip it. Read the [Mac preview note](platform-and-limits.md#mac-preview), then open **asMagicBrain Preview**.
 
+Use the standard red, yellow, and green window buttons to close, minimize, or enter full screen. **Control–Command–F** also toggles full screen.
+
 ### Install on Ubuntu
 
 Download the `.deb` and its `SHA256SUMS` file from the same release. Compare the package's checksum with its entry in `SHA256SUMS`, then install it:

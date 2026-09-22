@@ -24,6 +24,10 @@ Copyright (c) 2020 Primer. The upstream MIT notice remains at
 ui-workshop/src/github-themes/LICENSE.txt and in packaged dependency notices.
 The adaptation does not bundle or execute the VS Code extension.
 
+Technical document reading bundles KaTeX and its fonts, Mermaid, DOMPurify
+and their dependency notices. These libraries do not grant imported Markdown
+access to application services or permission to run embedded scripts.
+
 Supplemental notices for exact installed dependency versions whose npm
 packages omit license text are retained in apps/native/licenses, with source
 and hash provenance. Packaged third-party-license inventories and original

@@ -4,7 +4,13 @@
 
 ## Version and source identity
 
-`apps/native/release.json` owns the native version and increasing build number. Continue patch increments in the 0.2 line until a maintainer changes that policy. Final packages require a clean exact commit and immutable `native-v<version>` tag. Preserve previous packages, checksums, manifests, notices, and acceptance records.
+`apps/native/release.json` owns the native version and increasing build number. Advance the public patch version once per release unless a maintainer chooses a minor or major change. Discussions, commits, and routine development checks do not each consume a public version.
+
+For each retained internal test build, advance `buildNumber` and package with `--candidate`. Candidates may keep the current base version and use unique test output. Identify them as internal candidates by build number and actual source commit; retain input hashes and the dirty-source flag when applicable. Candidate package metadata and manifests use `sourceTag: null`; they do not claim the base version's final tag or replace its release.
+
+Final packages require a clean exact commit and immutable `native-v<version>` tag. Keep published or distributed final artifacts and their tags immutable. Preserve previous packages, checksums, manifests, notices, and acceptance records. Select the next public version when preparing the next release, and qualify its exact final artifacts.
+
+Linux candidates with the same base version retain the same Debian package version: increasing `buildNumber` does not advance Debian upgrade ordering. Use explicit reinstallation in an isolated test environment, with isolated application data.
 
 An authorized same-version metadata correction advances the build and sets `metadataRevision`, producing `native-v<version>-metadata.<revision>`. Preserve the original tag and artifacts. Package into new output; existing output guards still apply. A same-version Debian correction needs explicit reinstallation.
 
@@ -75,4 +81,4 @@ Release source and downloads live at [asMagicBrain/App](https://github.com/asMag
 
 Build downloadable applications from the commit identified in their release. Identical file trees do not make an older package a build of a new commit. Publishing source, uploading a binary, signing/notarizing it, and qualifying its download are separate actions.
 
-Keep release notes brief: what changed, available files, installation links, and relevant limitations. Put detailed build receipts and internal history in controlled evidence outside the public source and user-doc payload. Verify uploaded bytes against checksums and source identity before announcing availability.
+Start every release with a short **What's new** bullet list describing changes useful to users. Follow it with brief installation guidance and links to the available downloads. Include only limitations relevant to installing or using that release. Put detailed build receipts and internal history in controlled development documentation outside the public source and user-doc payload. Verify uploaded bytes against checksums and source identity before announcing availability.
