@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import {createAutomationDispatch} from './automation-dispatch.mjs';
 import {createReadingService} from './reading-service.mjs';
 import {createPackageExchange} from '../../packages/desktop-host/src/package-exchange/index.mjs';
+import {createPluginPackageManager} from '../../packages/desktop-host/src/plugin-packages/manager.mjs';
+import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-packages/format.mjs';
 import {validateAutomationFiles} from './automation-validation.mjs';
 import {renderOffline,analyzeReferences} from './dist-host/offline-reader.mjs';
 import {createRepositoryManagement} from './repository-management.mjs';
@@ -290,9 +292,12 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   const readingRepositories=()=>importer.catalog.list().map(entry=>({...entry,stableId:createHash('sha256').update(record.ownerId+':'+record.repositoryBindings.find(binding=>binding.name===entry.name)?.stateKey).digest('hex')}));
   const readingDirectory=privateDirectory(path.join(privateRoot.path,'.asmb-reading'),true);
   const reading=createReadingService({repositories:readingRepositories,redirectStore:createPrivateStore({privateRoot:readingDirectory.path,bindingHash:createHash('sha256').update(bindingHash+':reading:1').digest('hex')}),readSnapshot:async input=>{repo(input.repo);assertApplyReady(input.repo);await workspace.execute(input.repo,'gitInspect',{});return readLocalRepository(input.repo,input.path,organization.path,input.ref,{builtinRepositories:builtins()});}});
+  const pluginDirectory=privateDirectory(path.join(privateRoot.path,'.asmb-plugin-packages'),true);
+  const pluginPackages=createPluginPackageManager({privateRoot:pluginDirectory.path,bindingHash:createHash('sha256').update(bindingHash+':plugin-packages:1').digest('hex'),hooks:{at:hooks.pluginPackageAt}});
   function readingInput(request){const value=copyRequest(request);if(!exact(value,['repo','path','ref'])||!readerPath(value.path)||typeof value.ref!=='string'||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_REQUEST');repo(value.repo);return value;}
   function packageRequest(request,fields){const value=copyRequest(request);if(!exact(value,['repo',...fields]))fail('INVALID_REQUEST');repo(value.repo);return value;}
   function packageArchive(request,fields){if(!request||!(request.bytes instanceof ArrayBuffer)&&!ArrayBuffer.isView(request.bytes))fail('INVALID_REQUEST');const bytes=Buffer.from(request.bytes instanceof ArrayBuffer?new Uint8Array(request.bytes):request.bytes);if(!bytes.length||bytes.length>ZIP_IMPORT_LIMITS.archiveBytes)fail('LIMIT_EXCEEDED');const {bytes:ignored,...metadata}=request;const value=packageRequest(metadata,fields);return {...value,bytes:Buffer.from(bytes)};}
+  function pluginArchive(request,fields){if(!request||!(request.bytes instanceof ArrayBuffer)&&!ArrayBuffer.isView(request.bytes))fail('PLUGIN_PACKAGE_INVALID_REQUEST');const bytes=Buffer.from(request.bytes instanceof ArrayBuffer?new Uint8Array(request.bytes):request.bytes);if(!bytes.length||bytes.length>PLUGIN_PACKAGE_LIMITS.archiveBytes)fail('PLUGIN_PACKAGE_LIMIT');const {bytes:ignored,...metadata}=request;if(!exact(metadata,fields))fail('PLUGIN_PACKAGE_INVALID_REQUEST');return {...copyRequest(metadata),bytes};}
   async function packageMutation(name,action){assertWritable(name);if(applyHeld.has(name))fail('APPLY_RECOVERY_REQUIRED');const manager=exchangeFor(name);try{return await action(manager);}finally{workspace.close();openWorkspace();try{if(manager.status().recoveryRequired)exchangeHeld.add(name);else exchangeHeld.delete(name);}catch{exchangeHeld.add(name);}}}
   const managementResult=repository=>({repository,organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:readingRepositories()});
   const reopenAfterManagement=()=>{exchangeManagers.clear();importer=createRepositoryImporter({base:organization.path,builtinRepositories:builtins(),hooks});openWorkspace();};
@@ -315,6 +320,12 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    finally{if(owned){checkDirectory(pin);const live=exists(filename);if(live&&identity(live)===owned){fs.unlinkSync(filename);syncDirectory(pin);}}}
   });
   const api=Object.freeze({
+   inspectPluginPackage:request=>{const value=pluginArchive(request,[]);return queue(()=>pluginPackages.inspect(value.bytes));},
+   listPluginPackages:()=>queue(()=>pluginPackages.list()),
+   installPluginPackage:request=>{const value=pluginArchive(request,['requestId']);return queue(()=>pluginPackages.install(value));},
+   setPluginPackageEnabled:request=>{let value;try{value=copyRequest(request);if(!exact(value,['pluginId','enabled']))fail('PLUGIN_PACKAGE_INVALID_REQUEST');}catch(error){return Promise.reject(error);}return queue(()=>pluginPackages.setEnabled(value));},
+   rollbackPluginPackage:request=>{let value;try{value=copyRequest(request);if(!exact(value,['pluginId','requestId']))fail('PLUGIN_PACKAGE_INVALID_REQUEST');}catch(error){return Promise.reject(error);}return queue(()=>pluginPackages.rollback(value));},
+   uninstallPluginPackage:request=>{let value;try{value=copyRequest(request);if(!exact(value,['pluginId','requestId']))fail('PLUGIN_PACKAGE_INVALID_REQUEST');}catch(error){return Promise.reject(error);}return queue(()=>pluginPackages.uninstall(value));},
    packageStatus:request=>{const value=packageRequest(request,[]);return queue(()=>exchangeFor(value.repo).status());},
    reviewPackageBase:request=>{const value=packageArchive(request,['collectionId','version']);return queue(()=>{assertApplyReady(value.repo);return exchangeFor(value.repo).registrationReview({archive:value.bytes,collectionId:value.collectionId,version:value.version} );});},
    registerPackageBase:request=>{const value=packageRequest(request,['planId']);return queue(()=>packageMutation(value.repo,manager=>manager.registerBase({planId:value.planId})));},

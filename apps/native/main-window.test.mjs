@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import vm from 'node:vm';
 import {EventEmitter} from 'node:events';
 import {fileURLToPath} from 'node:url';
 import {parseSync} from '../../ui-workshop/node_modules/oxc-parser/src-js/index.js';
 import {resolveBuildConfiguration} from './build-channel.mjs';
 import {startupFailureMessage} from './startup.mjs';
+import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-packages/format.mjs';
 
 const mainURL = new URL('./main.mjs', import.meta.url);
 const mainSource = fs.readFileSync(mainURL, 'utf8');
@@ -63,6 +65,9 @@ async function harness({drain, channel = 'development', startupError, temporaryE
     close: async () => {events.push(`${name}.close`);},
   });
   const service = {
+    inspectPluginPackage: async ({bytes}) => {events.push({pluginInspect:Buffer.from(bytes)});return {digest:'a'.repeat(64),archiveBytes:bytes.length,expandedBytes:bytes.length,fileCount:2,compatible:true,manifest:{format:'asMagicBrain-plugin',schemaVersion:1,id:'fixture.plugin',name:'Fixture plugin',version:'1.0.0',publisher:{id:'fixture.publisher',name:'Fixture',website:null},hostApi:{min:1,max:1},execution:{kind:'declarative'},permissions:[],resources:[],signature:null}};},
+    installPluginPackage: async value => {events.push({pluginInstall:value});return {id:'fixture.plugin',name:'Fixture plugin',version:'1.0.0',digest:'a'.repeat(64),enabled:false,rollbackAvailable:false};},
+    listPluginPackages: async()=>[],setPluginPackageEnabled:async value=>value,rollbackPluginPackage:async value=>value,uninstallPluginPackage:async value=>({...value,uninstalled:true}),
     setAutomationGrants: async () => {events.push('automation.revoke');},
     prepareSearchClose: async () => {events.push('service.prepare');}, resumeSearch: () => events.push('service.resume'),
     drain: async () => {events.push('service.drain'); if (drain) await drain.promise;},
@@ -77,7 +82,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
   const dialog = {showMessageBox: async (_window, options) => {dialogs.push(options); return {response: options.title === 'Import files and folders' ? pickerChoice : 0};}, showErrorBox: (title, content) => dialogs.push({title, content}),
     showOpenDialog: async (_window, options) => {pickerDialogs.push(options); return await pickerSelection;}};
   await vm.runInNewContext('(async () => {'+executable+'\n})()', {
-    app, BrowserWindow, WebContentsView:class {}, dialog, ipcMain, Menu, protocol, session,
+    app, BrowserWindow, WebContentsView:class {}, dialog, ipcMain, Menu, protocol, session, PLUGIN_PACKAGE_LIMITS,
     ARTIFACT_SCHEME:{scheme:'asmb-artifact',privileges:{standard:true,secure:true}},
     createArtifactHost:()=>({review:async input=>{events.push('artifact.review');return {reviewId:'review',repo:input.repo};},run:async()=>{events.push('artifact.run');return {state:'running'};},reset:async()=>({state:'running'}),resize:()=>({state:'running'}),status:()=>({state:'idle'}),stop:()=>{events.push('artifact.stop');return {state:'stopped'};},close:async()=>{events.push('artifact.close');}}),
     shell: {openExternal: async value => {openedExternal.push(value);}, showItemInFolder: value => revealed.push(value)},
@@ -248,6 +253,21 @@ test('macOS retains its combined picker while pending or stale native selections
   h.window.webContents.mainFrame = {url: 'app://asmagicbrain/index.html'};
   selection.resolve({canceled: false, filePaths: ['/fixture/originals/note.md']});
   assert.equal((await first).error.code, 'VIEW_UNAVAILABLE'); assert.deepEqual(h.registered, []);
+});
+
+test('plugin picker returns reviewed metadata without a path and installs only its one pending ticket', async t => {
+  const directory=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'asmb-plugin-picker-')),filename=path.join(directory,'Fixture.asmbplugin');
+  fs.writeFileSync(filename,Buffer.from('fixture package bytes'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+  const h=await harness({pickerSelection:{canceled:false,filePaths:[filename]}}),call=h.handlers.get('asmb:native');
+  const selected=await call(h.sender,{method:'selectPluginPackage'});assert.equal(selected.ok,true);assert.equal(selected.value.filename,'Fixture.asmbplugin');
+  assert.equal(JSON.stringify(selected.value).includes(directory),false,'absolute selected path never crosses IPC');
+  assert.equal(selected.value.manifest.name,'Fixture plugin');assert.equal(h.pickerDialogs.at(-1).filters[0].extensions[0],'asmbplugin');
+  const installed=await call(h.sender,{method:'installPluginPackage',args:{ticket:selected.value.ticket,requestId:'fixture-request'}});
+  assert.equal(installed.ok,true);assert.equal(installed.value.id,'fixture.plugin');
+  const installEvent=h.events.find(event=>event?.pluginInstall);assert.equal(Buffer.from(installEvent.pluginInstall.bytes).toString(),'fixture package bytes');
+  const replay=await call(h.sender,{method:'installPluginPackage',args:{ticket:selected.value.ticket,requestId:'fixture-request'}});
+  assert.equal(replay.ok,false);assert.equal(replay.error.code,'PLUGIN_PACKAGE_REVIEW_EXPIRED');
+  assert.deepEqual((await call(h.sender,{method:'listPluginPackages'})).value,[]);
 });
 
 test('Linux dispatches admitted external links and reveal paths through Electron shell only', async () => {

@@ -11,6 +11,13 @@ const invoke = async (method, args) => {
 };
 contextBridge.exposeInMainWorld('asMagicBrain', Object.freeze({
   native: true,
+  selectPluginPackage: () => invoke('selectPluginPackage'),
+  installPluginPackage: args => invoke('installPluginPackage',args),
+  cancelPluginPackageReview: args => invoke('cancelPluginPackageReview',args),
+  listPluginPackages: () => invoke('listPluginPackages'),
+  setPluginPackageEnabled: args => invoke('setPluginPackageEnabled',args),
+  rollbackPluginPackage: args => invoke('rollbackPluginPackage',args),
+  uninstallPluginPackage: args => invoke('uninstallPluginPackage',args),
   configureAutomation: args => invoke('configureAutomation',args),
   getAutomationStatus: args => invoke('getAutomationStatus',args),
   approveAutomation: args => invoke('approveAutomation',args),

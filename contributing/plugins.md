@@ -1,14 +1,16 @@
-# Bundled plugin contracts
+# Plugin contracts
 
-[Architecture](architecture.md) · [User guide](../docs/plugins.md)
+[Architecture](architecture.md) · [Local package format](plugin-packages.md) · [User guide](../docs/plugins.md)
 
-Host API **1**, manifest schema **1**, currently supports explicitly bundled first-party modules. There is no third-party package installer or dynamic plugin loader. Imported artifact scripts require the separate explicit review and execution boundary below. Registry metadata is not an isolation boundary.
+Host API **1** and manifest schema **1** support application-owned trusted modules. The local installer accepts inert declarative `.asmbplugin` archives; it is not a third-party code loader. Imported artifact scripts require the separate explicit review and execution boundary below. Registry metadata is not an isolation boundary.
+
+Stage 4.5 verifies and stores declarative resources, exposes reviewed offline lifecycle controls in the Plugins UI, and uses one exact package identity to admit the already compiled Pro Editor module. Other installed packages cannot register runtime modules or contributions. See [local plugin packages](plugin-packages.md).
 
 ## Manifest and registration
 
 The authoritative types and validators are in [`contracts.ts`](../ui-workshop/src/plugin-foundation/contracts.ts). A manifest declares a stable plugin ID, semantic version, inclusive host API range, capability names and prefixed contribution IDs. Unknown fields, unsupported schemas, undeclared commands and incompatible ranges are refused. The application imports a module and calls `registerBundled`; manifests contain no executable URL or entry path.
 
-[`Markdown tools`](../ui-workshop/src/bundled-markdown-tools.ts) is a complete example. Its requested `document.read` / `document.edit` capabilities also require a separate host-owned allowlist. Enabling it activates its declared commands; disabling revokes access and removes contributions. Preference persistence belongs to the host UI.
+[`Markdown tools`](../ui-workshop/src/bundled-markdown-tools.ts) implements core editor controls through the same checked contract, but it is not presented as an installed plugin. Its requested `document.read` / `document.edit` capabilities also require a separate host-owned allowlist.
 
 ## Document authority
 
@@ -28,9 +30,9 @@ Cancellation is cooperative for trusted code. It does not preempt a blocked Java
 
 Run the source suites and `npm run typecheck`. [`plugin-foundation.mjs`](../apps/native/acceptance/plugin-foundation.mjs) qualifies actual packaged controls, one editor, undo, drafts, Save, selected-file commit and normal restart against synthetic data. Pure tests separately cover injected incompatible/failing modules and denied/stale operations; do not describe those as arbitrary native plugin-loading support.
 
-## Stage 3: optional Pro Editor
+## Stage 3/4.5: optional Pro Editor
 
-The included `asmagicbrain.pro-editor` module uses the same document capability grants as Markdown tools. Equation/diagram insertions are checked transactions; Source/Visual reconfigures the retained session contribution compartment. CM6 StateField decorations provide presentation only. Code remains complete source, unsupported constructs stay visible, and raw-source history remains authoritative. The shared Split hook maps source lines to rendered blocks without changing selection or source.
+The trusted `asmagicbrain.pro-editor` module uses the same document capability grants as Markdown tools. It is registered only while the exact first-party package binding is installed, and activated only while that package is enabled. Equation/diagram insertions are checked transactions; Source/Visual reconfigures the retained session contribution compartment. CM6 StateField decorations provide presentation only. Code remains complete source, unsupported constructs stay visible, and raw-source history remains authoritative. The shared Split hook maps source lines to rendered blocks without changing selection or source.
 
 The native artifact host is a separate execution boundary. `artifact-snapshot.mjs` admits only a managed working-tree HTML or `.artifact.json` file. Manifest-listed bytes are read with physical path/descriptor checks and held in memory. Review identity includes content, physical identities and runtime policy. Run rechecks that identity. The application renderer receives review data, never executable HTML in its DOM.
 

@@ -3,13 +3,16 @@ import {createPluginRegistry} from './plugin-foundation/registry';
 import {PluginOperationError, type PluginHostAdapter} from './plugin-foundation/contracts';
 import {markdownTools, markdownToolsManifest} from './bundled-markdown-tools';
 import {proEditor, proEditorManifest} from './pro-editor/manifest';
-import {isNativeClosing} from './native-bridge.mjs';
+import {isTrustedProPackage} from './pro-editor/trusted-package';
+import {getNativeBridge, isNativeClosing, nativeOperation} from './native-bridge.mjs';
+import type {PluginPackageEntry,PluginPackageReview} from './native-types';
 import './plugin-workspace-study.css';
 import './native-plugin-host.css';
 
-const preferenceKey = 'asmagicbrain.bundled-plugins.v1';
 function createHost() {
   let document: PluginHostAdapter | null = null;
+  let packages:PluginPackageEntry[]=[];
+  let packageError='';
   const listeners = new Set<() => void>();
   let previousIdentity = '';
   const notify = () => {for (const listener of listeners) listener();};
@@ -25,9 +28,20 @@ function createHost() {
     },
   });
   registry.registerBundled(markdownToolsManifest, markdownTools);
-  registry.registerBundled(proEditorManifest, proEditor);
+  const synchronizePackages=async(next:PluginPackageEntry[])=>{
+    packages=next;
+    const trusted=next.find(isTrustedProPackage),registered=registry.snapshot().some(item=>item.manifest.id===proEditorManifest.id);
+    if(trusted&&!registered)registry.registerBundled(proEditorManifest,proEditor);
+    if(!trusted&&registered)registry.unregister(proEditorManifest.id);
+    if(trusted){if(trusted.enabled)await registry.enable(proEditorManifest.id);else registry.disable(proEditorManifest.id);}
+    notify();
+  };
   return {
     registry,
+    getPackages:()=>packages,
+    getPackageError:()=>packageError,
+    async refreshPackages(){const bridge=getNativeBridge();try{await synchronizePackages(bridge?.listPluginPackages?await nativeOperation(()=>bridge.listPluginPackages()):[]);packageError='';}
+      catch(reason){packageError=(reason as Error).message;notify();throw reason;}},
     subscribe(listener: () => void) {listeners.add(listener); const stop = registry.subscribe(listener); return () => {listeners.delete(listener); stop();};},
     registerDocument(adapter: PluginHostAdapter) {
       registry.replaceDocument(); document = adapter; previousIdentity = ''; notify();
@@ -53,7 +67,8 @@ export function NativePluginProvider({children}: {children: React.ReactNode}) {
   const mounted = useRef(false);
   useEffect(() => {
     mounted.current = true;
-    try {const stored = JSON.parse(localStorage.getItem(preferenceKey) ?? '{}'); if (stored.markdownTools === true) void host.registry.enable(markdownToolsManifest.id); if (stored.proEditor === true) void host.registry.enable(proEditorManifest.id);} catch {/* Invalid preferences leave optional tools off. */}
+    void host.registry.enable(markdownToolsManifest.id);
+    void host.refreshPackages().catch(()=>{});
     const closing = () => host.cancelOperations();
     window.addEventListener('pagehide', closing);
     return () => {mounted.current = false; window.removeEventListener('pagehide', closing); host.cancelOperations();
@@ -80,23 +95,29 @@ export function useProEditorEnabled() {
 }
 export function NativePluginManager({onReturn}: {onReturn(): void}) {
   const host = usePluginState();
-  const [query, setQuery] = useState(''), [details, setDetails] = useState<string[]>([]), [feedback, setFeedback] = useState('');
+  const [query,setQuery]=useState(''),[details,setDetails]=useState<string[]>([]),[feedback,setFeedback]=useState(''),[busy,setBusy]=useState(false);
+  const [review,setReview]=useState<PluginPackageReview|null>(null),[removing,setRemoving]=useState<PluginPackageEntry|null>(null);
   if (!host) return null;
-  const entries = host.registry.snapshot();
-  const toggle = async (id: string, enabled: boolean) => {
-    setFeedback('');
-    const result = enabled ? host.registry.disable(id) : await host.registry.enable(id);
-    if (!result.ok) {setFeedback(result.error.message); return;}
-    try {localStorage.setItem(preferenceKey, JSON.stringify(Object.fromEntries(host.registry.snapshot().map(item => [item.manifest.id === proEditorManifest.id ? 'proEditor' : 'markdownTools', item.state === 'enabled']))));}
-    catch {setFeedback('This choice applies until the app closes.');}
-  };
-  const matching = entries.filter(item => item.manifest.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const bridge=getNativeBridge(),entries=host.getPackages();
+  const run=async(action:()=>Promise<void>)=>{if(busy)return;setBusy(true);setFeedback('');try{await action();await host.refreshPackages();}catch(reason){setFeedback((reason as Error).message);}finally{setBusy(false);}};
+  const choose=()=>run(async()=>{if(!bridge?.selectPluginPackage)throw Error('Plugin installation requires the native application.');const value=await nativeOperation(()=>bridge.selectPluginPackage());if(value)setReview(value);});
+  const cancelReview=()=>{const value=review;setReview(null);if(value&&bridge?.cancelPluginPackageReview)void nativeOperation(()=>bridge.cancelPluginPackageReview({ticket:value.ticket})).catch(()=>{});};
+  const install=()=>run(async()=>{if(!review||!bridge?.installPluginPackage)return;await nativeOperation(()=>bridge.installPluginPackage({ticket:review.ticket,requestId:crypto.randomUUID()}));setFeedback(`${review.manifest.name} installed.`);setReview(null);});
+  const toggle=(entry:PluginPackageEntry)=>run(async()=>{if(!bridge?.setPluginPackageEnabled)throw Error('Plugin controls require the native application.');await nativeOperation(()=>bridge.setPluginPackageEnabled({pluginId:entry.id,enabled:!entry.enabled}));});
+  const rollback=(entry:PluginPackageEntry)=>run(async()=>{if(!bridge?.rollbackPluginPackage)return;await nativeOperation(()=>bridge.rollbackPluginPackage({pluginId:entry.id,requestId:crypto.randomUUID()}));setFeedback(`${entry.name} restored to its previous version.`);});
+  const uninstall=()=>run(async()=>{const entry=removing;if(!entry||!bridge?.uninstallPluginPackage)return;await nativeOperation(()=>bridge.uninstallPluginPackage({pluginId:entry.id,requestId:crypto.randomUUID()}));setFeedback(`${entry.name} uninstalled.`);setRemoving(null);});
+  const matching=entries.filter(item=>item.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const description=(entry:PluginPackageEntry)=>isTrustedProPackage(entry)?'Edit equations and diagrams visually using the existing CM6 editor.':'Declarative resources stored locally. This package cannot run application code.';
   return <section className="pws-manager" aria-label="Plugins"><div className="pws-manager-content">
-    <header className="pws-heading"><div><h1>Plugins</h1><p>Choose the tools you use in asMagicBrain.</p></div><button className="pws-button" onClick={onReturn}>Return to workspace</button></header>
-    <div className="pws-list-heading"><h2>Installed <span className="pws-count">{entries.length}</span></h2><label className="pws-search"><span className="pws-sr-only">Search installed plugins</span><input type="search" placeholder="Search plugins…" value={query} onChange={event => setQuery(event.target.value)}/></label></div>
-    {matching.map(status => {const enabled = status.state === 'enabled', pro = status.manifest.id === proEditorManifest.id, expanded = details.includes(status.manifest.id); return <article className="pws-plugin" key={status.manifest.id}><div className="pws-plugin-row"><span className="pws-plugin-icon">{pro?<ProIcon/>:<ToolsIcon/>}</span><div className="pws-plugin-description"><div className="pws-plugin-title"><h3>{status.manifest.name}</h3><span className="pws-badge">Included</span></div><p>{pro ? 'Edit equations and diagrams visually. Run reviewed local interactive views.' : 'Format selected text and check document statistics.'}</p><span className="pws-publisher">asMagicBrain · {status.manifest.version}</span></div><div className="pws-plugin-actions"><button className="pws-enable" role="switch" aria-label={`Enable ${status.manifest.name}`} aria-checked={enabled} disabled={status.state === 'enabling' || status.state === 'incompatible'} onClick={() => void toggle(status.manifest.id, enabled)}><span>{enabled ? 'Enabled' : status.state === 'enabling' ? 'Enabling…' : 'Disabled'}</span><span className="pws-switch-track" aria-hidden="true"><span/></span></button></div></div><div className="pws-plugin-footer"><button className="pws-details-toggle" aria-expanded={expanded} onClick={() => setDetails(current => expanded ? current.filter(id => id !== status.manifest.id) : [...current, status.manifest.id])}>{expanded ? 'Hide details' : 'View details'}</button><span className="pws-publisher">Works offline</span></div>{expanded && <div className="pws-details"><h4>Document access</h4><p>When enabled, these tools can read the open document and edit its text. Edits stay in the document’s draft until you save them.</p>{pro && <><h4>Interactive views</h4><p>Local interactive content requires a separate review and Run decision. It has no access to your account, workspace or network.</p></>}<h4>Your workspace</h4><p>Disabling the plugin removes its tools. Your files, drafts and undo history stay available.</p></div>}{status.error && <p className="np-error" role="alert">{status.error.message}</p>}</article>;})}
-    {!matching.length && <p className="pws-empty">No matching plugins</p>}
-    <p className="pws-hint">Optional tools share your existing editor. Disabling them preserves files, drafts and undo history.</p><p className="pws-feedback" role="status">{feedback}</p>
+    <header className="pws-heading"><div><h1>Plugins</h1><p>Install and manage optional tools stored on this computer.</p></div><div className="pws-heading-actions"><button className="pws-button pws-primary" disabled={!bridge?.selectPluginPackage||busy} onClick={()=>void choose()}>Install plugin…</button><button className="pws-button" onClick={onReturn}>Return to workspace</button></div></header>
+    <div className="pws-list-heading"><h2>Bundled <span className="pws-count">0</span></h2></div>
+    <p className="pws-empty pws-compact-empty">No optional plugins are bundled. Markdown editing is part of asMagicBrain.</p>
+    <div className="pws-list-heading"><h2>Installed <span className="pws-count">{entries.length}</span></h2><label className="pws-search"><span className="pws-sr-only">Search installed plugins</span><input type="search" placeholder="Search plugins…" value={query} onChange={event=>setQuery(event.target.value)}/></label></div>
+    {matching.map(entry=>{const expanded=details.includes(entry.id);return <article className="pws-plugin" key={entry.id}><div className="pws-plugin-row"><span className="pws-plugin-icon">{isTrustedProPackage(entry)?<ProIcon/>:<ToolsIcon/>}</span><div className="pws-plugin-description"><div className="pws-plugin-title"><h3>{entry.name}</h3><span className="pws-badge">Installed</span>{isTrustedProPackage(entry)&&<span className="pws-badge">Verified first-party</span>}</div><p>{description(entry)}</p><span className="pws-publisher">{entry.manifest.publisher.name} · {entry.version}</span></div><div className="pws-plugin-actions"><button className="pws-enable" role="switch" aria-label={`Enable ${entry.name}`} aria-checked={entry.enabled} disabled={busy} onClick={()=>void toggle(entry)}><span>{entry.enabled?'Enabled':'Disabled'}</span><span className="pws-switch-track" aria-hidden="true"><span/></span></button></div></div><div className="pws-plugin-footer"><button className="pws-details-toggle" aria-expanded={expanded} onClick={()=>setDetails(current=>expanded?current.filter(id=>id!==entry.id):[...current,entry.id])}>{expanded?'Hide details':'View details'}</button><span className="pws-publisher">Works offline</span></div>{expanded&&<div className="pws-details"><h4>Package access</h4><p>This package is stored in private application state. It cannot access repositories, accounts, the network or application code.</p>{isTrustedProPackage(entry)&&<><h4>Trusted binding</h4><p>The exact verified package identity activates Pro Editor code already reviewed and compiled with asMagicBrain. Replacing any package byte breaks that binding.</p></>}<div className="pws-detail-actions"><button className="pws-button" disabled={busy||!entry.rollbackAvailable} onClick={()=>void rollback(entry)}>Restore previous version</button><button className="pws-button pws-danger" disabled={busy} onClick={()=>setRemoving(entry)}>Uninstall…</button></div></div>}</article>;})}
+    {!matching.length&&<p className="pws-empty">{entries.length?'No matching plugins':'No plugins installed'}</p>}
+    <p className="pws-hint">Install only plugin files you intended to use. Packages are checked before installation and remain offline.</p><p className="pws-feedback" role="status">{busy?'Working…':feedback||host.getPackageError()}</p>
+    {review&&<dialog open className="np-tools-dialog pws-package-dialog" aria-labelledby="pws-review-title"><h2 id="pws-review-title">Install {review.manifest.name}?</h2><dl><div><dt>Publisher</dt><dd>{review.manifest.publisher.name}</dd></div><div><dt>Version</dt><dd>{review.manifest.version}</dd></div><div><dt>File</dt><dd>{review.filename}</dd></div><div><dt>Access</dt><dd>No permissions · declarative content only</dd></div></dl>{!review.compatible&&<p className="np-error" role="alert">This plugin requires a different asMagicBrain version.</p>}<div className="pws-dialog-actions"><button className="pws-button" onClick={cancelReview}>Cancel</button><button className="pws-button pws-primary" disabled={busy||!review.compatible} onClick={()=>void install()}>Install plugin</button></div></dialog>}
+    {removing&&<dialog open className="np-tools-dialog pws-package-dialog" aria-labelledby="pws-uninstall-title"><h2 id="pws-uninstall-title">Uninstall {removing.name}?</h2><p>The plugin and its retained previous package will be removed. Repository files, drafts and Git history remain unchanged.</p><div className="pws-dialog-actions"><button className="pws-button" onClick={()=>setRemoving(null)}>Cancel</button><button className="pws-button pws-danger" disabled={busy} onClick={()=>void uninstall()}>Uninstall</button></div></dialog>}
   </div></section>;
 }
 function useCommand() {

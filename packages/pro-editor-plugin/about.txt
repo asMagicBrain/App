@@ -1,0 +1,3 @@
+Pro Editor adds reviewed equation, diagram, visual Markdown and local interactive-view tools to asMagicBrain's existing CM6 editor.
+
+This package contains no executable code. asMagicBrain activates its separately reviewed first-party Pro Editor module only when the installed package identity exactly matches the application binding.

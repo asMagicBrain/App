@@ -8,7 +8,6 @@ export const markdownToolsManifest: PluginManifest = {
     {id: 'asmagicbrain.markdown.bold', kind: 'command', title: 'Bold selection'},
     {id: 'asmagicbrain.markdown.statistics-tool', kind: 'reader-view', title: 'Document statistics', commandId: 'asmagicbrain.markdown.statistics'},
     {id: 'asmagicbrain.markdown.bold-tool', kind: 'editor-tool', title: 'Bold selection', commandId: 'asmagicbrain.markdown.bold'},
-    {id: 'asmagicbrain.markdown.navigation', kind: 'navigation', title: 'Markdown tools', commandId: 'asmagicbrain.markdown.statistics'},
   ],
 };
 type DocumentRead = {text: string; selection: {anchor: number; head: number}};

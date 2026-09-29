@@ -60,6 +60,14 @@ test('missing, disabled and duplicate registrations remain truthful', async () =
   assert.equal(f.registry.contributions().length, 2); assert.equal(f.registry.contributions('editor-tool').length, 1);
 });
 
+test('unregister revokes active work and removes every contribution before later package reuse', async () => {
+  let disposed=0;const f=fixture({module:{activate(ctx){ctx.registerCommand(commandId,()=>null);return()=>{disposed++;};}}});
+  assert.equal((await f.registry.enable(pluginId)).ok,true);assert.equal(f.registry.contributions().length,2);
+  assert.equal(f.registry.unregister(pluginId).ok,true);assert.equal(disposed,1);assert.deepEqual(f.registry.snapshot(),[]);assert.deepEqual(f.registry.contributions(),[]);
+  assert.equal(code(await f.registry.invoke(commandId)),'MISSING_PLUGIN');assert.equal(f.registry.unregister(pluginId).ok,true);
+  assert.equal(f.registry.registerBundled(manifest(),{activate(ctx){ctx.registerCommand(commandId,()=>null);}}).ok,true);
+});
+
 test('declarations do not grant authority; omitted grants and omitted declarations both deny host access', async () => {
   for (const options of [{permissionGrants: {}}, {pluginManifest: manifest({capabilities: []})}]) {
     const f = fixture(options); await f.registry.enable(pluginId);

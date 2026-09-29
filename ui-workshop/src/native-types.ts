@@ -7,6 +7,14 @@ export type RepositoryTextMatch = {repo: string; path: string; line: number; col
 /** Positions are one-based UTF-16 columns, matching the saved line, never a live draft. */
 export type RepositoryTextSearch = {requestId: string; matches: RepositoryTextMatch[]; truncated: boolean; reason?: 'limit' | 'timeout'; searchedFiles: number; skippedFiles: number};
 export type NativeAppearance = {themeId: string | null; hideUnavailable: boolean};
+export type PluginPackageManifest = {
+  format:'asMagicBrain-plugin';schemaVersion:1;id:string;name:string;version:string;
+  publisher:{id:string;name:string;website:string|null};hostApi:{min:number;max:number};
+  execution:{kind:'declarative'};permissions:[];
+  resources:{id:string;type:'markdown-template'|'text'|'data'|'image';path:string;title:string}[];signature:null;
+};
+export type PluginPackageEntry = {id:string;name:string;version:string;digest:string;enabled:boolean;rollbackAvailable:boolean;manifest:PluginPackageManifest};
+export type PluginPackageReview = {ticket:string;filename:string;digest:string;archiveBytes:number;expandedBytes:number;fileCount:number;compatible:boolean;manifest:PluginPackageManifest;expiresAt:number};
 export type NativeBuildConfiguration =
   | {channel: 'development'; presentation: 'full-with-grey'; canToggleUnavailable: true; validationOnly: false}
   | {channel: 'preview'; presentation: 'implemented-only'; canToggleUnavailable: false; validationOnly: false};
@@ -59,6 +67,13 @@ export type ResolvedReadingReference={status:string;message:string;repo?:string;
 export type AutomationScope='read'|'write'|'import'|'export';
 export type AutomationStatus={schemaVersion:1;enabled:boolean;grants:{repoId:string;scopes:AutomationScope[]}[];connectionFile?:string;limits:Record<string,number>;operations:{operationId:string;requestId:string;status:string;kind:string;repoId:string;digest:string;createdAt:number;plan:unknown;error?:{code:string;message:string}}[]};
 export type NativeBridge = {
+  selectPluginPackage():Promise<PluginPackageReview|null>;
+  installPluginPackage(input:{ticket:string;requestId:string}):Promise<PluginPackageEntry>;
+  cancelPluginPackageReview(input:{ticket:string}):Promise<void>;
+  listPluginPackages():Promise<PluginPackageEntry[]>;
+  setPluginPackageEnabled(input:{pluginId:string;enabled:boolean}):Promise<PluginPackageEntry>;
+  rollbackPluginPackage(input:{pluginId:string;requestId:string}):Promise<PluginPackageEntry>;
+  uninstallPluginPackage(input:{pluginId:string;requestId:string}):Promise<{pluginId:string;uninstalled:true}>;
   configureAutomation(input:{enabled:boolean;grants:{repoId:string;scopes:AutomationScope[]}[]}):Promise<unknown>;
   getAutomationStatus():Promise<AutomationStatus>;
   approveAutomation(input:{operationId:string;digest:string}):Promise<unknown>;

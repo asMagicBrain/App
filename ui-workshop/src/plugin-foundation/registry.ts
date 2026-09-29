@@ -34,6 +34,7 @@ function cancellable<T>(signal: AbortSignal, task: () => T | Promise<T>): Promis
 
 export interface PluginRegistry {
   registerBundled(manifest: unknown, module: BundledPlugin): PluginResult<PluginStatus>;
+  unregister(pluginId: string): PluginResult<null>;
   enable(pluginId: string): Promise<PluginResult<PluginStatus>>;
   disable(pluginId: string): PluginResult<PluginStatus>;
   invoke(commandId: string): Promise<PluginResult<unknown>>;
@@ -169,6 +170,16 @@ export function createPluginRegistry({host, hostApiVersion = PLUGIN_HOST_API_VER
       entries.set(manifest.id, entry);
       return success(status(entry, hostApiVersion >= manifest.hostApi.min && hostApiVersion <= manifest.hostApi.max ? 'disabled' : 'incompatible',
         hostApiVersion >= manifest.hostApi.min && hostApiVersion <= manifest.hostApi.max ? undefined : 'INCOMPATIBLE', id));
+    },
+    unregister(pluginId) {
+      const id = operationId();
+      if (closed) return pluginFailure('CLOSED', id);
+      const entry = entries.get(pluginId);
+      if (!entry) return success(null);
+      if (transitioning.has(pluginId)) return pluginFailure('REVOKED', id);
+      transitioning.add(pluginId);
+      try { disposeScope(entry); entries.delete(pluginId); notify(); return success(null); }
+      finally { transitioning.delete(pluginId); }
     },
     async enable(pluginId) {
       const id = operationId();
