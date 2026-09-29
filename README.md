@@ -5,7 +5,7 @@ A desktop workspace for reading and writing Markdown, organizing local files, an
 ## Get started
 
 1. [Download a preview](https://github.com/asMagicBrain/App/releases).
-2. Follow the [installation guide](docs/getting-started.md).
+2. Follow the [installation guide](docs/getting-started.md), including the optional Pro Editor plugin when needed.
 3. Open Workspace and create or import a document.
 
 Preview packages are available for Apple silicon Macs and Ubuntu 24.04 x64. Check [platform requirements and limits](docs/platform-and-limits.md) before installing. The Mac preview is not notarized by Apple.

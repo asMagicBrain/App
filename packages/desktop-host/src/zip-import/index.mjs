@@ -19,14 +19,19 @@ export const ZIP_IMPORT_LIMITS = Object.freeze({
 
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const decoder = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+const limitFields=['archiveBytes','expandedBytes','memberBytes','entries','extractedEntries','pathBytes','pathDepth'];
+function admissionLimits(value) {
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==limitFields.length||!limitFields.every(field=>Object.hasOwn(value,field)&&Number.isSafeInteger(value[field])&&value[field]>0&&value[field]<=ZIP_IMPORT_LIMITS[field]))fail('ZIP_INVALID');
+  return value;
+}
 const u16 = (bytes, offset) => bytes.readUInt16LE(offset);
 const u32 = (bytes, offset) => bytes.readUInt32LE(offset);
 function range(bytes, offset, size, end = bytes.length) {
   if (!Number.isSafeInteger(offset) || !Number.isSafeInteger(size) || offset < 0 || size < 0 || offset + size > end) fail('ZIP_INVALID');
 }
-function snapshot(input) {
+function snapshot(input, limits) {
   if (!(input instanceof Uint8Array)) fail('ZIP_INVALID');
-  if (input.byteLength > ZIP_IMPORT_LIMITS.archiveBytes) fail('ZIP_LIMIT_EXCEEDED');
+  if (input.byteLength > limits.archiveBytes) fail('ZIP_LIMIT_EXCEEDED');
   if (input.byteLength < 22) fail('ZIP_INVALID');
   // A caller cannot change parser input between validation and extraction.
   if (input.buffer instanceof SharedArrayBuffer) fail('ZIP_INVALID');
@@ -35,12 +40,12 @@ function snapshot(input) {
 function decode(bytes) {
   try { return decoder.decode(bytes); } catch { fail('ZIP_UNSUPPORTED'); }
 }
-function validateName(raw) {
+function validateName(raw, limits) {
   const name = decode(raw), isDirectory = name.endsWith('/');
   if (!name || name.startsWith('/') || /^[A-Za-z]:/u.test(name) || /[\\\x00-\x1f\x7f]/u.test(name)) fail('ZIP_UNSAFE_PATH');
-  if (raw.length > ZIP_IMPORT_LIMITS.pathBytes) fail('ZIP_LIMIT_EXCEEDED');
+  if (raw.length > limits.pathBytes) fail('ZIP_LIMIT_EXCEEDED');
   const parts = (isDirectory ? name.slice(0, -1) : name).split('/');
-  if (parts.length > ZIP_IMPORT_LIMITS.pathDepth) fail('ZIP_LIMIT_EXCEEDED');
+  if (parts.length > limits.pathDepth) fail('ZIP_LIMIT_EXCEEDED');
   if (parts.some(part => !part || part === '.' || part === '..')) fail('ZIP_UNSAFE_PATH');
   if (parts.some(part => Buffer.byteLength(part) > 255)) fail('ZIP_LIMIT_EXCEEDED');
   // The editor's source policy must accept imported names. .git itself is the
@@ -98,7 +103,7 @@ function content(bytes, entry) {
   return result;
 }
 
-function parse(bytes, stripRoot) {
+function parse(bytes, stripRoot, limits) {
   if (typeof stripRoot !== 'boolean') fail('ZIP_INVALID');
   let endOffset = -1;
   for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset--) {
@@ -111,7 +116,7 @@ function parse(bytes, stripRoot) {
   const count = u16(bytes, endOffset + 10), centralSize = u32(bytes, endOffset + 12), centralOffset = u32(bytes, endOffset + 16);
   if (u16(bytes, endOffset + 4) || u16(bytes, endOffset + 6) || u16(bytes, endOffset + 8) !== count
     || count === 0xffff || centralSize === 0xffffffff || centralOffset === 0xffffffff) fail('ZIP_UNSUPPORTED');
-  if (count > ZIP_IMPORT_LIMITS.entries) fail('ZIP_LIMIT_EXCEEDED');
+  if (count > limits.entries) fail('ZIP_LIMIT_EXCEEDED');
   range(bytes, centralOffset, centralSize, endOffset);
   if (centralOffset + centralSize !== endOffset) fail('ZIP_INVALID');
   const entries = [], namespace = new Map();
@@ -126,12 +131,12 @@ function parse(bytes, stripRoot) {
     if (version > 20 || (flags & ~0x080e) || ![0, 8].includes(method) || (method === 0 && (flags & 6))
       || u16(bytes, cursor + 34) || [compressedSize, size, localOffset].includes(0xffffffff)) fail('ZIP_UNSUPPORTED');
     range(bytes, cursor + 46, nameSize + extraSize + commentSize, endOffset);
-    const rawName = bytes.subarray(cursor + 46, cursor + 46 + nameSize), named = validateName(rawName);
+    const rawName = bytes.subarray(cursor + 46, cursor + 46 + nameSize), named = validateName(rawName, limits);
     extraFields(bytes, cursor + 46 + nameSize, extraSize, rawName);
     const type = (attributes >>> 16) & 0xf000, dosDirectory = Boolean(attributes & 0x10);
     if ((type && ![0x4000, 0x8000].includes(type)) || (attributes & 8)) fail('ZIP_UNSUPPORTED');
     if ((type === 0x4000 || dosDirectory) && !named.isDirectory || type === 0x8000 && named.isDirectory) fail('ZIP_INVALID');
-    if (size > ZIP_IMPORT_LIMITS.memberBytes || (expandedBytes += size) > ZIP_IMPORT_LIMITS.expandedBytes) fail('ZIP_LIMIT_EXCEEDED');
+    if (size > limits.memberBytes || (expandedBytes += size) > limits.expandedBytes) fail('ZIP_LIMIT_EXCEEDED');
     if (method === 0 && size !== compressedSize || named.isDirectory && (size || checksum)) fail('ZIP_INTEGRITY');
 
     range(bytes, localOffset, 30, centralOffset);
@@ -179,7 +184,7 @@ function parse(bytes, stripRoot) {
     entry.path = entry.skipped ? null : entry.parts.slice(rootDirectory ? 1 : 0).join('/');
     if (!entry.skipped && entry.path) addToNamespace(outputNamespace, {...entry, parts: entry.path.split('/')});
   }
-  if (outputNamespace.size > ZIP_IMPORT_LIMITS.extractedEntries) fail('ZIP_LIMIT_EXCEEDED');
+  if (outputNamespace.size > limits.extractedEntries) fail('ZIP_LIMIT_EXCEEDED');
   // Includes skipped metadata: a corrupt archive never reaches staging.
   for (const entry of entries) content(bytes, entry);
   const output = entries.filter(entry => !entry.skipped && entry.path);
@@ -196,14 +201,14 @@ function parse(bytes, stripRoot) {
 }
 
 /** Read-only, synchronous inspection. This also verifies expanded sizes and CRCs. */
-export function inspectZip(input, {stripRoot = true} = {}) {
-  return parse(snapshot(input), stripRoot).manifest;
+export function inspectZip(input, {stripRoot = true, limits = ZIP_IMPORT_LIMITS} = {}) {
+  limits=admissionLimits(limits);return parse(snapshot(input,limits), stripRoot,limits).manifest;
 }
 
 /** Host-only immutable file snapshot using the same admission as extraction.
  * No destination is created, and no archive member is interpreted as code. */
-export function readZipFiles(input, {stripRoot = true} = {}) {
-  const bytes = snapshot(input), {entries, manifest} = parse(bytes, stripRoot);
+export function readZipFiles(input, {stripRoot = true, limits = ZIP_IMPORT_LIMITS} = {}) {
+  limits=admissionLimits(limits);const bytes = snapshot(input,limits), {entries, manifest} = parse(bytes, stripRoot,limits);
   return {manifest, files: entries.filter(entry => !entry.skipped && entry.path && entry.kind === 'file')
     .map(entry => ({path: entry.path, bytes: Buffer.from(content(bytes, entry))}))};
 }
@@ -212,8 +217,8 @@ export function readZipFiles(input, {stripRoot = true} = {}) {
  * its private parent and must discard the entire stage on failure, then publish
  * only after its repository initialization/registry transaction succeeds.
  */
-export function extractZip(input, {destination, stripRoot = true} = {}) {
-  const bytes = snapshot(input), {entries, manifest} = parse(bytes, stripRoot);
+export function extractZip(input, {destination, stripRoot = true, limits = ZIP_IMPORT_LIMITS} = {}) {
+  limits=admissionLimits(limits);const bytes = snapshot(input,limits), {entries, manifest} = parse(bytes, stripRoot,limits);
   let root;
   try {
     root = pinDirectory(destination);

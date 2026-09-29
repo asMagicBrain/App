@@ -67,7 +67,7 @@ test('enable/disable cycles remove contributions and preserve source, selection 
     assert.equal(registry.disable(id).ok, true); assert.equal(registry.contributions().length, 0);
     assert.equal(resultCode(await registry.invoke(`${id}.bold`)), 'DISABLED');
     assert.equal(session.state, retained); assert.equal(file.buffer.getRawText(), '**One**');
-    assert.equal((await registry.enable(id)).ok, true); assert.equal(registry.contributions().length, 5);
+    assert.equal((await registry.enable(id)).ok, true); assert.equal(registry.contributions().length, 4);
     assert.equal(registry.diagnostics().commands, 2); assert.equal(registry.diagnostics().tasks, 0); assert.equal(registry.diagnostics().leases, 0);
   }
   assert.equal(command(session, undo), true); assert.equal(file.buffer.getRawText(), 'One');

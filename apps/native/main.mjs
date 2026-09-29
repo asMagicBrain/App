@@ -24,6 +24,7 @@ import {createUpdateCoordinator} from './update-coordinator.mjs';
 import {createApplyCoordinator} from './apply-coordinator.mjs';
 import {githubApp} from './github-config.mjs';
 import {createGitHubAccountCoordinator, githubAccountMethods} from './github-account-coordinator.mjs';
+import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-packages/format.mjs';
 
 // Explicit CLI mode connects to the running host before any profile/window setup.
 const cliIndex=process.argv.indexOf('--automation-cli');
@@ -62,13 +63,13 @@ try {
 } catch (error) {startupFailure = error;}
 
 let automationTransport,automationConnection,automationDirectory;
-let storageAdmission, window, artifactHost, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
+let storageAdmission, window, artifactHost, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pluginReview=null, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
 const isApplicationPage = value => {try {const url = new URL(value); url.hash = ''; return url.href === pageURL;} catch {return false;}};
 const trusted = event => Boolean(window && !window.isDestroyed() && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame && isApplicationPage(event.senderFrame.url));
 const openExternal = value => {try {const url = new URL(value); if (['https:', 'http:', 'mailto:'].includes(url.protocol)) void shell.openExternal(url.href).catch(error => console.error('External link could not open:', error.message));} catch {}};
-const publicErrors = Object.freeze({ENOENT:'This file or folder is no longer available. Refresh the repository and try again.',ENOTDIR:'This file or folder is no longer available. Refresh the repository and try again.',DRAFT_CONFLICT:'This file has an unsaved draft. Save or resolve the draft, then review a new request.',STALE_PLAN:'The saved files or drafts changed. Prepare a new review before applying changes.',CHOICE_REQUIRED:'Choose a resolution for each proposed change.',PERMISSION_DENIED:'Enable the required repository permission in Local automation.',OPERATION_NOT_REVIEWABLE:'This request is no longer waiting for review.',ROLLBACK_CONFLICT:'Files changed after this update. Resolve those changes before rolling back.'});
+const publicErrors = Object.freeze({PLUGIN_PACKAGE_INVALID:'This plugin package is not valid.',PLUGIN_PACKAGE_UNSAFE:'This plugin package contains unsupported files.',PLUGIN_PACKAGE_INTEGRITY:'This plugin package failed its integrity check.',PLUGIN_PACKAGE_LIMIT:'This plugin package exceeds the supported limits.',PLUGIN_PACKAGE_INCOMPATIBLE:'This plugin requires a different asMagicBrain version.',PLUGIN_PACKAGE_CONFLICT:'This plugin version conflicts with installed bytes.',PLUGIN_PACKAGE_MISSING:'This plugin is no longer installed.',PLUGIN_PACKAGE_NO_ROLLBACK:'No previous plugin version is available.',PLUGIN_PACKAGE_RECOVERY_REQUIRED:'Plugin storage needs recovery before it can be changed.',ENOENT:'This file or folder is no longer available. Refresh the repository and try again.',ENOTDIR:'This file or folder is no longer available. Refresh the repository and try again.',DRAFT_CONFLICT:'This file has an unsaved draft. Save or resolve the draft, then review a new request.',STALE_PLAN:'The saved files or drafts changed. Prepare a new review before applying changes.',CHOICE_REQUIRED:'Choose a resolution for each proposed change.',PERMISSION_DENIED:'Enable the required repository permission in Local automation.',OPERATION_NOT_REVIEWABLE:'This request is no longer waiting for review.',ROLLBACK_CONFLICT:'Files changed after this update. Resolve those changes before rolling back.'});
 const respondError = error => ({ok: false, error: {code: typeof error?.code === 'string' ? error.code : 'NATIVE_OPERATION_FAILED', message: publicErrors[error?.code] ?? (typeof error?.publicMessage === 'string' ? error.publicMessage : typeof error?.message === 'string' ? error.message : 'Native operation failed.')}});
-const methods = new Set(['approveAutomation','cancelAutomation','packageStatus','reviewPackageBase','registerPackageBase','reviewPackageUpdate','applyPackageUpdate','recoverPackageUpdate','rollbackPackageUpdate','reviewPackageExport','cancelPackagePlan','getReadingEvidence','getReadingReference','resolveReadingReference','readingHistory','catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'getRepositoryUpdates', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
+const methods = new Set(['listPluginPackages','setPluginPackageEnabled','rollbackPluginPackage','uninstallPluginPackage','approveAutomation','cancelAutomation','packageStatus','reviewPackageBase','registerPackageBase','reviewPackageUpdate','applyPackageUpdate','recoverPackageUpdate','rollbackPackageUpdate','reviewPackageExport','cancelPackagePlan','getReadingEvidence','getReadingReference','resolveReadingReference','readingHistory','catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'getRepositoryUpdates', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
 
 async function stopAutomation(){
   try{if(service)await service.setAutomationGrants({enabled:false,grants:[]});}
@@ -79,6 +80,7 @@ function requestClose() {
   if (recoveryDialog) return;
   if (!window || window.isDestroyed() || pendingClose) return;
   artifactHost?.stop();
+  pluginReview = null;
   const requestId = randomUUID();
   const timer = setTimeout(() => {
     if (pendingClose?.requestId !== requestId || window.isDestroyed()) return;
@@ -151,6 +153,30 @@ ipcMain.handle('asmb:native', async (event, input) => {
     if(input.method==='cancelRepositoryUpdate')return {ok:true,value:await updateCoordinator.cancelRepositoryUpdate(input.args)};
     if(applicationAccountMethods.has(input.method))return {ok:true,value:await applicationAuth.request(input.method,input.args)};
     if(githubAccountMethods.has(input.method))return {ok:true,value:await githubAccount.request(input.method,input.args)};
+    if(input.method==='selectPluginPackage'){
+      if(input.args!==undefined||pickerPending)throw Object.assign(Error('A file picker is already open.'),{code:'PLUGIN_PACKAGE_BUSY'});
+      pickerPending=true;pluginReview=null;
+      try{
+        const selected=await dialog.showOpenDialog(window,{title:'Install plugin',buttonLabel:'Review plugin',message:'Choose an asMagicBrain plugin package to review before installing.',properties:['openFile','noResolveAliases'],filters:[{name:'asMagicBrain plugin',extensions:['asmbplugin']}]});
+        if(selected.canceled||selected.filePaths.length!==1)return {ok:true,value:null};
+        if(!trusted(event)||pendingClose)throw Object.assign(Error('The plugin view changed.'),{code:'VIEW_UNAVAILABLE'});
+        const filename=selected.filePaths[0],stat=fs.lstatSync(filename);
+        if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||stat.size>PLUGIN_PACKAGE_LIMITS.archiveBytes)throw Object.assign(Error('This plugin package cannot be reviewed.'),{code:stat.size>PLUGIN_PACKAGE_LIMITS.archiveBytes?'PLUGIN_PACKAGE_LIMIT':'PLUGIN_PACKAGE_INVALID'});
+        const bytes=fs.readFileSync(filename);if(bytes.length!==stat.size)throw Object.assign(Error('This plugin package changed while it was being read.'),{code:'PLUGIN_PACKAGE_INVALID'});
+        const inspected=await service.inspectPluginPackage({bytes}),ticket=randomUUID(),expiresAt=Date.now()+5*60*1000;
+        pluginReview={ticket,bytes,expiresAt};
+        return {ok:true,value:{ticket,filename:path.basename(filename),digest:inspected.digest,archiveBytes:inspected.archiveBytes,expandedBytes:inspected.expandedBytes,fileCount:inspected.fileCount,compatible:inspected.compatible,manifest:inspected.manifest,expiresAt}};
+      }finally{pickerPending=false;}
+    }
+    if(input.method==='cancelPluginPackageReview'){
+      const ticket=input.args?.ticket;if(typeof ticket!=='string'||Object.keys(input.args??{}).length!==1)throw Object.assign(Error('Invalid plugin review.'),{code:'PLUGIN_PACKAGE_INVALID_REQUEST'});
+      if(pluginReview?.ticket===ticket)pluginReview=null;return {ok:true};
+    }
+    if(input.method==='installPluginPackage'){
+      const value=input.args;if(!value||typeof value!=='object'||Object.keys(value).length!==2||typeof value.ticket!=='string'||typeof value.requestId!=='string')throw Object.assign(Error('Invalid plugin install request.'),{code:'PLUGIN_PACKAGE_INVALID_REQUEST'});
+      const review=pluginReview;if(!review||review.ticket!==value.ticket||Date.now()>review.expiresAt){pluginReview=null;throw Object.assign(Error('Review this plugin package again before installing.'),{code:'PLUGIN_PACKAGE_REVIEW_EXPIRED'});}
+      pluginReview=null;return {ok:true,value:await service.installPluginPackage({bytes:review.bytes,requestId:value.requestId})};
+    }
     if(input.method==='savePackageExport'){
       if(pickerPending||pendingClose)throw Error('Wait for the current file picker or close operation.');
       pickerPending=true;try{
@@ -286,8 +312,8 @@ try {
     window.webContents.on('will-navigate', (event, url) => {if (!isApplicationPage(url)) {event.preventDefault(); openExternal(url);}});
     window.webContents.on('will-attach-webview', event => event.preventDefault());
     const owner=window.webContents.id;
-    window.webContents.on('did-start-navigation',details=>{if(details.isMainFrame&&!details.isSameDocument){artifactHost?.stop();externalTickets.releaseOwner(owner);}});
-    window.webContents.once('destroyed',()=>{artifactHost?.stop();externalTickets.releaseOwner(owner);});
+    window.webContents.on('did-start-navigation',details=>{if(details.isMainFrame&&!details.isSameDocument){artifactHost?.stop();pluginReview=null;externalTickets.releaseOwner(owner);}});
+    window.webContents.once('destroyed',()=>{artifactHost?.stop();pluginReview=null;externalTickets.releaseOwner(owner);});
     window.on('close', event => {if (!allowQuit) {event.preventDefault(); requestClose();}});
     window.once('ready-to-show', () => window.show());
     window.webContents.on('render-process-gone', (_event, details) => {console.error('Native renderer exited:', details.reason); void recoverRenderer(details.reason);});

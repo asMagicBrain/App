@@ -2,15 +2,19 @@
 
 [User guide](README.md)
 
-Open **Plugins** in the left rail to enable the included tools. Disabling a plugin keeps your files, drafts and undo history. Installing third-party plugins is not available yet.
+Open **Plugins** in the left rail to install and manage local `.asmbplugin` files. Choose **Install plugin…**, review its publisher, version and access, then install it. Packages are checked before installation and stay in private application storage outside your repositories.
 
-## Markdown tools
+The manager separates **Bundled** and **Installed** plugins. This version bundles no optional plugins. Markdown editing is part of asMagicBrain itself. Disabling or uninstalling a plugin keeps repository files, drafts, undo history and Git history.
 
-Check document statistics or add bold formatting to selected text. Formatting stays in your draft until you save.
+## Markdown editing
+
+Check document statistics or add bold formatting to selected text. These core tools stay available without installing a plugin. Formatting stays in your draft until you save.
 
 ## Pro Editor
 
-Pro Editor is optional and included. It uses the same Markdown editor and files.
+Pro Editor is separately installable. Download `asMagicBrain-Pro-Editor-0.1.0.asmbplugin` from the same [GitHub release](https://github.com/asMagicBrain/App/releases) as the app, verify it against that release's `SHA256SUMS`, install it through **Plugins**, then enable it. It uses the same Markdown editor and files.
+
+The package contains no executable code. Its exact verified identity activates Pro Editor code already reviewed and compiled with asMagicBrain. A changed or third-party package remains inert declarative content and cannot activate application code.
 
 - **Source** shows your Markdown. **Visual** displays supported equations and Mermaid diagrams in place; select **Edit source** to change one.
 - **Insert equation** and **Insert diagram** add a starting example at your selection.
@@ -30,3 +34,7 @@ Standalone HTML can use its own embedded code. Additional local scripts and imag
 Viewing state is not saved between runs. Workers, WebRTC, remote resources and physics/WASM engines are unsupported. [Offline reading exports](packages-and-export.md) keep interactive HTML as inactive source.
 
 asTeach is still being designed and is not included in the native application yet.
+
+## Update or remove a plugin
+
+Plugin updates are manual in this preview. Download the new `.asmbplugin`, choose **Install plugin…**, and review it as a new package. The previous exact package is retained for **Restore previous version**. **Uninstall** removes the package and its retained previous version while keeping repositories, drafts and Git history.

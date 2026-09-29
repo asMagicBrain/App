@@ -50,6 +50,8 @@ A release needs:
 2. Actual packaged launch, local workflows, data preservation, and normal close/restart with isolated data.
 3. Platform-specific installation and distribution checks for the claims made in its release notes.
 
+When a release introduces or updates a separately installable first-party plugin, distribute its exact `.asmbplugin` beside the platform packages. Include every public asset in `SHA256SUMS`, verify the plugin through the shipped manager on each supported platform, and keep its own semantic version visible in the filename and manifest. Do not silently bundle or enable it in the application update.
+
 On Ubuntu, verify package installation, sandboxed launch, native dialogs, upgrade/removal preservation, and installed runtime hashes. Record OS, desktop, X11/Wayland, and emulated or physical hardware. Checksums do not provide a signing identity.
 
 On macOS, local ad hoc acceptance is distinct from Developer ID signing, notarization, and independent downloaded/quarantined Gatekeeper acceptance. Follow [macOS signing](macos-signing.md) for that separate workflow; never weaken production security to pass a harness.

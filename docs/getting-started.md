@@ -25,6 +25,18 @@ sudo apt install ./asMagicBrain-VERSION-linux-amd64-preview.deb
 
 Replace `VERSION` with the downloaded version. Open **asMagicBrain Preview** from the applications menu as your normal user. The package supplies Git and the sandbox configuration; you do not need Node.js or a separate Git installation. Do not run the app with `sudo` or `--no-sandbox`.
 
+### Add Pro Editor
+
+Pro Editor is an optional plugin supplied as a separate file in the same release:
+
+1. Download `asMagicBrain-Pro-Editor-0.1.0.asmbplugin` and `SHA256SUMS`.
+2. Compare the plugin file with its checksum.
+3. Open **Plugins** in asMagicBrain and choose **Install plugin…**.
+4. Select the downloaded file, review its publisher, version and access, then install it.
+5. Enable **Pro Editor** in the installed-plugin card.
+
+The plugin is disabled until you enable it. Installation and use work offline. Keep the plugin file if you may need to reinstall this version later.
+
 ## Write your first note
 
 1. Open **Workspace**, your default local repository—a folder with Git history.

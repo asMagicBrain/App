@@ -42,6 +42,7 @@ Use a desktop session, run pointer/keyboard campaigns serially, and close throug
 | `storage-recovery.mjs` | Packaged recovery confirmation, verified managed-data backup, namespace migration, preservation, and restart. |
 | `technical-reading.mjs` | Offline math/Mermaid, source copy, local errors, themes, zoom, exact source preservation and restart. Set `ASMB_TECHNICAL_FIXTURES` to the reviewed reproduction folder containing `math.md` and `diagrams.md`. |
 | `plugin-foundation.mjs` | Bundled plugin enable/disable, retained CM6 selection/undo, draft restart, read-only docs, explicit Save and selected-file Git commit on macOS or Linux. |
+| `plugin-packages.mjs` | Separately installed Pro package review, enablement, normal-restart persistence, disable and confirmed uninstall on macOS or an installed Ubuntu preview. |
 | `pro-editor.mjs` | Optional Pro authoring, Visual/Split, exact source/draft/Save/selected commit; explicit interactive review, fallback, sliders/frame accuracy, WebGL/local module+texture, hostile denials, stale review and 20 lifecycle cycles on macOS or Linux. Uses the same `ASMB_TECHNICAL_FIXTURES` reviewed reproduction folder. |
 | `stage1-reading.mjs` | macOS Create/import/cancel/focus diagnostics with ten cycles, synthetic imports, accessible status and normal restart. |
 | `linux-desktop.mjs` | Installed Linux shortcuts/search/outline, choosers, reveal, URL dispatch, restart. |
