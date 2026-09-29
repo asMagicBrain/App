@@ -39,6 +39,9 @@ test('asset ref reads preserve the selected committed bytes without changing wor
  const head=git(f.source,'rev-parse','HEAD'),status=git(f.source,'status','--porcelain');
  assert.deepEqual(content(await service.readAsset({repo:'Workspace',path:'docs/image.png',ref:'refs/tags/original'})),PNG);
  assert.deepEqual(content(await service.readAsset({repo:'Workspace',path:'docs/image.png',ref:'refs/heads/main'})),PNG);
+ const snapshot=await service.read({repo:'Workspace',path:'README.md',ref:'refs/tags/original'});assert.equal(snapshot.resolvedCommit,head);
+ assert.deepEqual(content(await service.readAsset({repo:'Workspace',path:'docs/image.png',ref:snapshot.resolvedCommit})),PNG,'Historical document assets use the same immutable commit');
+ for(const ref of [head.slice(0,12),head+'^',head+':docs/image.png','a'.repeat(41),'a'.repeat(63)])await assert.rejects(service.readAsset({repo:'Workspace',path:'docs/image.png',ref}),{code:'INVALID_REF'});
  assert.deepEqual(content(await service.readAsset({repo:'Workspace',path:'docs/image.png'})),current);
  await assert.rejects(service.readAsset({repo:'Workspace',path:'docs/image.png',ref:'HEAD'}),{code:'INVALID_REF'});
  assert.equal(git(f.source,'rev-parse','HEAD'),head);assert.equal(git(f.source,'status','--porcelain'),status);assert.deepEqual(fs.readFileSync(path.join(f.source,'docs/image.png')),current);

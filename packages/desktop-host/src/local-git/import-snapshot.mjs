@@ -32,9 +32,9 @@ function syncDirectory(directory) {
  * Never accepts an existing .git, resolves ignore rules, or runs source hooks,
  * filters or network operations. The importer owns failure retention/publication.
  */
-export async function createImportedGitSnapshot({sourceRoot, files, author = {name: 'asMagicBrain', email: 'local@asmagicbrain.invalid'}} = {}) {
+export async function createImportedGitSnapshot({sourceRoot, files, initializeHistory = true, author = {name: 'asMagicBrain', email: 'local@asmagicbrain.invalid'}} = {}) {
   const source = pinDirectory(sourceRoot), gitPath = path.join(source.path, '.git');
-  if (!Array.isArray(files) || files.length > MAX_FILES) fail('INVALID_REQUEST');
+  if (!Array.isArray(files) || files.length > MAX_FILES || typeof initializeHistory !== 'boolean') fail('INVALID_REQUEST');
   if (!author || Object.keys(author).length !== 2 || !Object.hasOwn(author, 'name') || !Object.hasOwn(author, 'email')) fail('INVALID_AUTHOR');
   for (const key of ['name', 'email']) if (typeof author[key] !== 'string' || !author[key].trim() || !author[key].isWellFormed()
     || author[key].length > 256 || /[\x00-\x1f\x7f<>]/.test(author[key])) fail('INVALID_AUTHOR');
@@ -116,6 +116,8 @@ export async function createImportedGitSnapshot({sourceRoot, files, author = {na
     check(); return results[0].value;
   }
   await run(['init', '--initial-branch=main', '--object-format=sha1', '--template=', source.path]);
+  let head = null;
+  if (initializeHistory) {
   await run(['read-tree', '--empty']);
   const records = [];
   for (const [name, state] of expected) {
@@ -133,18 +135,22 @@ export async function createImportedGitSnapshot({sourceRoot, files, author = {na
   if (records.length) await run(['update-index', '-z', '--index-info'], {input: Buffer.from(records.join(''))});
   const tree = await run(['write-tree']);
   if (!oid(tree)) fail('GIT_FAILED');
-  const head = await run(['commit-tree', tree], {input: Buffer.from('Import project\n'), env: {
+  head = await run(['commit-tree', tree], {input: Buffer.from('Import project\n'), env: {
     GIT_AUTHOR_NAME: author.name, GIT_AUTHOR_EMAIL: author.email, GIT_COMMITTER_NAME: author.name, GIT_COMMITTER_EMAIL: author.email,
   }});
   if (!oid(head)) fail('GIT_FAILED');
+  }
   for (const [name, state] of expected) {
     checkSourceSpelling(source.path, name);
     const current = hashRawFile(path.join(source.path, name), {sync: true});
     if (current.hash !== state.hash || current.mode !== state.mode) fail('CONFLICT');
   }
   const directories = enumerate();
-  await run(['update-ref', 'refs/heads/main', head, '0'.repeat(40)]);
-  if (await run(['rev-parse', '--verify', 'HEAD']) !== head || await run(['symbolic-ref', 'HEAD']) !== 'refs/heads/main') fail('CONFLICT');
+  if (initializeHistory) {
+    await run(['update-ref', 'refs/heads/main', head, '0'.repeat(40)]);
+    if (await run(['rev-parse', '--verify', 'HEAD']) !== head) fail('CONFLICT');
+  }
+  if (await run(['symbolic-ref', 'HEAD']) !== 'refs/heads/main') fail('CONFLICT');
   // Flush every Git object, index and ref before the caller can publish this dir.
   function syncGit(directory) {
     for (const name of fs.readdirSync(directory)) {

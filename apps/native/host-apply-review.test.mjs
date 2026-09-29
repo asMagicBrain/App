@@ -78,6 +78,18 @@ async function fixture(t, hooks = {}, initialFiles = []) {
   };
 }
 
+test('held GitHub publication blocks package review and export while retaining package status', async t => {
+  const f=await fixture(t,{applyAt:phase=>{if(phase==='apply-after-file')throw Error('Synthetic interrupted GitHub publication');}});
+  const review=await f.review();await assert.rejects(f.apply(review),{code:'APPLY_RECOVERY_REQUIRED'});
+  for(const [method,args]of [
+    ['reviewPackageExport',{repo:'Cloned',collectionId:'fixture',version:'1'}],
+    ['buildPackageExport',{repo:'Cloned',planId:randomUUID(),kind:'source'}],
+    ['reviewPackageBase',{repo:'Cloned',bytes:Buffer.from('not used'),collectionId:'fixture',version:'1'}],
+    ['reviewPackageUpdate',{repo:'Cloned',bytes:Buffer.from('not used'),semantics:'patch',version:'2'}],
+  ])await assert.rejects(f.service[method](args),{code:'APPLY_RECOVERY_REQUIRED'});
+  assert.equal((await f.service.packageStatus({repo:'Cloned'})).registration,null);
+});
+
 async function assertLegacyRefuses(dataRoot) {
   const before = inventory(dataRoot), {createNativeService: legacyService} = await import(legacyURL.href);
   await assert.rejects(legacyService({dataRoot}), {code: 'RECOVERY_REQUIRED'});

@@ -157,3 +157,16 @@
 .rfe-edit-mode .rfe-path>.rfe-repository{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .rfe-edit-mode .rfe-path>input{flex:1 1 180px;width:auto;min-width:140px;max-width:380px}
 .rfe-edit-mode .rfe-actions{margin-left:auto}
+
+/* Pro Split preserves one mounted CM6 authority and two independent scroll panes. */
+.rfe-document-panes{display:flex;flex:1;min-height:0;min-width:0;overflow:hidden}
+.rfe-source-pane,.rfe-preview-pane{display:flex;flex:1;flex-direction:column;min-width:0;min-height:0}
+.rfe-source-pane[hidden]{display:none}
+.rfe-document-panes[data-split]>.rfe-preview-pane{border-left:1px solid var(--fw-line)}
+.rfe-pane-label{display:flex;align-items:center;min-height:34px;flex:none;padding:6px 12px;font-size:12px;color:var(--fw-muted);border-bottom:1px solid var(--fw-line);background:var(--fw-bg)}
+.rfe-document-panes[data-split] .rfe-preview article{padding:20px!important}
+.rfe-file-mode .rfe-document-panes{display:block;overflow:visible}
+@media(max-width:760px){.rfe-document-panes[data-split]{flex-direction:column}.rfe-document-panes[data-split]>.rfe-preview-pane{border-left:0;border-top:1px solid var(--fw-line)}}
+/* Shared reader navigation stays outside Pro and does not own editor state. */
+.rfe-reading-history{display:flex;flex:none;gap:2px;border-right:1px solid var(--fw-line);padding-right:6px}.rfe-evidence-context{border:1px solid var(--fw-line);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px}.rfe-evidence-context summary{cursor:pointer;font-weight:600}.rfe-evidence-context p,.rfe-evidence-warning{color:var(--fw-muted);font-size:12px}.rfe-evidence-context dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 16px;margin:8px 0 0}.rfe-evidence-context dt{font-weight:600}.rfe-evidence-context dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.rfe-evidence-context summary:focus-visible{outline:2px solid #0969da;outline-offset:3px}
+.rfe-reading-tools{display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;font-size:12px}.rfe-reading-tools button{border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-chrome);padding:4px 8px}.rfe-reference-dialog{background:var(--fw-bg);color:var(--fw-text);border:1px solid var(--fw-line);border-radius:10px;width:min(560px,90vw);max-height:85vh;overflow:auto;padding:24px}.rfe-reference-dialog::backdrop{background:#0006}.rfe-reference-dialog h2{font-size:20px;margin:0 0 12px}.rfe-reference-dialog p{font-size:13px}.rfe-reference-dialog label{display:block;font-weight:600;margin:12px 0 6px}.rfe-reference-dialog textarea{width:100%;resize:vertical;min-height:100px;border:1px solid var(--fw-line);background:var(--fw-chrome);color:inherit;border-radius:6px;padding:8px;font:12px/1.5 ui-monospace,monospace}.rfe-reference-dialog footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.rfe-reference-dialog button{padding:6px 10px;border:1px solid var(--fw-line);border-radius:6px;background:var(--fw-chrome)}

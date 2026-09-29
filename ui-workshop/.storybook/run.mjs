@@ -32,8 +32,8 @@ if (mode === 'typecheck') {
 }
 let child, stopping = false;
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => { stopping = true; child?.kill(signal); });
-function run(script, scriptArgs, onSuccess) {
-  child = spawn(process.execPath, [script, ...scriptArgs], { cwd: workshop, env, stdio: 'inherit' });
+function run(script, scriptArgs, onSuccess, runtimeEnv = env) {
+  child = spawn(process.execPath, [script, ...scriptArgs], { cwd: workshop, env: runtimeEnv, stdio: 'inherit' });
   child.on('error', error => { console.error(error.message); process.exitCode = 1; });
   child.on('exit', (code, signal) => {
     if (code === 0 && !signal && !stopping && onSuccess) onSuccess();
@@ -42,4 +42,5 @@ function run(script, scriptArgs, onSuccess) {
 }
 // Static build mode has no runtime-instance registry or live dev server.
 run(entry, args, mode === 'serve'
-  ? () => run(path.join(workshop, '.storybook/static-server.mjs'), []) : undefined);
+  ? () => run(path.join(workshop, '.storybook/static-server.mjs'), [], undefined,
+    process.env.ASMB_TEACH_REFERENCE_ROOT ? { ...env, ASMB_TEACH_REFERENCE_ROOT: process.env.ASMB_TEACH_REFERENCE_ROOT } : env) : undefined);

@@ -200,6 +200,14 @@ export function inspectZip(input, {stripRoot = true} = {}) {
   return parse(snapshot(input), stripRoot).manifest;
 }
 
+/** Host-only immutable file snapshot using the same admission as extraction.
+ * No destination is created, and no archive member is interpreted as code. */
+export function readZipFiles(input, {stripRoot = true} = {}) {
+  const bytes = snapshot(input), {entries, manifest} = parse(bytes, stripRoot);
+  return {manifest, files: entries.filter(entry => !entry.skipped && entry.path && entry.kind === 'file')
+    .map(entry => ({path: entry.path, bytes: Buffer.from(content(bytes, entry))}))};
+}
+
 /** Host-only extraction into an existing empty staging directory. The host owns
  * its private parent and must discard the entire stage on failure, then publish
  * only after its repository initialization/registry transaction succeeds.

@@ -9,8 +9,11 @@ The shared React interface communicates through a typed preload bridge with Elec
 | Location | Responsibility |
 | --- | --- |
 | `ui-workshop/src/` | Shared views, dialogs, CodeMirror editor, catalog, and outline. |
+| `ui-workshop/src/plugin-foundation/` | Versioned bundled-plugin contracts, grants, lifecycle and the historical Stage 2 artifact proposal. |
+| `ui-workshop/src/repository-document-session.ts` | One retained CM6 state and raw-source history per file session. |
 | `apps/native/renderer/` | Native UI adapter and startup. |
 | `apps/native/main.mjs`, `preload.cjs` | Window lifecycle and narrow IPC admission. |
+| `apps/native/artifact-*.mjs` | Physically verified, immutable interactive snapshots and the restricted embedded runtime. |
 | `apps/native/host-service.mjs` | Service composition and managed repository authority. |
 | `apps/native/storage-*.mjs` | Stable volume admission, legacy recovery inspection, and verified backups. |
 | `packages/desktop-host/src/` | Physical roots, private state, Git, drafts, import, and management. |
@@ -28,6 +31,8 @@ Markdown HTML and remote images are disabled. Local links and media use admitted
 Physical roots, stable identities, portable paths, journals, and source hashes constrain mutations. Ambiguous recovery preserves data. Save and selected-file commits remain separate operations. Git suppresses inherited configuration, hooks, filters, and credential helpers; imported projects cannot run automation.
 
 These controls do not guarantee recovery from every storage failure or hostile changes by another process using the same OS account.
+
+Bundled plugins run as trusted application code in the existing renderer. Their contract grants only named document reads/edits, rechecked against the host's current file session, revision, source hash, version and UI admission state. They do not receive the preload bridge or a separate file writer. This contract is not a JavaScript sandbox: only explicitly imported first-party modules are registered. Imported repository files are never loaded as plugins. Explicitly reviewed interactive HTML runs in a separate unprivileged embedded renderer through the artifact host; it never enters the application renderer as executable markup. See [plugin contracts](plugins.md).
 
 Native storage anchors its physical root to the filesystem volume UUID. Persisted identities retain their original device namespace through a scoped adapter; raw OS device/inode checks remain unchanged. Workers receive this context only from the host. Existing records and checksums are never rewritten to accommodate a renumbered device. Legacy profiles without a UUID anchor require read-only validation, a verified managed-data backup and native confirmation before interpreting a changed device number. An unchanged-device upgrade retains normal transaction recovery. See [recovery](../docs/data-and-recovery.md).
 

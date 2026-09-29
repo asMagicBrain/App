@@ -54,6 +54,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
       this.destroyed = true; events.push('window.destroy'); this.webContents.emit('destroyed'); this.emit('closed');
     }
     show() {} restore() {} focus() {} minimize() {events.push('window.minimize');} maximize() {this.maximized = true;} unmaximize() {this.maximized = false;} isMaximized() {return Boolean(this.maximized);}
+    setFullScreen(value) {this.fullScreen = value;} isFullScreen() {return Boolean(this.fullScreen);}
   }
   const lifecycle = name => ({
     prepareClose: async () => {events.push(`${name}.prepare`);},
@@ -62,6 +63,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
     close: async () => {events.push(`${name}.close`);},
   });
   const service = {
+    setAutomationGrants: async () => {events.push('automation.revoke');},
     prepareSearchClose: async () => {events.push('service.prepare');}, resumeSearch: () => events.push('service.resume'),
     drain: async () => {events.push('service.drain'); if (drain) await drain.promise;},
     close: async () => {events.push('service.close');},
@@ -74,8 +76,10 @@ async function harness({drain, channel = 'development', startupError, temporaryE
   const session = {defaultSession: {setPermissionRequestHandler() {}, setPermissionCheckHandler() {}}};
   const dialog = {showMessageBox: async (_window, options) => {dialogs.push(options); return {response: options.title === 'Import files and folders' ? pickerChoice : 0};}, showErrorBox: (title, content) => dialogs.push({title, content}),
     showOpenDialog: async (_window, options) => {pickerDialogs.push(options); return await pickerSelection;}};
-  vm.runInNewContext(executable, {
-    app, BrowserWindow, dialog, ipcMain, Menu, protocol, session,
+  await vm.runInNewContext('(async () => {'+executable+'\n})()', {
+    app, BrowserWindow, WebContentsView:class {}, dialog, ipcMain, Menu, protocol, session,
+    ARTIFACT_SCHEME:{scheme:'asmb-artifact',privileges:{standard:true,secure:true}},
+    createArtifactHost:()=>({review:async input=>{events.push('artifact.review');return {reviewId:'review',repo:input.repo};},run:async()=>{events.push('artifact.run');return {state:'running'};},reset:async()=>({state:'running'}),resize:()=>({state:'running'}),status:()=>({state:'idle'}),stop:()=>{events.push('artifact.stop');return {state:'stopped'};},close:async()=>{events.push('artifact.close');}}),
     shell: {openExternal: async value => {openedExternal.push(value);}, showItemInFolder: value => revealed.push(value)},
     fs, path, URL, Response, fileURLToPath, randomUUID: () => `close-${timers.size + events.length}`,
     process: {argv: ['fixture', `--channel=${channel}`], env: environment, platform}, console: {error: (...args) => errors.push(args)},
@@ -100,7 +104,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
   const close = Menu.menu.find(item => item.label === 'Window').submenu.find(item => item.label === 'Close').click;
   const quit = Menu.menu[0].submenu[0].click;
   const closeMessage = () => events.filter(event => event?.channel === 'asmb:prepare-close' && !event.message.cancelled).at(-1)?.message;
-  return {app, windows, window, sender, handlers, ipcMain, close, quit, closeMessage, events, dialogs, timers, errors, sandboxEnables, openedExternal, revealed, pickerDialogs, registered, authOptions, serviceOptions, temporaryAllocations, paths, environment};
+  return {app, windows, window, menu: Menu.menu, sender, handlers, ipcMain, close, quit, closeMessage, events, dialogs, timers, errors, sandboxEnables, openedExternal, revealed, pickerDialogs, registered, authOptions, serviceOptions, temporaryAllocations, paths, environment};
 }
 
 test('startup storage failure shows a native explanation and exits without opening a workspace or editor', async () => {
@@ -130,9 +134,43 @@ test('native startup creates one sandboxed main window and exposes no companion 
   assert.equal(h.windows.length, 1, 'retired requests cannot create another window');
 });
 
+test('macOS retains native traffic lights and the system fullscreen menu in the custom titlebar', async () => {
+  const h = await harness({platform: 'darwin', channel: 'preview'});
+  assert.equal(h.window.options.frame, true);
+  assert.equal(h.window.options.titleBarStyle, 'hidden');
+  assert.deepEqual({...h.window.options.trafficLightPosition}, {x: 14, y: 14});
+  assert.equal(h.window.options.fullscreenable, true);
+  assert.equal(Object.hasOwn(h.window.options, 'fullscreen'), false, 'explicit fullscreen:false can disable the native green button');
+  const fullscreen = h.menu.find(item => item.label === 'View').submenu.find(item => item.role === 'togglefullscreen');
+  assert.equal(fullscreen.accelerator, 'Control+Command+F');
+  assert.equal(fullscreen.click, undefined, 'Electron handles the native fullscreen menu action');
+  assert.equal(h.window.options.autoHideMenuBar, false);
+});
+
+test('macOS native close while fullscreen waits for renderer preservation and the host drain', async () => {
+  const drain = deferred(), h = await harness({platform: 'darwin', drain});
+  h.window.setFullScreen(true);
+  let prevented = 0;
+  h.window.emit('close', {preventDefault: () => {prevented++;}}); await settle();
+  assert.equal(prevented, 1); assert.equal(h.window.isFullScreen(), true);
+  assert.equal(h.window.isDestroyed(), false); assert.equal(h.events.includes('service.drain'), false);
+  const request = h.closeMessage(); assert.ok(request?.requestId);
+  h.ipcMain.emit('asmb:close-ready', h.sender, {...request, ok: true}); await settle();
+  assert.ok(h.events.includes('service.drain')); assert.equal(h.window.isDestroyed(), false);
+  drain.resolve(); await settle();
+  assert.equal(h.window.isDestroyed(), true);
+  assert.ok(h.events.indexOf('service.close') < h.events.indexOf('window.destroy'));
+  assert.ok(h.events.indexOf('window.destroy') < h.events.indexOf('app.quit'));
+  assert.deepEqual(h.errors, []);
+});
+
 test('Linux keeps the shared frameless window controls and session-only accounts with a sandbox', async () => {
   const h = await harness({platform: 'linux', channel: 'preview'}), invoke = h.handlers.get('asmb:native');
   assert.equal(h.window.options.frame, false);
+  assert.equal(h.window.options.titleBarStyle, undefined);
+  assert.equal(h.window.options.trafficLightPosition, undefined);
+  assert.equal(h.window.options.fullscreenable, undefined);
+  assert.equal(h.menu.some(item => item.label === 'View'), false);
   assert.equal(h.window.options.autoHideMenuBar, true);
   assert.equal(h.window.options.webPreferences.sandbox, true);
   assert.equal(h.sandboxEnables, 1);
@@ -281,9 +319,10 @@ test('window close event and system quit enter the same bounded preservation req
   assert.equal(h.window.isDestroyed(), false);
 });
 
-test('production preload exposes only the main API and preserves the close handshake', async () => {
+for (const platform of ['darwin', 'linux']) test(`production ${platform} preload exposes the native-controls capability and preserves the close handshake`, async () => {
   const exposed = new Map(), listeners = new Map(), sent = [], invokes = [];
   vm.runInNewContext(fs.readFileSync(new URL('./preload.cjs', import.meta.url), 'utf8'), {
+    process: {platform},
     require: name => {
       assert.equal(name, 'electron');
       return {
@@ -298,6 +337,8 @@ test('production preload exposes only the main API and preserves the close hands
   });
   assert.deepEqual([...exposed.keys()], ['asMagicBrain']);
   const bridge = exposed.get('asMagicBrain');
+  assert.equal(bridge.nativeWindowControls, platform === 'darwin');
+  assert.equal(Object.isFrozen(bridge), true, 'renderer cannot change its native window capability');
   assert.equal(bridge.setOutlineState, undefined); assert.equal(bridge.onOutlineAction, undefined);
   const received = [], unsubscribe = bridge.onPrepareClose(message => received.push(message));
   const request = {requestId: 'draft-drain'};
@@ -306,4 +347,19 @@ test('production preload exposes only the main API and preserves the close hands
   unsubscribe(); assert.equal(listeners.size, 0);
   await bridge.windowAction('close');
   assert.equal(invokes[0][0], 'asmb:native'); assert.equal(invokes[0][1].method, 'windowAction'); assert.equal(invokes[0][1].args, 'close');
+});
+
+test('artifact IPC belongs only to the application main frame and stops on reload/close', async () => {
+  const h=await harness(),call=h.handlers.get('asmb:native');
+  for(const sender of [{...h.sender,sender:{}},{...h.sender,senderFrame:{url:'asmb-artifact://fixture/index.html'}}]){
+    const denied=await call(sender,{method:'reviewArtifact',args:{repo:'Workspace',path:'demo.html',ref:''}});assert.equal(denied.ok,false);
+  }
+  assert.equal(h.events.includes('artifact.review'),false);
+  assert.equal((await call(h.sender,{method:'reviewArtifact',args:{repo:'Workspace',path:'demo.html',ref:''}})).ok,true);
+  h.window.webContents.emit('did-start-navigation',{isMainFrame:true,isSameDocument:false});
+  assert.ok(h.events.includes('artifact.stop'));
+  h.close();await settle();
+  const held=await call(h.sender,{method:'runArtifact',args:{reviewId:'review',approved:true}});assert.equal(held.ok,false);assert.equal(held.error.code,'ARTIFACT_CLOSED');
+  h.ipcMain.emit('asmb:close-ready',h.sender,{...h.closeMessage(),ok:true});await settle();
+  assert.ok(h.events.indexOf('artifact.close')<h.events.indexOf('window.destroy'));
 });

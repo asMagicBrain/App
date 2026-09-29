@@ -1,8 +1,12 @@
-import {app, BrowserWindow, dialog, ipcMain, Menu, protocol, session, shell} from 'electron';
+import {runCli} from './automation-cli.mjs';
+import {createLocalAutomation} from './local-automation.mjs';
+import {app, BrowserWindow, WebContentsView, dialog, ipcMain, Menu, protocol, session, shell} from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
+import {createArtifactHost, ARTIFACT_SCHEME} from './artifact-host.mjs';
+import {saveExportDestination} from './export-destination.mjs';
 import {createNativeService} from './host-service.mjs';
 import {prepareNativeStorage} from './storage-admission.mjs';
 import {loadBundledDocs} from './bundled-docs-manifest.mjs';
@@ -21,10 +25,14 @@ import {createApplyCoordinator} from './apply-coordinator.mjs';
 import {githubApp} from './github-config.mjs';
 import {createGitHubAccountCoordinator, githubAccountMethods} from './github-account-coordinator.mjs';
 
+// Explicit CLI mode connects to the running host before any profile/window setup.
+const cliIndex=process.argv.indexOf('--automation-cli');
+if(cliIndex>=0)process.exit(await runCli(process.argv.slice(cliIndex+1)));
+
 const here = fileURLToPath(new URL('.', import.meta.url));
 let packageMetadata, buildConfig, testRoot, profilePaths, dataRoot, profileRoot, temporaryRoot, linuxTemporaryDirectory, startupFailure;
 const pageURL = 'app://asmagicbrain/index.html';
-protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {standard: true, secure: true, supportFetchAPI: true}}]);
+protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {standard: true, secure: true, supportFetchAPI: true}}, ARTIFACT_SCHEME]);
 
 // Resolve and admit the host-owned profile before Chromium opens a session.
 // Report failures through a native dialog instead of an uncaught JavaScript box.
@@ -53,17 +61,24 @@ try {
   app.setAppLogsPath(ensurePhysicalDirectory(path.join(profileRoot, 'logs')));
 } catch (error) {startupFailure = error;}
 
-let storageAdmission, window, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
+let automationTransport,automationConnection,automationDirectory;
+let storageAdmission, window, artifactHost, service, applicationAuth, githubAuth, githubAccount, cloneCoordinator, updateCoordinator, applyCoordinator, externalTickets, pickerPending=false, pendingClose = null, allowQuit = false, terminalFailure = null, recoveryDialog = false;
 const isApplicationPage = value => {try {const url = new URL(value); url.hash = ''; return url.href === pageURL;} catch {return false;}};
 const trusted = event => Boolean(window && !window.isDestroyed() && event.sender === window.webContents && event.senderFrame === window.webContents.mainFrame && isApplicationPage(event.senderFrame.url));
 const openExternal = value => {try {const url = new URL(value); if (['https:', 'http:', 'mailto:'].includes(url.protocol)) void shell.openExternal(url.href).catch(error => console.error('External link could not open:', error.message));} catch {}};
-const respondError = error => ({ok: false, error: {code: typeof error?.code === 'string' ? error.code : 'NATIVE_OPERATION_FAILED', message: typeof error?.message === 'string' ? error.message : 'Native operation failed.'}});
-const methods = new Set(['catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'getRepositoryUpdates', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
+const publicErrors = Object.freeze({ENOENT:'This file or folder is no longer available. Refresh the repository and try again.',ENOTDIR:'This file or folder is no longer available. Refresh the repository and try again.',DRAFT_CONFLICT:'This file has an unsaved draft. Save or resolve the draft, then review a new request.',STALE_PLAN:'The saved files or drafts changed. Prepare a new review before applying changes.',CHOICE_REQUIRED:'Choose a resolution for each proposed change.',PERMISSION_DENIED:'Enable the required repository permission in Local automation.',OPERATION_NOT_REVIEWABLE:'This request is no longer waiting for review.',ROLLBACK_CONFLICT:'Files changed after this update. Resolve those changes before rolling back.'});
+const respondError = error => ({ok: false, error: {code: typeof error?.code === 'string' ? error.code : 'NATIVE_OPERATION_FAILED', message: publicErrors[error?.code] ?? (typeof error?.publicMessage === 'string' ? error.publicMessage : typeof error?.message === 'string' ? error.message : 'Native operation failed.')}});
+const methods = new Set(['approveAutomation','cancelAutomation','packageStatus','reviewPackageBase','registerPackageBase','reviewPackageUpdate','applyPackageUpdate','recoverPackageUpdate','rollbackPackageUpdate','reviewPackageExport','cancelPackagePlan','getReadingEvidence','getReadingReference','resolveReadingReference','readingHistory','catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'getRepositoryUpdates', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
 
+async function stopAutomation(){
+  try{if(service)await service.setAutomationGrants({enabled:false,grants:[]});}
+  finally{try{await automationTransport?.stop();}finally{automationTransport=null;automationConnection=null;if(automationDirectory){try{fs.rmdirSync(automationDirectory);}catch{}automationDirectory=null;}}}
+}
 function requestClose() {
   if (terminalFailure) {void holdForRecovery(terminalFailure); return;}
   if (recoveryDialog) return;
   if (!window || window.isDestroyed() || pendingClose) return;
+  artifactHost?.stop();
   const requestId = randomUUID();
   const timer = setTimeout(() => {
     if (pendingClose?.requestId !== requestId || window.isDestroyed()) return;
@@ -73,7 +88,7 @@ function requestClose() {
   pendingClose = {requestId, timer, phase: 'preparing'};
   // Settle cancellation before renderer draining observes the clone promise.
   // Publication already completed wins; a cancelled download has no saved work.
-  void Promise.all([service.prepareSearchClose(), applicationAuth.prepareClose(), githubAccount.prepareClose(), cloneCoordinator.prepareClose(), updateCoordinator.prepareClose(), applyCoordinator.prepareClose()]).then(() => {
+  void Promise.all([stopAutomation(),service.prepareSearchClose(), applicationAuth.prepareClose(), githubAccount.prepareClose(), cloneCoordinator.prepareClose(), updateCoordinator.prepareClose(), applyCoordinator.prepareClose()]).then(() => {
     if (pendingClose?.requestId === requestId && !window.isDestroyed()) window.webContents.send('asmb:prepare-close', {requestId});
   }, error => {void closeFailed(error.message);});
 }
@@ -104,6 +119,19 @@ ipcMain.handle('asmb:native', async (event, input) => {
       if (input.args !== undefined) throw Error('Build configuration takes no arguments.');
       return {ok: true, value: buildConfig};
     }
+    if(input.method==='getAutomationStatus')return {ok:true,value:{...await service.getAutomationStatus(),...(automationConnection?{connectionFile:automationConnection.connectionFile}:{})}};
+    if(input.method==='configureAutomation'){
+      if(pendingClose)throw Error('The app is closing.');
+      const value=await service.setAutomationGrants(input.args);
+      if(!value.enabled){await stopAutomation();return {ok:true,value};}
+      try{if(!automationTransport){automationDirectory=fs.mkdtempSync(path.join(process.platform==='darwin'?'/private/tmp':'/tmp','asmb-ipc-'));fs.chmodSync(automationDirectory,0o700);automationTransport=createLocalAutomation({directory:automationDirectory,handleRequest:request=>service.automationRequest(request)});automationConnection=await automationTransport.start();}return {ok:true,value:{...value,connectionFile:automationConnection.connectionFile}};}
+      catch(error){await stopAutomation();throw error;}
+    }
+    const artifactMethods = {reviewArtifact:'review',runArtifact:'run',resetArtifact:'reset',resizeArtifact:'resize',stopArtifact:'stop',artifactStatus:'status'};
+    if(Object.hasOwn(artifactMethods,input.method)){
+      if(pendingClose||!artifactHost)throw Object.assign(Error('The interactive view is closing.'),{code:'ARTIFACT_CLOSED'});
+      return {ok:true,value:await artifactHost[artifactMethods[input.method]](input.args)};
+    }
     if (input.method === 'windowAction') {
       if (input.args === 'close') requestClose();
       else if (input.args === 'minimize') window.minimize();
@@ -123,6 +151,18 @@ ipcMain.handle('asmb:native', async (event, input) => {
     if(input.method==='cancelRepositoryUpdate')return {ok:true,value:await updateCoordinator.cancelRepositoryUpdate(input.args)};
     if(applicationAccountMethods.has(input.method))return {ok:true,value:await applicationAuth.request(input.method,input.args)};
     if(githubAccountMethods.has(input.method))return {ok:true,value:await githubAccount.request(input.method,input.args)};
+    if(input.method==='savePackageExport'){
+      if(pickerPending||pendingClose)throw Error('Wait for the current file picker or close operation.');
+      pickerPending=true;try{
+        // Build revalidates the reviewed saved set before any destination is written.
+        const output=await service.buildPackageExport(input.args);
+        const selected=await dialog.showSaveDialog(window,{title:'Export saved files',defaultPath:output.filename,buttonLabel:'Save export',filters:[{name:'ZIP archive',extensions:['zip']}]});
+        if(selected.canceled||!selected.filePath)return {ok:true,value:{saved:false}};
+        if(!trusted(event)||pendingClose)throw Error('The document window changed. Review the export again.');
+        const saved=saveExportDestination(selected.filePath,output.bytes,[dataRoot,profileRoot]);
+        return {ok:true,value:{...saved,sha256:output.sha256}};
+      }finally{pickerPending=false;}
+    }
     if(input.method==='pickExternalFiles'){
       if(input.args!==undefined||pickerPending)throw Object.assign(Error('A file picker is already open.'),{code:'IMPORT_BUSY'});
       pickerPending=true;
@@ -152,7 +192,7 @@ ipcMain.on('asmb:close-ready', async (event, result) => {
   pendingClose.phase = 'draining';
   try {
     await service.drain();
-    try {await Promise.all([cloneCoordinator.drain(), updateCoordinator.drain(), applyCoordinator.drain()]); await applicationAuth.close(); await githubAuth.close(); await Promise.all([cloneCoordinator.close(), updateCoordinator.close(), applyCoordinator.close()]); await service.close();} catch (error) {terminalFailure = error.message; throw error;}
+    try {await Promise.all([cloneCoordinator.drain(), updateCoordinator.drain(), applyCoordinator.drain()]); await artifactHost?.close(); await applicationAuth.close(); await githubAuth.close(); await Promise.all([cloneCoordinator.close(), updateCoordinator.close(), applyCoordinator.close()]); await stopAutomation(); await service.close();} catch (error) {terminalFailure = error.message; throw error;}
     clearTimeout(pendingClose.timer); pendingClose = null; allowQuit = true;
     window.destroy(); app.quit();
   } catch (error) {if (terminalFailure) {clearTimeout(pendingClose.timer); pendingClose = null; await holdForRecovery(terminalFailure);} else await closeFailed(error.message);}
@@ -166,16 +206,17 @@ async function holdForRecovery(message) {
   } finally {recoveryDialog = false;}
 }
 async function recoverRenderer(reason) {
+  artifactHost?.stop();
   if (allowQuit || pendingClose?.phase === 'draining' || recoveryDialog) return;
   if (pendingClose) {clearTimeout(pendingClose.timer); pendingClose = null; service.resumeSearch(); applicationAuth.resume(); githubAccount.resume(); cloneCoordinator.resume(); updateCoordinator.resume(); applyCoordinator.resume();}
   recoveryDialog = true;
   try {
     externalTickets?.releaseOwner(window.webContents.id);
-    await Promise.all([service.prepareSearchClose(), applicationAuth.prepareClose(), githubAccount.prepareClose(), cloneCoordinator.prepareClose(), updateCoordinator.prepareClose(), applyCoordinator.prepareClose()]);
+    await Promise.all([stopAutomation(),service.prepareSearchClose(), applicationAuth.prepareClose(), githubAccount.prepareClose(), cloneCoordinator.prepareClose(), updateCoordinator.prepareClose(), applyCoordinator.prepareClose()]);
     await service.drain();
     const result = await dialog.showMessageBox(window, {type: 'error', title: 'The editor stopped', message: 'The editor process stopped unexpectedly.', detail: `Reason: ${reason}. Saved files and acknowledged drafts remain in the managed workspace. Edits that had not reached a checkpoint may be missing.`, buttons: ['Reopen editor', 'Quit preview'], defaultId: 0, cancelId: 0});
     if (result.response === 0) {service.resumeSearch(); applicationAuth.resume(); githubAccount.resume(); cloneCoordinator.resume(); updateCoordinator.resume(); applyCoordinator.resume(); await window.loadURL(pageURL);}
-    else {await Promise.all([cloneCoordinator.close(), updateCoordinator.close(), applyCoordinator.close()]); await applicationAuth.close(); await githubAuth.close(); await service.close(); allowQuit = true; window.destroy(); app.quit();}
+    else {await Promise.all([cloneCoordinator.close(), updateCoordinator.close(), applyCoordinator.close()]); await artifactHost?.close(); await applicationAuth.close(); await githubAuth.close(); await stopAutomation(); await service.close(); allowQuit = true; window.destroy(); app.quit();}
   } catch (error) {terminalFailure = error.message;}
   finally {recoveryDialog = false;}
   if (terminalFailure) await holdForRecovery(terminalFailure);
@@ -231,15 +272,22 @@ try {
     Menu.setApplicationMenu(Menu.buildFromTemplate([
       {label: 'asMagicBrain', submenu: [{label: 'Quit asMagicBrain', accelerator: 'CmdOrCtrl+Q', click: requestClose}]},
       {label: 'Edit', submenu: [{role: 'undo'}, {role: 'redo'}, {type: 'separator'}, {role: 'cut'}, {role: 'copy'}, {role: 'paste'}, {role: 'selectAll'}]},
+      ...(process.platform === 'darwin' ? [{label: 'View', submenu: [{role: 'togglefullscreen', accelerator: 'Control+Command+F'}]}] : []),
       {label: 'Window', submenu: [{role: 'minimize'}, {role: 'zoom'}, {label: 'Close', accelerator: 'CmdOrCtrl+W', click: requestClose}]},
     ]));
-    window = new BrowserWindow({width: 1440, height: 1000, minWidth: 360, minHeight: 480, title: 'asMagicBrain', frame: false, autoHideMenuBar: process.platform === 'linux', show: false, backgroundColor: '#ffffff', webPreferences: {preload: path.join(here, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true, spellcheck: false}});
+    window = new BrowserWindow({width: 1440, height: 1000, minWidth: 360, minHeight: 480, title: 'asMagicBrain',
+      // Native macOS controls sit in the shared 40px titlebar content area. The
+      // green button uses AppKit fullscreen; red still reaches the close guard.
+      ...(process.platform === 'darwin' ? {frame: true, titleBarStyle: 'hidden', trafficLightPosition: {x: 14, y: 14}, fullscreenable: true} : {frame: false}),
+      autoHideMenuBar: process.platform === 'linux', show: false, backgroundColor: '#ffffff', webPreferences: {preload: path.join(here, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true, spellcheck: false}});
+    artifactHost=createArtifactHost({owner:window,WebContentsView,session,app,readSnapshot:request=>service.prepareArtifactSnapshot(request)});
+    window.once('closed',()=>{void artifactHost?.close();});
     window.webContents.setWindowOpenHandler(({url}) => {openExternal(url); return {action: 'deny'};});
     window.webContents.on('will-navigate', (event, url) => {if (!isApplicationPage(url)) {event.preventDefault(); openExternal(url);}});
     window.webContents.on('will-attach-webview', event => event.preventDefault());
     const owner=window.webContents.id;
-    window.webContents.on('did-start-navigation',details=>{if(details.isMainFrame&&!details.isSameDocument)externalTickets.releaseOwner(owner);});
-    window.webContents.once('destroyed',()=>externalTickets.releaseOwner(owner));
+    window.webContents.on('did-start-navigation',details=>{if(details.isMainFrame&&!details.isSameDocument){artifactHost?.stop();externalTickets.releaseOwner(owner);}});
+    window.webContents.once('destroyed',()=>{artifactHost?.stop();externalTickets.releaseOwner(owner);});
     window.on('close', event => {if (!allowQuit) {event.preventDefault(); requestClose();}});
     window.once('ready-to-show', () => window.show());
     window.webContents.on('render-process-gone', (_event, details) => {console.error('Native renderer exited:', details.reason); void recoverRenderer(details.reason);});
@@ -250,6 +298,7 @@ try {
   console.error('asMagicBrain could not start:', startupFailureMessage(error));
   allowQuit = true;
   await Promise.all([cloneCoordinator?.close().catch(() => {}), updateCoordinator?.close().catch(() => {}), applyCoordinator?.close().catch(() => {})]);
+  await artifactHost?.close().catch(() => {});
   await applicationAuth?.close().catch(() => {});
   await githubAuth?.close().catch(() => {});
   await service?.close().catch(() => {});

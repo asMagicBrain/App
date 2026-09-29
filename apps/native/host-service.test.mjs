@@ -17,7 +17,7 @@ const hash=value=>Buffer.from(value).toString('hex');
 
 test('fresh native profile creates only Workspace and unborn main without an author',async t=>{
  const f=fixture(t),service=await createNativeService(f);f.after(()=>service.close());
- const catalog=await service.catalog();assert.deepEqual(catalog.repositories,[{name:'Workspace',privateRepo:true}]);assert.equal(catalog.organization,'asMagicBrain');assert.equal('capability' in catalog,false);
+ const catalog=await service.catalog();assert.match(catalog.repositories[0].stableId,/^[a-f0-9]{64}$/);assert.deepEqual(catalog.repositories.map(({stableId,...entry})=>entry),[{name:'Workspace',privateRepo:true}]);assert.equal(catalog.organization,'asMagicBrain');assert.equal('capability' in catalog,false);
  const home=await service.read({repo:'Workspace'});assert.equal(home.type,'directory');assert.equal(home.branch,'main');assert.equal(home.commit,null);assert.equal(home.commitCount,0);assert.equal(home.readmePath,'README.md');assert.match(home.readme,/^# Workspace/);
  assert.deepEqual(home.entries.map(e=>e.name),['README.md']);assert.deepEqual(await service.bootstrap('Workspace'),{local:true,newDrafts:[]});
  const inspect=await request(service,'gitInspect');assert.equal(inspect.initialized,true);assert.equal(inspect.head,null);

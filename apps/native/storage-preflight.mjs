@@ -8,6 +8,8 @@ import {isPortableRelativePath,portablePathKey} from '../../packages/source-foun
 import {canonicalGitHubUrl} from '../../packages/desktop-host/src/local-git/github-clone.mjs';
 import {verifyManagedTrashBacking} from '../../packages/desktop-host/src/repository-runtime/file-management.mjs';
 import {hasPreviewDataOwnership} from './profile-paths.mjs';
+import {validateExchangeState} from '../../packages/desktop-host/src/package-exchange/state.mjs';
+import {validateAutomationState} from './automation-broker.mjs';
 
 const LIMITS=Object.freeze({entries:100000,depth:64,hashBytes:128*1024*1024,fileBytes:64*1024*1024,jsonBytes:4*1024*1024});
 const HOST_FIELDS=['schemaVersion','ownerId','phase','roots','workspaceIdentity','appearance','workspaceName','repositoryBindings','pendingRename'];
@@ -115,14 +117,20 @@ function inspectInContext(dataRoot,context){
  if(managed?.value)for(const item of managed.value.entries){requireSafe(item&&uuid(item.trashId)&&repoName(item.name)&&binding(item.binding)&&item.binding.name===item.name);managedTrash.set(item.trashId,item);}
  scanStore(pinsRoot,sha(hostBindingHash+':repository-pins:1'),{optional:true,validate:value=>exact(value,['schemaVersion','keys'])&&value.schemaVersion===1&&Array.isArray(value.keys)&&value.keys.length<=1000&&value.keys.every(key=>typeof key==='string'&&key.length>0&&key.length<=255)&&new Set(value.keys).size===value.keys.length});
 
+ const readingPath=value=>typeof value==='string'&&value.length<=2048&&isPortableRelativePath(value)&&!value.split('/').some(part=>part.toLowerCase()==='.git'||part.toLowerCase().startsWith('.asmb-'));
+ scanStore(path.join(native,'.asmb-reading'),sha(hostBindingHash+':reading:1'),{optional:true,validate:value=>exact(value,['schemaVersion','redirects'])&&value.schemaVersion===1&&Array.isArray(value.redirects)&&value.redirects.length<=1000&&value.redirects.every(entry=>exact(entry,['repoId','documentId','from','to'])&&digest(entry.repoId)&&typeof entry.documentId==='string'&&/^[-A-Za-z0-9._:]{1,128}$/.test(entry.documentId)&&readingPath(entry.from)&&readingPath(entry.to))&&new Set(value.redirects.map(entry=>entry.repoId+':'+entry.documentId)).size===value.redirects.length});
+
+ scanStore(path.join(native,'.asmb-automation'),sha(hostBindingHash+':automation:1'),{optional:true,validate:validateAutomationState,latest:value=>value===null||value.operations.every(operation=>operation.status!=='applying')});
+
  const catalogRoot=path.join(organization,'.asmb-catalog'),catalogStat=exists(catalogRoot);if(catalogStat)walk(catalogRoot,{privatePath:true,recordFiles:true,hashFiles:true});
- const catalogRecords=new Map(),readyRecords=new Map(),reservationRecords=new Map(),retiredRecords=new Map();
+ const catalogRecords=new Map(),readyRecords=new Map(),reservationRecords=new Map(),retiredRecords=new Map(),zipRequests=new Map();
  function validCatalog(value){
   if(!value||!repoName(value.name)||!identity(value.identity)||!Number.isSafeInteger(value.files)||value.files<0||!Number.isSafeInteger(value.bytes)||value.bytes<0)return false;
   if(value.schemaVersion===1)return exact(value,['schemaVersion','name','identity','head','archiveSha256','files','bytes','excludedEntries','importedAt'])&&/^[a-f0-9]{40}$/.test(value.head)&&digest(value.archiveSha256)&&Number.isSafeInteger(value.excludedEntries)&&value.excludedEntries>=0&&instant(value.importedAt);
   const common=uuid(value.creationId)&&uuid(value.stageId)&&repoName(value.requestName)&&instant(value.createdAt);
   if(value.schemaVersion===2)return common&&exact(value,['schemaVersion','source','creationId','stageId','requestName','name','identity','head','files','bytes','createdAt'])&&value.source==='local'&&value.head===null&&value.files===0&&value.bytes===0;
   if(value.schemaVersion===3)return common&&exact(value,['schemaVersion','source','creationId','stageId','requestName','name','identity','head','branch','sourceUrl','files','bytes','createdAt'])&&value.source==='github'&&(value.head===null||/^[a-f0-9]{40}$/.test(value.head))&&typeof value.branch==='string'&&value.branch.length>0&&value.branch.length<1024&&(()=>{try{return canonicalGitHubUrl(value.sourceUrl)===value.sourceUrl;}catch{return false;}})();
+  if(value.schemaVersion===5)return common&&exact(value,['schemaVersion','source','creationId','stageId','requestName','name','identity','initializeHistory','head','archiveSha256','files','bytes','excludedEntries','createdAt'])&&value.source==='zip'&&typeof value.initializeHistory==='boolean'&&(value.initializeHistory?/^[a-f0-9]{40}$/.test(value.head):value.head===null)&&digest(value.archiveSha256)&&Number.isSafeInteger(value.excludedEntries)&&value.excludedEntries>=0;
   return value.schemaVersion===4&&common&&exact(value,['schemaVersion','source','copySourceIdentity','copySourceName','creationId','stageId','requestName','name','identity','head','files','bytes','createdAt'])&&value.source==='local-copy'&&identity(value.copySourceIdentity)&&repoName(value.copySourceName)&&(value.head===null||/^[a-f0-9]{40}$/.test(value.head));
  }
  if(catalogStat)for(const name of fs.readdirSync(catalogRoot)){
@@ -133,8 +141,12 @@ function inspectInContext(dataRoot,context){
   else if(/^trash-[a-f0-9-]{36}\.json$/.test(name)){requireSafe(value.schemaVersion===1&&uuid(value.trashId)&&validCatalog(value.record));retiredRecords.set(value.trashId,value);}
   else if(/^[a-f0-9-]{36}\.ready\.json$/.test(name)){requireSafe(validCatalog(value));readyRecords.set(name.slice(0,-11),value);}
   else if(/^[a-f0-9-]{36}\.reservation\.json$/.test(name)){requireSafe(exact(value,['schemaVersion','name','identity'])&&value.schemaVersion===1&&repoName(value.name)&&identity(value.identity));reservationRecords.set(name.slice(0,-17),value);}
+  else if(/^[a-f0-9-]{36}\.zip-request\.json$/.test(name)){requireSafe(exact(value,['schemaVersion','requestId','name','archiveSha256','initializeHistory'])&&value.schemaVersion===1&&uuid(value.requestId)&&name===`${value.requestId}.zip-request.json`&&repoName(value.name)&&digest(value.archiveSha256)&&typeof value.initializeHistory==='boolean');zipRequests.set(value.requestId,value);}
   else throw new Error('unknown catalog metadata');
  }
+ const publishedCatalog=[...catalogRecords.values(),...retiredRecords.values()].map(item=>item.record??item);
+ for(const value of [...publishedCatalog,...readyRecords.values()])if(value.schemaVersion===5){const token=zipRequests.get(value.creationId);requireSafe(token&&token.name===value.requestName&&token.archiveSha256===value.archiveSha256&&token.initializeHistory===value.initializeHistory);}
+ for(const [id,token] of zipRequests)for(const value of publishedCatalog.filter(item=>item.creationId===id))requireSafe(value.schemaVersion===5&&value.requestName===token.name);
  for(const [id,value] of readyRecords){const admitted=[...catalogRecords.values(),...retiredRecords.values()].map(item=>item.record??item).find(item=>item.identity===value.identity&&(item.creationId===value.creationId||item.name===value.name));requireSafe(admitted);if(reservationRecords.has(id))requireSafe(reservationRecords.get(id).name===value.name);}
  for(const id of reservationRecords.keys())requireSafe(readyRecords.has(id));
 
@@ -162,6 +174,22 @@ function inspectInContext(dataRoot,context){
    };
    let runtimeValue=null;const records=path.join(privateRoot,'files','records');if(exists(records)){const runtime=scanStore(records,runtimeHash,{validate:runtimeValid,latest:value=>value===null||runtimeValid(value)&&value.pending===null});requireSafe(runtime);runtimeValue=runtime.value;}
    const drafts=path.join(privateRoot,'new-drafts');if(exists(drafts))scanStore(drafts,sha(JSON.stringify({sourceRoot:sourceBindingRoot,identity:sourceIdentity})),{validate:value=>Array.isArray(value)&&value.length<=32&&value.every(draft=>exact(draft,['draftId','path','text'])&&typeof draft.draftId==='string'&&typeof draft.path==='string'&&typeof draft.text==='string')});
+   const exchangeRoot=path.join(privateRoot,'package-exchange');if(exists(exchangeRoot)){
+    requireSafe(fs.readdirSync(exchangeRoot).sort().join(',')==='blobs,journal,management,recovery');
+    for(const name of ['','blobs','journal','management','recovery']){const target=path.join(exchangeRoot,name),stat=fs.lstatSync(target);requireSafe(stat.isDirectory()&&(stat.mode&0o777)===0o700);}
+    const exchangeBinding=sha(JSON.stringify({sourceRoot:sourceBindingRoot,sourceIdentity})),requiredBlobs=new Set();
+    const exchange=scanStore(path.join(exchangeRoot,'journal'),exchangeBinding,{validate:value=>{const validated=validateExchangeState(value);for(const hash of validated.hashes)requiredBlobs.add(hash);return true;},latest:value=>value===null||value.pending===null});
+    // Blobs are retained preimages/base bytes. Hash every object, including
+    // unreferenced objects left before a durable intent; never infer ownership.
+    const blobRoot=path.join(exchangeRoot,'blobs'),blobNames=fs.readdirSync(blobRoot),fingerprintByPath=new Map(fingerprint.map(entry=>[entry.path,entry]));let retainedBytes=0;
+    requireSafe(blobNames.length<=100000);
+    for(const name of blobNames){const file=path.join(blobRoot,name),entry=fingerprintByPath.get(relative(file));requireSafe(digest(name)&&entry?.type==='file'&&entry.sha256===name&&entry.rawStat.mode===0o600);retainedBytes+=entry.rawStat.size;}
+    requireSafe(retainedBytes<=2*1024*1024*1024&&[...requiredBlobs].every(hash=>blobNames.includes(hash)));
+    requireSafe(fs.readdirSync(path.join(exchangeRoot,'management')).length===0);
+    const recovery=path.join(exchangeRoot,'recovery'),key=exchangeBinding.slice(0,32),spaceId=`${key.slice(0,8)}-${key.slice(8,12)}-4${key.slice(13,16)}-8${key.slice(17,20)}-${key.slice(20,32)}`;
+    requireSafe(!createNodeFilesystem({repositoryRoot:source,recoveryRoot:recovery,spaceRoot:'.',spaceId}).inspectRecovery().blocked);
+    const receipts=path.join(recovery,'receipts.json');if(exists(receipts)){const value=json(receipts,1024*1024);requireSafe(Array.isArray(value.retiring)&&value.retiring.length===0);}
+   }
    const gitPrivate=path.join(privateRoot,'git');if(exists(gitPrivate)){
     admit(gitPrivate,{type:'directory',privatePath:true,record:false});const names=fs.readdirSync(gitPrivate);requireSafe(!names.includes('pending.json'));
     if(names.length){requireSafe(names.includes('binding.json'));const gitBinding=json(path.join(gitPrivate,'binding.json'),8192);requireSafe(JSON.stringify(gitBinding)===JSON.stringify({sourceRoot:sourceBindingRoot,sourceIdentity}));}

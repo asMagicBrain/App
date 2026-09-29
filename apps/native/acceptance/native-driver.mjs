@@ -48,5 +48,5 @@ export async function createDriver({executablePath,args,env={},output,workspaceP
  async function screenshot(name){await page.screenshot({path:path.join(output,name+'.png')});record('screenshot',{file:name+'.png'});}
  async function inspectFile(relative){assert.ok(!path.isAbsolute(relative)&&!relative.split('/').includes('..'));const bytes=await fs.readFile(path.join(workspacePath,relative));return {bytes,sha256:sha(bytes)};}
  async function report(extra={}){await fs.writeFile(path.join(output,'receipt.json'),JSON.stringify({platform:process.platform,arch:process.arch,executablePath,args,workspacePath,packageIntegrity,assertions,rendererErrors:errors,consoleErrors:consoleMessages,...extra},null,2));}
- return {launch,closeNormally,screenshot,inspectFile,report,record,errors,get app(){return application},get page(){return page},workspacePath,output};
+ return {launch,closeNormally,screenshot,inspectFile,report,record,errors,get consoleErrors(){return consoleMessages},get app(){return application},get page(){return page},workspacePath,output};
 }

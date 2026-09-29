@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {getNativeBridge, readRepositoryAsset} from './native-bridge.mjs';
 import {localLink, type PreviewImage} from '../../apps/desktop/ui/markdown-preview.mjs';
 import {isMediaFile} from './repository-file-session';
+import {enhanceTechnicalPreview} from './technical-preview';
 import './repository-document.css';
 
 export const isRepositoryMedia = (path: string) => Boolean(getNativeBridge()) && isMediaFile(path);
@@ -27,6 +28,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
     if (!element) return;
     const controller = new AbortController(), urls: string[] = [];
     element.innerHTML = rendered.html;
+    enhanceTechnicalPreview(element, controller.signal);
     const images = [...rendered.images];
     const load = async () => {
       while (images.length && !controller.signal.aborted) {

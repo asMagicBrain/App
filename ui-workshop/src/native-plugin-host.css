@@ -1,0 +1,8 @@
+.np-document-tools{display:flex;align-items:center;gap:6px;padding:6px 8px;border-bottom:1px solid var(--fw-line);flex-wrap:wrap;min-width:0;background:var(--fw-bg)}
+.fw-window .np-document-tools button{border:1px solid var(--fw-line);border-radius:6px;padding:4px 8px;min-height:28px;font-size:12px;background:var(--fw-chrome)}
+.np-document-tools [role=status]{margin-left:auto;font-size:12px;color:var(--fw-muted)}
+.np-tools-dialog{max-width:min(420px,calc(100vw - 32px));border:1px solid var(--fw-line);border-radius:8px;background:var(--fw-bg);color:var(--fw-text);padding:24px;font-size:14px;line-height:1.5}
+.np-tools-dialog::backdrop{background:#0006}
+.np-tools-dialog h2{font-size:18px;margin:0 0 16px}
+.np-tools-dialog .pws-button{float:right}
+.np-error{padding:0 24px;color:var(--fw-danger,#cf222e)}

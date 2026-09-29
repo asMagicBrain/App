@@ -12,11 +12,15 @@ Preview packages are available for Apple silicon Macs and Ubuntu 24.04 x64. Chec
 
 ## Work locally
 
-- Read Markdown with an outline, or switch to Code and Edit.
+- Read Markdown, equations and Mermaid diagrams offline, with an outline and reading history.
+- Edit source or enable [Pro Editor](docs/plugins.md) for visual math and diagrams, split preview, and reviewed local interactive views.
 - Keep unsaved drafts while navigating and after a normal restart.
 - Organize files and repositories, import ZIP archives, and search saved content.
 - Review saved changes and commit only the files you select.
+- [Review package updates and export](docs/packages-and-export.md) a source ZIP or an offline reading copy.
 - Clone from GitHub, compare updates, and apply reviewed updates to a clean repository. Accounts are optional; push and background synchronization are unavailable.
+
+Optional [local automation](docs/local-automation.md) lets tools propose changes for your review.
 
 The app includes **asMagicBrain-Docs**, a read-only user guide at the bottom of the repository list. Duplicate it to make an editable copy.
 

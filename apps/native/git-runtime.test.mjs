@@ -67,6 +67,24 @@ test('Linux-layout workers fail closed when metadata and the runtime are both mi
 
 const linuxOptions = {platform: 'linux', arch: 'x64'}, linuxSpec = selectGitRuntimeSpec(linuxOptions), downloads = path.join(testRoot, 'tooling-downloads');
 const linuxInputsAvailable = linuxSpec.inputs.every(input => fs.existsSync(path.join(downloads, input.filename)));
+test('Linux preparation keeps the pinned manifest when checkout metadata is group-writable', {skip: !linuxInputsAvailable}, async t => {
+  const root = fixture(t), copiedApp = path.join(root, 'source'), native = path.join(copiedApp, 'apps/native');
+  fs.mkdirSync(native, {recursive: true});
+  fs.mkdirSync(path.join(copiedApp, 'packages/desktop-host/src'), {recursive: true});
+  for (const name of ['git-runtime.mjs', 'native-runtime.mjs', 'elf-runtime.mjs', 'git-runtime.json', 'git-runtime-linux-x64.json', 'git-runtime-selection-linux-x64.json']) {
+    fs.copyFileSync(path.join(appRoot, 'apps/native', name), path.join(native, name));
+  }
+  fs.copyFileSync(sourceModule, path.join(copiedApp, 'packages/desktop-host/src/git-executable.mjs'));
+  const selection = path.join(native, 'git-runtime-selection-linux-x64.json');
+  fs.chmodSync(selection, 0o664);
+  const {prepareGitRuntime: prepare} = await import(pathToFileURL(path.join(native, 'git-runtime.mjs')).href);
+  const prepared = path.join(root, 'prepared');
+  const result = await prepare({destination: prepared, downloads, ...linuxOptions});
+  assert.equal(result.manifestSha256, linuxSpec.preparedManifestSha256);
+  assert.equal(fs.statSync(path.join(prepared, 'licenses/git-runtime-selection.json')).mode & 0o777, 0o644);
+  assert.equal(fs.statSync(selection).mode & 0o777, 0o664, 'Preparation leaves source checkout permissions unchanged');
+});
+
 test('Linux preparation and cross-host copies preserve native 0777 symlink modes and the tracked pin', {skip: !linuxInputsAvailable}, async t => {
   const root = fixture(t), prepared = path.join(root, 'prepared'), copy = path.join(root, 'copied');
   const before = await prepareGitRuntime({destination: prepared, downloads, ...linuxOptions});

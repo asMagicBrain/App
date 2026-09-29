@@ -1,5 +1,10 @@
 import {persistentIdentity, currentStorageIdentity, runWithStorageIdentity} from '../../packages/source-foundation/src/adapters/storage-identity.mjs';
 import fs from 'node:fs';
+import {createAutomationDispatch} from './automation-dispatch.mjs';
+import {createReadingService} from './reading-service.mjs';
+import {createPackageExchange} from '../../packages/desktop-host/src/package-exchange/index.mjs';
+import {validateAutomationFiles} from './automation-validation.mjs';
+import {renderOffline,analyzeReferences} from './dist-host/offline-reader.mjs';
 import {createRepositoryManagement} from './repository-management.mjs';
 import {createRepositoryPins} from './repository-pins.mjs';
 import {createRepositorySearch} from './repository-search.mjs';
@@ -17,6 +22,7 @@ import {createGitHubUpdates} from '../../packages/desktop-host/src/local-git/git
 import {createGitHubApply} from '../../packages/desktop-host/src/local-git/github-apply.mjs';
 import {ZIP_IMPORT_LIMITS} from '../../packages/desktop-host/src/zip-import/index.mjs';
 import {createPrivateStore,assertOutsideGit} from '../../packages/desktop-host/src/private-store.mjs';
+import {prepareArtifactSnapshot} from './artifact-snapshot.mjs';
 import {pinDirectory,checkDirectory,checkSourceSpelling,contains} from '../../packages/desktop-host/src/physical-roots.mjs';
 import {inspectExternalSources} from '../../packages/desktop-host/src/repository-runtime/file-management.mjs';
 import {isPortableRelativePath,isInspectableRelativePath,portablePathKey} from '../../packages/source-foundation/src/domain/path-policy.mjs';
@@ -199,7 +205,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(next.length!==record.repositoryBindings.length)persist({...record,repositoryBindings:next});
   }
   const openWorkspace=()=>{workspace=createWorkspaceService({base:organization.path,privateBase:privateRoot.path,builtinRepositories:builtins(),repositoryBindings:record.repositoryBindings,localOwnerId:record.ownerId,localRootId:'native'});};
-  const updateManagers=new Map(),applyManagers=new Map(),updateJobs=new Set(),applyJobs=new Set(),applyHeld=new Set();
+  const updateManagers=new Map(),applyManagers=new Map(),updateJobs=new Set(),applyJobs=new Set(),applyHeld=new Set(),exchangeManagers=new Map(),exchangeHeld=new Set();
   function updateManagerFor(name){
    const provenance=importer.catalog.provenance(name);if(!provenance)return null;
    const binding=record.repositoryBindings.find(value=>value.name===name),source=pinDirectory(path.join(organization.path,name));
@@ -214,7 +220,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(!manager){const directory=privateDirectory(path.join(privateRoot.path,binding.stateKey,'github-apply'),true);manager=createGitHubApply({sourceRoot:source.path,sourceBindingRoot:path.join(organization.path,binding.bindingName),privateRoot:directory.path,snapshots,hooks:{at:hooks.applyAt,workerStopAfter:hooks.applyWorkerStopAfter}});applyManagers.set(binding.stateKey,manager);}
    return manager;
   }
-  const assertApplyReady=name=>{if(applyHeld.has(name))fail('APPLY_RECOVERY_REQUIRED');};
+  const assertApplyReady=name=>{if(applyHeld.has(name))fail('APPLY_RECOVERY_REQUIRED');if(exchangeHeld.has(name))fail('PACKAGE_RECOVERY_REQUIRED');};
   syncBindings();
   // Recover admitted updates before any workspace session can read a mixed
   // source/index or run its ordinary local Git recovery. Unknown bytes hold only
@@ -223,6 +229,16 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(!exists(path.join(privateRoot.path,binding.stateKey,'github-apply')))continue;
    try{const manager=applyManagerFor(binding.name);if(manager.inspect().recoveryRequired&&record.schemaVersion<3)fail('APPLY_RECOVERY_REQUIRED');const recovered=await manager.recover();if(recovered.status==='held')applyHeld.add(binding.name);}catch{applyHeld.add(binding.name);}
   }
+  function exchangeFor(name){
+   importer.catalog.assertKnown(name);const binding=record.repositoryBindings.find(value=>value.name===name),source=pinDirectory(path.join(organization.path,name));
+   if(!binding||source.identity!==binding.identity)fail('REPOSITORY_CHANGED');
+   const key=binding.stateKey;let manager=exchangeManagers.get(key);
+   if(!manager){const perRepository=privateDirectory(path.join(privateRoot.path,key),true),directory=privateDirectory(path.join(perRepository.path,'package-exchange'),true);
+    manager=createPackageExchange({sourceRoot:source.path,sourceBindingRoot:path.join(organization.path,binding.bindingName),privateRoot:directory.path,renderOffline,getDraftPaths:async()=>{const runtime=await workspace.execute(name,'runtimeStatus',{});if(runtime.recoveryRequired)fail('RECOVERY_REQUIRED');return [...runtime.draftPaths,...runtime.recoveredDrafts.map(value=>value.path),...workspace.bootstrap(name).newDrafts.map(value=>value.path)];},hooks:{at:hooks.packageAt,transactionAt:hooks.packageTransactionAt}});exchangeManagers.set(key,manager);}
+   return manager;
+  }
+  // Interrupted package publication stays explicit: no ordinary writes to a mixed collection.
+  for(const binding of record.repositoryBindings){if(exists(path.join(privateRoot.path,binding.stateKey,'package-exchange'))){try{if(exchangeFor(binding.name).status().recoveryRequired)exchangeHeld.add(binding.name);}catch{exchangeHeld.add(binding.name);}}}
   openWorkspace();
   if(record.phase==='initializing'){
    await workspace.execute(record.workspaceName,'gitInitialize',{branch:'main'});syncInitialTree(path.join(sourceRoot,'.git'));syncDirectory(sourcePin);persist({...record,phase:'ready'});
@@ -271,14 +287,54 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    const git=await workspace.execute(name,'gitInspect',{});if(git.recoveryRequired)fail('RECOVERY_REQUIRED');if(git.busy)fail('GIT_BUSY');
    const binding=record.repositoryBindings.find(v=>v.name===name),source=pinDirectory(path.join(organization.path,name));if(!binding||binding.identity!==source.identity)fail('REPOSITORY_CHANGED');return {binding,source,git};
   }
-  const managementResult=repository=>({repository,organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:importer.catalog.list()});
-  const reopenAfterManagement=()=>{importer=createRepositoryImporter({base:organization.path,builtinRepositories:builtins(),hooks});openWorkspace();};
-  return Object.freeze({
+  const readingRepositories=()=>importer.catalog.list().map(entry=>({...entry,stableId:createHash('sha256').update(record.ownerId+':'+record.repositoryBindings.find(binding=>binding.name===entry.name)?.stateKey).digest('hex')}));
+  const readingDirectory=privateDirectory(path.join(privateRoot.path,'.asmb-reading'),true);
+  const reading=createReadingService({repositories:readingRepositories,redirectStore:createPrivateStore({privateRoot:readingDirectory.path,bindingHash:createHash('sha256').update(bindingHash+':reading:1').digest('hex')}),readSnapshot:async input=>{repo(input.repo);assertApplyReady(input.repo);await workspace.execute(input.repo,'gitInspect',{});return readLocalRepository(input.repo,input.path,organization.path,input.ref,{builtinRepositories:builtins()});}});
+  function readingInput(request){const value=copyRequest(request);if(!exact(value,['repo','path','ref'])||!readerPath(value.path)||typeof value.ref!=='string'||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_REQUEST');repo(value.repo);return value;}
+  function packageRequest(request,fields){const value=copyRequest(request);if(!exact(value,['repo',...fields]))fail('INVALID_REQUEST');repo(value.repo);return value;}
+  function packageArchive(request,fields){if(!request||!(request.bytes instanceof ArrayBuffer)&&!ArrayBuffer.isView(request.bytes))fail('INVALID_REQUEST');const bytes=Buffer.from(request.bytes instanceof ArrayBuffer?new Uint8Array(request.bytes):request.bytes);if(!bytes.length||bytes.length>ZIP_IMPORT_LIMITS.archiveBytes)fail('LIMIT_EXCEEDED');const {bytes:ignored,...metadata}=request;const value=packageRequest(metadata,fields);return {...value,bytes:Buffer.from(bytes)};}
+  async function packageMutation(name,action){assertWritable(name);if(applyHeld.has(name))fail('APPLY_RECOVERY_REQUIRED');const manager=exchangeFor(name);try{return await action(manager);}finally{workspace.close();openWorkspace();try{if(manager.status().recoveryRequired)exchangeHeld.add(name);else exchangeHeld.delete(name);}catch{exchangeHeld.add(name);}}}
+  const managementResult=repository=>({repository,organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:readingRepositories()});
+  const reopenAfterManagement=()=>{exchangeManagers.clear();importer=createRepositoryImporter({base:organization.path,builtinRepositories:builtins(),hooks});openWorkspace();};
+  const automationWrite=(input,publish)=>queue(async()=>{
+   const value=copyRequest(input);if(!exact(value,['repoId','repo','path','expectedHash','text'])||!mutationPath(value.path)||!value.path||typeof value.text!=='string'||Buffer.byteLength(value.text)>65536||value.expectedHash!==null&&!/^[a-f0-9]{64}$/.test(value.expectedHash))fail('INVALID_REQUEST');
+   assertWritable(value.repo);await managementReady(value.repo);
+   if(readingRepositories().find(entry=>entry.name===value.repo)?.stableId!==value.repoId)fail('REPOSITORY_CHANGED');
+   const runtime=await workspace.execute(value.repo,'runtimeStatus',{}),drafts=[...runtime.draftPaths,...runtime.recoveredDrafts.map(entry=>entry.path),...workspace.bootstrap(value.repo).newDrafts.map(entry=>entry.path)];
+   if(drafts.some(draft=>portablePathKey(draft)===portablePathKey(value.path)))fail('DRAFT_CONFLICT');
+   const missing=()=>{let parent=pinDirectory(path.join(organization.path,value.repo));for(const segment of value.path.split('/')){checkDirectory(parent);const matches=fs.readdirSync(parent.path).filter(name=>portablePathKey(name)===portablePathKey(segment));if(!matches.length){checkDirectory(parent);return true;}if(matches.length!==1||matches[0]!==segment)fail('CONFLICT');const full=path.join(parent.path,segment),stat=fs.lstatSync(full);if(stat.isSymbolicLink())fail('DENIED');if(full===path.join(organization.path,value.repo,value.path))return false;if(!stat.isDirectory())fail('CONFLICT');parent=pinDirectory(full);}return false;};
+   let current=null;try{current=await workspace.execute(value.repo,'open',{path:value.path});}catch(error){if(!['ENOENT','NOT_FOUND','PARTIAL'].includes(error.code)||!missing())throw error;}
+   if((current?.sourceHash??null)!==value.expectedHash||current?.readOnly||current?.draft)fail('CONFLICT');
+   if(!publish)return {kind:'write',repo:value.repo,repoId:value.repoId,path:value.path,before:current?.text??null,after:value.text,expectedHash:value.expectedHash,afterHash:createHash('sha256').update(value.text).digest('hex')};
+   const saved=await workspace.execute(value.repo,current?'save':'create',current?{path:value.path,baseHash:value.expectedHash,text:value.text}:{path:value.path,text:value.text});return {path:saved.path,sourceHash:saved.sourceHash,documentId:saved.documentId};
+  });
+  const automationImport=value=>queue(async()=>{
+   if(!validCreationId(value.requestId)||!validRepositoryName(value.name)||value.initializeHistory!==false||!Buffer.isBuffer(value.bytes)||value.bytes.length>262144)fail('INVALID_REQUEST');
+   const pin=importer.catalog.ensure(),filename=path.join(pin.path,`upload-${randomUUID()}.zip`);let owned;
+   try{writeExclusive(filename,value.bytes);owned=identity(fs.lstatSync(filename));const result=await importer.importArchive({name:value.name,archivePath:filename,requestId:value.requestId,initializeHistory:false});syncBindings();workspace.close();openWorkspace();return result;}
+   finally{if(owned){checkDirectory(pin);const live=exists(filename);if(live&&identity(live)===owned){fs.unlinkSync(filename);syncDirectory(pin);}}}
+  });
+  const api=Object.freeze({
+   packageStatus:request=>{const value=packageRequest(request,[]);return queue(()=>exchangeFor(value.repo).status());},
+   reviewPackageBase:request=>{const value=packageArchive(request,['collectionId','version']);return queue(()=>{assertApplyReady(value.repo);return exchangeFor(value.repo).registrationReview({archive:value.bytes,collectionId:value.collectionId,version:value.version} );});},
+   registerPackageBase:request=>{const value=packageRequest(request,['planId']);return queue(()=>packageMutation(value.repo,manager=>manager.registerBase({planId:value.planId})));},
+   reviewPackageUpdate:request=>{const value=packageArchive(request,['semantics','version']);return queue(()=>{assertApplyReady(value.repo);return exchangeFor(value.repo).reviewUpdate({archive:value.bytes,semantics:value.semantics,version:value.version} );});},
+   applyPackageUpdate:request=>{const value=packageRequest(request,['planId','choices']);return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices})));},
+   recoverPackageUpdate:request=>{const value=packageRequest(request,['operationId','direction']);return queue(()=>packageMutation(value.repo,manager=>manager.recover({operationId:value.operationId,direction:value.direction})));},
+   rollbackPackageUpdate:request=>{const value=packageRequest(request,['operationId']);return queue(()=>packageMutation(value.repo,manager=>manager.rollback({operationId:value.operationId})));},
+   reviewPackageExport:request=>{const value=packageRequest(request,['collectionId','version']);return queue(()=>{assertApplyReady(value.repo);return exchangeFor(value.repo).reviewExport({collectionId:value.collectionId,version:value.version} );});},
+   buildPackageExport:request=>{const value=packageRequest(request,['planId','kind']);return queue(()=>{assertApplyReady(value.repo);return exchangeFor(value.repo).buildExport({planId:value.planId,kind:value.kind} );});},
+   cancelPackagePlan:request=>{const value=packageRequest(request,['planId']);return queue(()=>exchangeFor(value.repo).cancelPlan(value.planId));},
+   readingHistory:request=>{const value=copyRequest(request);return queue(()=>reading.history(value));},
+   getReadingEvidence:request=>{const value=readingInput(request);return queue(()=>reading.evidence(value));},
+   getReadingReference:request=>{const value=readingInput(request);return queue(()=>reading.reference(value));},
+   resolveReadingReference:request=>{const value=copyRequest(request);return queue(()=>reading.resolve(value));},
+   prepareArtifactSnapshot:request=>{let value;try{value=copyRequest(request);if(!exact(value,['repo','path','ref'])||value.ref!==''||!readerPath(value.path)||!value.path)fail('INVALID_REQUEST');repo(value.repo);}catch(error){return Promise.reject(Object.assign(Error('This local interactive view cannot be reviewed.'),{code:'ARTIFACT_INVALID_REQUEST'}));}return queue(async()=>{const {source}=await managementReady(value.repo);return prepareArtifactSnapshot({root:source,path:value.path});}).catch(error=>{throw Object.assign(Error(/^ARTIFACT_[A-Z_]+$/.test(error.code??'')?error.code:'This local interactive view is unavailable.'),{code:/^ARTIFACT_[A-Z_]+$/.test(error.code??'')?error.code:'ARTIFACT_UNAVAILABLE'});});},
    catalog:()=>queue(()=>{
     documentation?.assertCurrent();
     importer.catalog.recover();const previousBindings=record.repositoryBindings.length;syncBindings();
     if(record.repositoryBindings.length!==previousBindings){workspace.close();openWorkspace();}
-    return {organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:importer.catalog.list(),limits:ZIP_IMPORT_LIMITS};
+    return {organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:readingRepositories(),limits:ZIP_IMPORT_LIMITS};
    }),
    read:request=>{let value;try{value=copyRequest(request);if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['repo','path','ref'].includes(key)))fail('INVALID_REQUEST');repo(value.repo);if(value.path===undefined)value.path='';if(value.ref===undefined)value.ref='';if(!readerPath(value.path)||typeof value.ref!=='string'||!value.ref.isWellFormed()||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_PATH');}catch(error){return Promise.reject(error);}return queue(async()=>{assertApplyReady(value.repo);await workspace.execute(value.repo,'gitInspect',{});return readLocalRepository(value.repo,value.path,organization.path,value.ref,{builtinRepositories:builtins()});});},
    readAsset:request=>{let value;try{value=copyRequest(request);if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['repo','path','ref'].includes(key)))fail('INVALID_REQUEST');repo(value.repo);if(value.ref===undefined)value.ref='';if(!value.path||!readerPath(value.path)||typeof value.ref!=='string'||!value.ref.isWellFormed()||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_PATH');}catch(error){return Promise.reject(error);}return queue(async()=>{assertApplyReady(value.repo);await workspace.execute(value.repo,'gitInspect',{});return readLocalRepositoryAsset(value.repo,value.path,organization.path,value.ref,{builtinRepositories:builtins()});});},
@@ -348,8 +404,11 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    request:request=>{let value;try{value=copyRequest(request);if(value&&typeof value==='object'&&!Array.isArray(value)&&value.args===undefined)value.args={};if(!exact(value,['repo','operation','args'])||typeof value.operation!=='string')fail('INVALID_REQUEST');repo(value.repo);}catch(error){return Promise.reject(error);}return queue(async()=>{
     assertApplyReady(value.repo);
     if(isDocumentation(value.repo)&&!['open','discover','inspectEntry','listTrash','runtimeStatus','getCommitPreferences','gitInspect','gitStatus','gitReview'].includes(value.operation))assertWritable(value.repo);
-    if(['inspectEntry','manage','restore','reconcile'].includes(value.operation)){workspace.close();try{return await runWorkspaceWorker(value);}finally{openWorkspace();}}
-    const result=await workspace.execute(value.repo,value.operation,value.args);return isDocumentation(value.repo)&&value.operation==='open'?{...result,readOnly:true}:result;
+    const moves=value.operation==='rename'?[{from:value.args.path,to:value.args.newPath}]:value.operation==='manage'&&value.args.operation==='move'?(value.args.items??[]).map(item=>({from:item.path,to:item.newPath})):[];
+    const redirects=moves.length?await reading.prepareRename(value.repo,moves):[];
+    let result;if(['inspectEntry','manage','restore','reconcile'].includes(value.operation)){workspace.close();try{result=await runWorkspaceWorker(value);}finally{openWorkspace();}}else result=await workspace.execute(value.repo,value.operation,value.args);
+    if(moves.length)reading.renamed(value.repo,moves,redirects);
+    return isDocumentation(value.repo)&&value.operation==='open'?{...result,readOnly:true}:result;
    });},
    // Trusted main-process methods. IPC accepts only opaque File/picker tickets,
    // never these absolute source descriptors or cancellation primitives.
@@ -373,7 +432,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
      assertWritable(value.repository);
      assertApplyReady(value.repository);if(applyJobs.has(value.repository)||[...updateJobs].some(job=>job.repo===value.repository))fail('UPDATES_BUSY');
      importer.catalog.assertKnown(value.repository);
-     const result=()=>({repository:value.name,previousName:value.repository,organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:importer.catalog.list()});
+     const result=()=>({repository:value.name,previousName:value.repository,organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:readingRepositories()});
      if(value.repository===value.name)return result();
      importer.catalog.assertAvailable(value.name);
      workspace.bootstrap(value.repository);
@@ -387,7 +446,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
      try{
       at('rename-intent');finishRename();
       sourcePin=pinDirectory(path.join(organization.path,record.workspaceName));
-      importer=createRepositoryImporter({base:organization.path,builtinRepositories:builtins(),hooks});updateManagers.delete(binding.stateKey);applyManagers.delete(binding.stateKey);openWorkspace();
+      importer=createRepositoryImporter({base:organization.path,builtinRepositories:builtins(),hooks});updateManagers.delete(binding.stateKey);applyManagers.delete(binding.stateKey);exchangeManagers.delete(binding.stateKey);openWorkspace();
       return result();
      }catch(error){renameHeld=true;throw Object.assign(new Error('Repository rename requires recovery. Reopen the application to retry the recorded operation. Unrecognized destination state will remain preserved for manual recovery.'),{code:'RECOVERY_REQUIRED',cause:error});}
     });
@@ -461,6 +520,10 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    drain:async()=>{await search.drain();await Promise.allSettled([...updateJobs].map(job=>job.promise));await serial;},
    close:()=>{if(closePromise)return closePromise;closing=true;void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
   });
+  const automationRoot=privateDirectory(path.join(privateRoot.path,'.asmb-automation'),true);
+  const automation=createAutomationDispatch({api,applyPackage:(input,operationId)=>{const value=packageRequest(input,['planId','choices']);if(!validCreationId(operationId))fail('INVALID_REQUEST');return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices,operationId})));},validate:input=>queue(async()=>{const value=copyRequest(input);if(!exact(value,['repoId']))fail('INVALID_REQUEST');const entry=readingRepositories().find(entry=>entry.stableId===value.repoId);if(!entry)fail('UNKNOWN_REPOSITORY');assertApplyReady(entry.name);const found=await workspace.execute(entry.name,'discover',{}),paths=found.entries.filter(entry=>entry.type==='file').map(entry=>entry.path),files=[];for(const path of paths.slice(0,256)){let text;try{const snapshot=await readLocalRepository(entry.name,path,organization.path,'',{builtinRepositories:builtins()});if(typeof snapshot.content==='string'&&Buffer.byteLength(snapshot.content)<=65536)text=snapshot.content;}catch{}files.push({path,size:found.entries.find(entry=>entry.path===path)?.byteLength,...(text!==undefined?{text}:{})});}const result=validateAutomationFiles({files,inventoryPaths:paths,analyzeReferences});if(paths.length>256||found.truncated){result.truncated=true;result.status='truncated';}return result;}),write:automationWrite,importArchive:automationImport,importStatus:value=>queue(()=>importer.findCompletedImport(value)),store:createPrivateStore({privateRoot:automationRoot.path,bindingHash:createHash('sha256').update(bindingHash+':automation:1').digest('hex')})});
+  let publicClosing=false;const publicMethods={...api,automationRequest:input=>automation.request(copyRequest(input)),setAutomationGrants:input=>automation.setGrants(copyRequest(input)),getAutomationStatus:()=>automation.uiStatus(),approveAutomation:input=>automation.approve(copyRequest(input)),cancelAutomation:input=>automation.cancel(copyRequest(input))};
+  return Object.freeze({...Object.fromEntries(Object.entries(publicMethods).map(([name,method])=>[name,(...args)=>publicClosing?Promise.reject(Object.assign(Error(name==='prepareArtifactSnapshot'?'ARTIFACT_UNAVAILABLE':'SERVICE_CLOSED'),{code:name==='prepareArtifactSnapshot'?'ARTIFACT_UNAVAILABLE':'SERVICE_CLOSED'})):method(...args)])),drain:async()=>{await automation.drain();await api.drain();},close:async()=>{publicClosing=true;await automation.close();await api.close();}});
  }catch(error){try{workspace?.close();}finally{try{release();}catch{}}throw error;}
 }
 

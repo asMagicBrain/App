@@ -26,6 +26,6 @@ Push, merge, rebase, automatic background updates, SSH, and other Git servers ar
 
 ## Keep private information private
 
-Sign-in, clone, and update actions contact their services when you request them. Clicking a web link opens it in your browser. Local Markdown preview does not automatically fetch remote images or run embedded HTML or scripts. Imported repositories do not run their hooks or project code.
+Sign-in, clone, and update actions contact their services when you request them. Clicking a web link opens it in your browser. Local Markdown preview does not automatically fetch remote images or run embedded HTML or scripts. Importing a repository does not run its hooks or project code. Optional [interactive views](plugins.md#local-interactive-views) require a separate review and Run action.
 
 Do not put credentials in files you might commit or share. Before sending a bug report or screenshot, remove private text, account details, repository names, and personal paths. [Back up complete local state](data-and-recovery.md#make-a-backup) separately from Git history.

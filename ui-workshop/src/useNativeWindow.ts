@@ -71,5 +71,5 @@ export function useNativeWindow(root: RefObject<HTMLDivElement | null>, beforeLe
   const windowAction = (action: 'close' | 'minimize' | 'maximize') => {
     if (bridge) void bridge.windowAction(action).catch(reason => setError(reason.message));
   };
-  return {native: Boolean(bridge), closing, error, appearanceError, persistAppearance, windowAction};
+  return {native: Boolean(bridge), nativeWindowControls: bridge?.nativeWindowControls === true, closing, error, appearanceError, persistAppearance, windowAction};
 }

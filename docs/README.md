@@ -9,10 +9,14 @@ Read, write, and organize Markdown and other files on your computer. Save your w
 3. [Write, save, and commit](files-and-git.md) — understand drafts, saved files, and history.
 4. [Organize and import](repositories-and-import.md) — create repositories and bring in files.
 5. [Search and outline](search-and-outline.md) — find a file, a phrase, or a heading.
-6. [Accounts and privacy](accounts-and-privacy.md) — connect to GitHub when you need it.
-7. [Back up and recover](data-and-recovery.md) — find your data and keep a complete backup.
-8. [Platforms and limits](platform-and-limits.md) — check compatibility and preview limits.
-9. [Credits and licenses](licensing.md).
+6. [Math and diagrams](math-and-diagrams.md) — read technical notation offline and copy its source.
+7. [Plugins and Pro Editor](plugins.md) — use visual editing, split preview and local interactive views.
+8. [Packages and export](packages-and-export.md) — review ZIP updates and share an offline copy.
+9. [Local automation](local-automation.md) — connect local tools with explicit permissions and review.
+10. [Accounts and privacy](accounts-and-privacy.md) — connect to GitHub when you need it.
+11. [Back up and recover](data-and-recovery.md) — find your data and keep a complete backup.
+12. [Platforms and limits](platform-and-limits.md) — check compatibility and preview limits.
+13. [Credits and licenses](licensing.md).
 
 ## About this guide
 

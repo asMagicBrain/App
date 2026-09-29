@@ -5,6 +5,7 @@ import {getNativeBridge,nativeOperation} from './native-bridge.mjs';
 import type {RepositoryCatalogEntry} from './repository-catalog';
 import type {SearchRequest,WorkspaceLocation} from './workspace-navigation';
 import './workspace-search.css';
+import type {ReadingEvidence} from './ReadingEvidenceContext';
 
 type FileResult={repo:string;path:string;ref:string};
 type Result=WorkspaceLocation & {positions?:Set<number>};
@@ -16,6 +17,10 @@ export function WorkspaceSearch({request,repositories,onClose,onOpen,returnFocus
   const [files,setFiles]=useState<FileResult[]>([]),[rows,setRows]=useState<Result[]>([]),[selected,setSelected]=useState(0),[loading,setLoading]=useState(false),[error,setError]=useState(''),[detail,setDetail]=useState(''),[inventoryNote,setInventoryNote]=useState(''),[epoch,setEpoch]=useState(0);
   const dialog=useRef<HTMLDialogElement>(null),input=useRef<HTMLInputElement>(null),ids=useRef(new Set<string>()),id=useId();
   const bridge=getNativeBridge();
+  const [evidence,setEvidence]=useState<ReadingEvidence|null>(null);
+  const evidenceCache=useRef(new Map<string,ReadingEvidence>()),evidenceQueue=useRef<Promise<unknown>>(Promise.resolve());
+  const selectedRow=rows[selected],selectedEvidenceKey=selectedRow?JSON.stringify([selectedRow.repo,selectedRow.path,selectedRow.ref??'']):'';
+  useEffect(()=>{let live=true;setEvidence(null);if(!selectedEvidenceKey||!bridge?.getReadingEvidence)return;const cached=evidenceCache.current.get(selectedEvidenceKey);if(cached){setEvidence(cached);return;}const [repo,path,ref]=JSON.parse(selectedEvidenceKey) as string[];const timer=setTimeout(()=>{const next=evidenceQueue.current.catch(()=>{}).then(async()=>{if(!live)return;const value=await nativeOperation(()=>bridge.getReadingEvidence({repo,path,ref}));if(!live)return;if(evidenceCache.current.size>=100)evidenceCache.current.delete(evidenceCache.current.keys().next().value!);evidenceCache.current.set(selectedEvidenceKey,value);setEvidence(value);});evidenceQueue.current=next.catch(()=>{});},160);return()=>{live=false;clearTimeout(timer);};},[selectedEvidenceKey,bridge]);
   const catalogNames=JSON.stringify(repositories.map(item=>item.name));
   const stopSearch=useRef<()=>void>(()=>{});
   const cancellations=useRef<Promise<unknown>>(Promise.resolve());
@@ -85,6 +90,7 @@ export function WorkspaceSearch({request,repositories,onClose,onOpen,returnFocus
     <div id={`${id}-results`} role="listbox" aria-label="Search results" className="ws-search-results" aria-busy={loading}>
       {rows.map((row,index)=><div key={`${row.repo}:${row.path}:${row.line??''}:${row.column??''}:${index}`} role="option" id={`${id}-result-${index}`} aria-selected={selected===index} className="ws-search-result" onMouseMove={()=>setSelected(index)} onMouseDown={event=>event.preventDefault()} onClick={()=>open(row)}><div><strong>{row.path}</strong>{row.line&&<span>:{row.line}</span>}<small>{row.repo}</small></div>{row.lineText!==undefined&&<pre>{row.lineText.slice(0,Math.max(0,(row.column??1)-1))}<mark>{row.lineText.slice(Math.max(0,(row.column??1)-1),Math.max(0,(row.endColumn??row.column??1)-1))}</mark>{row.lineText.slice(Math.max(0,(row.endColumn??row.column??1)-1))}</pre>}</div>)}
     </div>
+    {evidence?.status==='declared'&&<aside className="ws-search-evidence" aria-label="Selected result evidence context"><strong>Author-declared context</strong><span>{[evidence.documentId,evidence.evidence?.observationDate,evidence.evidence?.build].filter(Boolean).join(' · ')}</span>{[evidence.evidence?.kind,evidence.evidence?.validation].filter(Boolean).map((value,index)=><p key={index}>{value}</p>)}<small>These declarations are not independently verified.</small></aside>}
     <footer>{detail||mode==='files'&&inventoryNote||'↑ ↓ to select · Enter to open · Esc to close'}{loading&&<button onClick={()=>{stopSearch.current();}}>Stop</button>}{detail.startsWith('Search stopped')&&<button onClick={()=>setEpoch(value=>value+1)}>Retry</button>}</footer>
   </dialog>;
 }
