@@ -14,3 +14,7 @@
 .rc-centered-overview .rc-identity,.rc-centered-overview .rc-social{flex-wrap:wrap}
 @media(max-width:1000px){.rc-centered-overview{--rc-page-gutter:20px}}
 @media(max-width:440px){.rc-centered-overview{--rc-page-gutter:12px}}
+
+/* Keep table words intact; wide tables scroll instead of splitting short labels. */
+.rc-document table{table-layout:auto;overflow-wrap:normal;word-break:normal}
+.rc-document th,.rc-document td{overflow-wrap:normal;word-break:normal}

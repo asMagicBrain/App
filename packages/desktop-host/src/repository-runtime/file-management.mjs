@@ -155,7 +155,7 @@ export function createFileManagement({source,privateRoot,check,hooks={}}){
     const current=inspectExternalSources([external.path])[0];if(JSON.stringify(current)!==JSON.stringify(external))fail('CONFLICT');
     return scan(external.path,{skipMetadata:true,onSkipped,checkCancelled:cancel?hooks.checkCancelled:undefined});
   }
-  function prepareImport({sources,destination='',reservedPaths=[]}){
+  function prepareImport({sources,destination='',reservedPaths=[],strictNames=false}){
     checkRoots();hooks.checkCancelled?.();
     if(destination){managementPath(destination);checkSourceSpelling(source.path,destination);pinDirectory(sourcePath(destination));}
     if(!Array.isArray(sources)||!sources.length||sources.length>256)fail('INVALID_EXTERNAL_FILES');
@@ -170,6 +170,7 @@ export function createFileManagement({source,privateRoot,check,hooks={}}){
       const extension=snapshot.type==='file'?path.extname(filename):'',stem=extension?filename.slice(0,-extension.length):filename;
       let leaf=filename,index=1,relative=destination?`${destination}/${leaf}`:leaf;
       while(used.has(portablePathKey(leaf))||taken(relative)){
+        if(strictNames)fail('PUBLICATION_DESTINATION_EXISTS');
         if(index>10000)fail('LIMIT_EXCEEDED');leaf=`${stem} copy${index===1?'':` ${index}`}${extension}`;index++;relative=destination?`${destination}/${leaf}`:leaf;
       }
       managementPath(relative);for(const entry of snapshot.entries)managementPath(entry.path?`${relative}/${entry.path}`:relative);used.add(portablePathKey(leaf));
@@ -380,6 +381,24 @@ export function createFileManagement({source,privateRoot,check,hooks={}}){
     for(const copy of copies)removeOwned(copy.target,copy.actual,{privateModes:true});
     if(exists(workPath(plan))){const pinned=workPin(plan);if(names(pinned.path).length)fail('RECOVERY_REQUIRED');fs.rmdirSync(pinned.path);syncDirectory(archive.path);}
   }
+  // Validate the entire reviewed set before removing anything. On recovery,
+  // only unchanged retained subsets may remain from an interrupted purge.
+  function checkTrashRemoval(entries,partial=false){
+    checkRoots();
+    for(const entry of entries){
+      validateManagedTrash(entry);
+      const actual=scan(archivePath(entry.trashId));
+      if(!partial){if(!equivalent(actual,entry.snapshot,{privateModes:true}))fail('RECOVERY_REQUIRED');}
+      else if(actual){
+        const expected=new Map(entry.snapshot.entries.map(item=>[item.path,item]));
+        if(actual.entries.some(item=>!expected.has(item.path)||!equivalent({entries:[item]},{entries:[expected.get(item.path)]},{privateModes:true})))fail('RECOVERY_REQUIRED');
+      }
+    }
+  }
+  function emptyTrash(entries){
+    checkTrashRemoval(entries,true);
+    for(const entry of entries)removeOwned(archivePath(entry.trashId),entry.snapshot,{partial:true,privateModes:true});
+  }
   function restorePlan(entry){validateManagedTrash(entry);for(const child of entry.snapshot.entries)managementPath(child.path?`${entry.path}/${child.path}`:entry.path);absent(entry.path);if(!equivalent(scan(archivePath(entry.trashId)),entry.snapshot,{privateModes:true}))fail('RECOVERY_REQUIRED');const plan={id:randomUUID(),operation:'restore',items:[{path:null,newPath:entry.path,trashId:entry.trashId,snapshot:entry.snapshot}]};capacity(plan);return plan;}
-  return {inspectEntry,prepare,prepareImport,stage,execute,settle,cleanup,abortStaging,restorePlan,absent,createDirectory:(parent,name)=>mutate(parent,'mkdir',{name,mode:0o755},undefined,hooks.at)};
+  return {checkTrashRemoval,emptyTrash,inspectEntry,prepare,prepareImport,stage,execute,settle,cleanup,abortStaging,restorePlan,absent,createDirectory:(parent,name)=>mutate(parent,'mkdir',{name,mode:0o755},undefined,hooks.at)};
 }

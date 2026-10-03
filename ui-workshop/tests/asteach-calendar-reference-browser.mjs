@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import {referenceTeachCalendarState} from '../src/teach-reference-calendar.mjs';
+import {createTeachInstructorDocument} from '../src/teach-document.mjs';
 import {chromium} from '../../tools/playwright.mjs';
 import {testRoot} from '../../tools/development-paths.mjs';
 import {staticHandler, createTeachReferenceHandler, teachReferencePrefix} from '../.storybook/static-server.mjs';
@@ -112,8 +113,15 @@ try{
   const home=async()=>{await breadcrumb.getByRole('button',{name:'asTeach — Home',exact:true}).click();await pluginHome.waitFor();await frame();};
   const selectYear=async(trigger,value)=>{await trigger.click();await page.getByRole('menu',{name:'Year',exact:true}).getByRole('menuitemradio',{name:String(value),exact:true}).click();await frame();};
   const filter=async course=>{await selectYear(overview.getByRole('button',{name:'Year',exact:true}),course.year);await overview.getByRole('combobox',{name:'Season',exact:true}).selectOption(course.season);await frame();};
-  const openCourseCalendar=async course=>{await overview.locator('.tcal-course-summary').filter({hasText:course.code}).click();await courseCalendar.waitFor();await frame();assert.equal(await study.getAttribute('data-course-id'),course.id);assert.match(await breadcrumb.innerText(),/Course calendar/);assert.equal(await courseCalendar.getAttribute('aria-label'),`${course.code} · ${course.year} ${course.season} teaching calendar`);};
-  const verifySource=async(expected,title)=>{await selectMenu('pages',title);await button('Source').click();assert.equal(await study.locator('.teach-reference-source').textContent(),expected,'Original course source bytes remain exactly readable.');assert.equal(await study.locator('[contenteditable="true"]:visible').count(),0);await button('Preview').click();await frame();};
+  const openCourseCalendar=async course=>{await overview.locator('.tcal-course-summary').filter({hasText:course.code}).click();await courseCalendar.waitFor();await frame();assert.equal(await study.getAttribute('data-course-id'),course.id);assert(await breadcrumb.locator('[aria-current="page"][title^="Course calendar"]').count()>=1);assert.equal(await courseCalendar.getAttribute('aria-label'),`${course.code} · ${course.year} ${course.season} teaching calendar`);};
+  const verifyInstructorSource=async course=>{
+    await selectMenu('pages','Instructor page');await button('Source').click();
+    assert.equal(await study.locator('.teach-reference-source').textContent(),createTeachInstructorDocument(course).source,'Combined Instructor source remains exactly readable.');
+    assert.equal(await study.locator('[contenteditable="true"]:visible').count(),0);
+    const schedule=course.sections.find(section=>/schedule/i.test(section.id)||/schedule/i.test(section.title));assert(schedule);
+    if(schedule.source.trim()&&course.reference.home.kind==='composed')assert.equal(await study.locator(`[aria-label="${schedule.title} original source"]`).textContent(),schedule.source,'Original composed schedule source remains available byte-for-byte.');
+    await button('Preview').click();await frame();
+  };
   const verifyGrid=async(scope,expected,label)=>{
     const grid=scope.locator('.tcal-grid'),rows=grid.locator('tbody tr');
     await grid.waitFor();
@@ -166,9 +174,7 @@ try{
     if(course.year==='2022')assert.equal(await courseCalendar.locator('.tcal-open b').filter({hasText:'Time not specified'}).count(),24);
     terms.push({year:course.year,season:course.season,...expected});
     await capture(`T7-${course.year}-${course.season.toLowerCase()}.png`);
-    await verifySource(course.reference.home.source,course.reference.home.title);
-    const schedule=course.sections.find(section=>/schedule/i.test(section.id)||/schedule/i.test(section.title));assert(schedule);
-    if(schedule.source.trim())await verifySource(schedule.source,schedule.title);
+    await verifyInstructorSource(course);
     await selectMenu('pages','Course calendar');await verifyGrid(courseCalendar,expected,`${course.year} after source navigation`);
     await home();
   }
@@ -240,9 +246,11 @@ try{
   await capture('T7-course-calendar-annotated.png',[['T7 · Course calendar','.teach-calendar-page'],['T7.1 · Derived dates and continuous weeks','.tcal-recorded-summary'],['T7.2 · Undated source class','.tcal-undated'],['T7.3 · Complete dated calendar','.tcal-course-calendar .tcal-grid']]);
   await courseCalendar.getByRole('button',{name:'View teaching schedule',exact:true}).click();await frame();
   const schedule=current.sections.find(section=>/schedule/i.test(section.id)||/schedule/i.test(section.title));
-  await button('Source').click();assert.equal(await study.locator('.teach-reference-source').textContent(),schedule.source);await button('Preview').click();
+  assert.match(await breadcrumb.innerText(),/Instructor page/);assert.equal(await study.locator('.teach-reading').getByRole('heading',{name:'Teaching Schedule',exact:true}).count(),1);assert(await study.locator('.teach-reading').evaluate(element=>element.scrollTop>0));
+  await button('Source').click();assert.equal(await study.locator('.teach-reference-source').textContent(),createTeachInstructorDocument(current).source);
+  if(current.reference.home.kind==='composed')assert.equal(await study.locator('[aria-label="Teaching Schedule original source"]').textContent(),schedule.source);await button('Preview').click();
   await selectMenu('pages','Course calendar');await home();await filter(current);
-  checks.push('TH4 and T7 annotated evidence identifies the combined calendar, derived date summary and pending class link and course uncertainty. The Course calendar teaching-schedule button opens the exact original schedule.');
+  checks.push('TH4 and T7 annotated evidence identifies the combined calendar, derived date summary and pending class link and course uncertainty. The Course calendar teaching-schedule button opens the Teaching Schedule inside the combined Instructor document, with composed-source bytes still available.');
 
   for(const theme of ['light-default','dark-default']){
     await button('asMagicBrain Theme').click();await page.getByRole('combobox',{name:'Theme',exact:true}).selectOption(theme);await button('Done').click();

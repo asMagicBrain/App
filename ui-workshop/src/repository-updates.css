@@ -22,3 +22,8 @@
 .ru-diff h4{margin:0;padding:8px 12px;font-size:12px;border-top:1px solid var(--fw-line);border-bottom:1px solid var(--fw-line);font-weight:600}
 .ru-diff pre{margin:0;padding:12px;max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;user-select:text}
 @media(max-width:600px){.ru-source>div{grid-template-columns:1fr;gap:2px}.ru-diff{grid-template-columns:minmax(0,1fr)}.ru-diff>div+div{border-left:0}.ru-file summary{gap:8px}}
+
+.ru-connect { display: grid; gap: 12px; }
+.ru-connect label { display: grid; gap: 6px; }
+.ru-connect input { min-width: 0; padding: 8px; border: 1px solid var(--borderColor-default, #d1d9e0); border-radius: 6px; background: var(--bgColor-default, #fff); color: inherit; }
+.ru-connect button { justify-self: start; }

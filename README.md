@@ -5,7 +5,7 @@ A desktop workspace for reading and writing Markdown, organizing local files, an
 ## Get started
 
 1. [Download a preview](https://github.com/asMagicBrain/App/releases).
-2. Follow the [installation guide](docs/getting-started.md), including the optional Pro Editor plugin when needed.
+2. Follow the [installation guide](docs/getting-started.md). The Markdown editor is included.
 3. Open Workspace and create or import a document.
 
 Preview packages are available for Apple silicon Macs and Ubuntu 24.04 x64. Check [platform requirements and limits](docs/platform-and-limits.md) before installing. The Mac preview is not notarized by Apple.
@@ -13,12 +13,14 @@ Preview packages are available for Apple silicon Macs and Ubuntu 24.04 x64. Chec
 ## Work locally
 
 - Read Markdown, equations and Mermaid diagrams offline, with an outline and reading history.
-- Edit source or enable [Pro Editor](docs/plugins.md) for visual math and diagrams, split preview, and reviewed local interactive views.
+- Use the built-in [editor](docs/editor.md) for formatting, completion, visual math and diagrams, split preview, and reviewed local interactive views.
 - Keep unsaved drafts while navigating and after a normal restart.
 - Organize files and repositories, import ZIP archives, and search saved content.
 - Review saved changes and commit only the files you select.
 - [Review package updates and export](docs/packages-and-export.md) a source ZIP or an offline reading copy.
-- Clone from GitHub, compare updates, and apply reviewed updates to a clean repository. Accounts are optional; push and background synchronization are unavailable.
+- Clone from GitHub, review incoming updates, and explicitly review and push committed changes. Accounts are optional; automatic background synchronization is unavailable.
+
+Prepare courses with the optional [asTeach plugin](docs/asteach.md), downloaded separately from the app.
 
 Optional [local automation](docs/local-automation.md) lets tools propose changes for your review.
 

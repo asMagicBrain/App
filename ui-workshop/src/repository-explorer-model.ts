@@ -1,6 +1,6 @@
 export type ExplorerEntry = {path: string; type: 'file' | 'directory'};
 export type ExplorerNode = ExplorerEntry & {id: string; name: string; children?: ExplorerNode[]};
-export type ExplorerCommand = 'new-file' | 'new-folder' | 'import-files' | 'duplicate' | 'cut' | 'copy' | 'paste' | 'move' | 'copy-path' | 'trash' | 'restore-trash';
+export type ExplorerCommand = 'new-file' | 'new-folder' | 'import-files' | 'duplicate' | 'cut' | 'copy' | 'paste' | 'move' | 'copy-path' | 'copy-relative-path' | 'trash' | 'restore-trash';
 export type ExplorerClipboard = {mode: 'cut' | 'copy'; paths: string[]};
 
 export const parentPath = (path: string) => path.split('/').slice(0, -1).join('/');
@@ -88,4 +88,11 @@ export function externalDropDestination(path: string | null, entries: ReadonlyMa
 export function renameProblem(name: string): string | null {
   if (!name || name === '.' || name === '..' || /[/\\\u0000-\u001f]/u.test(name)) return 'Enter a name without slashes or control characters.';
   return null;
+}
+
+/** Plain filesystem path relative to the displayed document's containing folder. */
+export function relativeExplorerPath(target: string, directory: string): string {
+ const from=directory.split('/').filter(Boolean),to=target.split('/').filter(Boolean);
+ while(from.length&&to.length&&from[0]===to[0]){from.shift();to.shift();}
+ return [...from.map(()=>'..'),...to].join('/')||'.';
 }

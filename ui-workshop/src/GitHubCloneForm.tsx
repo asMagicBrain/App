@@ -96,7 +96,7 @@ export function GitHubCloneForm({catalog, loading, catalogError, account, connec
     </div>
     {nameError ? <p id="gc-name-error" className="zi-error">{nameError}</p> : <p id="gc-name-help" className="zi-help">Choose a unique name for the local copy.</p>}
     {account ? <label className="gc-account"><input type="checkbox" checked={useAccount} disabled={busy} onChange={event => setUseAccount(event.target.checked)}/><span>Use GitHub account <strong>{account.username}</strong> for private repositories</span></label> : <p className="zi-help">{connectionConfigured === false ? 'Private repositories require a GitHub connection, which is unavailable in this build.' : 'For private repositories, connect GitHub from the account menu first.'}</p>}
-    <div className="zi-note"><strong>Keep repository history</strong><p>Branches, tags and Git history are copied with the files. Your local edits stay on this device; synchronization is not available yet.</p></div>
+    <div className="zi-note"><strong>Keep repository history</strong><p>Branches, tags and Git history are copied with the files. Cloning does not upload your edits. Save and commit locally, then review Push to publish changes to GitHub.</p></div>
     {loading && <p role="status" className="zi-help">Loading local repositories…</p>}
     {catalogError && <div className="zi-service-error"><p role="alert">{catalogError}</p><button type="button" disabled={loading || busy} onClick={onRetry}>Retry connection</button></div>}
     {error && <p role="alert" className="zi-error">{error}</p>}

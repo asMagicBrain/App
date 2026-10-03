@@ -1,6 +1,6 @@
 import type {FileSession} from './repository-file-session';
 export type PathMove = {from: string; to: string};
-export type ManagementResult = {status: string; operation: 'move'|'copy'|'trash'|'restore'|'import'; items: {path: string; newPath?: string; trashId?: string}[]; pathMoves: PathMove[]; changedPaths: string[]};
+export type ManagementResult = {status: string; operation: 'move'|'copy'|'trash'|'restore'|'empty-trash'|'import'; items: {path: string; newPath?: string; trashId?: string}[]; pathMoves: PathMove[]; changedPaths: string[]};
 export const insidePath = (path: string, parent: string) => path === parent || path.startsWith(parent + '/');
 export const parentPath = (path: string) => path.split('/').slice(0,-1).join('/');
 export const fileName = (path: string) => path.split('/').at(-1)!;

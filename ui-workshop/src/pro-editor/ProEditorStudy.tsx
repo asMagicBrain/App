@@ -1,8 +1,7 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {RepositoryFileEditor} from '../RepositoryFileEditor';
-import {NativePluginProvider, NativePluginManager, PluginsIcon, usePluginHost} from '../NativePluginHost';
+import {NativePluginProvider, NativePluginManager, PluginsIcon} from '../NativePluginHost';
 import type {LocalWorkspaceClient, WorkspaceDocument} from '../local-workspace-client';
-import {proEditorManifest} from './manifest';
 import themes from '../github-themes/themes.json';
 import '../focused-writing.css';
 import './pro-editor.css';
@@ -44,17 +43,16 @@ function studyWorkspace(): LocalWorkspaceClient {
 }
 
 function ProEditorStudyContent() {
-  const host = usePluginHost();
+
   const [workspace] = useState(studyWorkspace), [manager, setManager] = useState(false), [dark, setDark] = useState(false);
   const theme = themes.find(theme => theme.id === (dark ? 'dark-default' : 'light-default'))!;
   const style = useMemo(() => ({...theme.variables,
     ...Object.fromEntries(Object.entries(theme.variables).map(([key, value]) => [key.replace('--ws-', '--fw-'), value])),
     colorScheme: theme.appearance}) as React.CSSProperties, [theme]);
-  useEffect(() => {void host?.registry.enable(proEditorManifest.id);}, [host]);
   return <div className="fw-window pro-study" style={style}>
-    <header className="fw-titlebar"><span className="pro-study-brand">as</span><span>asMagicBrain</span><span aria-hidden="true">/</span><strong>Pro Editor</strong><span className="fw-spacer"/><button className="pro-study-theme" onClick={() => setDark(value => !value)}>{dark ? 'Light theme' : 'Dark theme'}</button></header>
+    <header className="fw-titlebar"><span className="pro-study-brand">as</span><span>asMagicBrain</span><span aria-hidden="true">/</span><strong>Editor</strong><span className="fw-spacer"/><button className="pro-study-theme" onClick={() => setDark(value => !value)}>{dark ? 'Light theme' : 'Dark theme'}</button></header>
     <div className="pro-study-notice">Storybook study · Edits and Save stay in memory. Reload to restore the sample.</div>
-    <div className="fw-body"><nav className="fw-rail" aria-label="Plugins"><button className="fw-icon" aria-label="Manage plugins" title="Manage plugins" onClick={() => setManager(true)}><PluginsIcon/></button><button className="fw-icon" aria-label="Open Pro Editor" title="Pro Editor" onClick={() => setManager(false)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 4h16v16H4zM7 8h10M7 12h6M7 16h10"/></svg></button></nav>
+    <div className="fw-body"><nav className="fw-rail" aria-label="Plugins"><button className="fw-icon" aria-label="Manage plugins" title="Manage plugins" onClick={() => setManager(true)}><PluginsIcon/></button></nav>
       <main className="fw-main">{manager && <NativePluginManager onReturn={() => setManager(false)}/>}<div className="pro-study-document" hidden={manager}>
         <RepositoryFileEditor repository="Pro-Editor-Study" initialPath="README.md" initialSource={proStudySource} revision="" branch="main" branches={['main']} tags={[]} workspace={workspace} onClose={() => setManager(true)} commit={null}/>
       </div></main>

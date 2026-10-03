@@ -15,7 +15,7 @@ try{
   if(workerData.exitAt===point)process.exit(73);
   if(workerData.interruptAt===point)throw Object.assign(new Error('Simulated interrupted external copy'),{code:'TEST_INTERRUPTION'});
  }}});
- const allowed=new Set(['inspectEntry','manage','restore','reconcile']);
+ const allowed=new Set(['inspectEntry','manage','restore','emptyTrash','reconcile']);
  if(workerData.operation!=='importExternal'&&!allowed.has(workerData.operation))throw Object.assign(new Error('Invalid worker operation'),{code:'INVALID_REQUEST'});
  const result=workerData.operation==='importExternal'?workspace.importExternal(workerData.repo,{sources:workerData.sources,destination:workerData.destination}):await workspace.execute(workerData.repo,workerData.operation,workerData.args);
  parentPort.postMessage({ok:true,value:result});

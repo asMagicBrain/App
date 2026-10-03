@@ -51,6 +51,8 @@ export type RepositoryUpdateReview = {
   localHead: string | null; remoteHead: string | null; branch: string;
   totalFiles: number; behind: number | null; expiresAt: number | null; dirtyFileCount: number; draftCount: number;
 };
+export type RepositoryPushReview = {reviewId:string;checkId:string;sourceUrl:string;branch:string;localHead:string;remoteHead:string|null;expiresAt:number;commits:{oid:string;subject:string}[];files:RepositoryUpdatePath[]};
+export type RepositoryPushed = {status:'pushed';head:string;branch:string;sourceUrl:string};
 export type RepositoryUpdateApplyInput = {repo: string; checkId: string; reviewId: string; requestId: string};
 export type RepositoryUpdateApplied = {status: 'applied'; requestId: string; checkId: string; previousHead: string; head: string; branch: string};
 export type RepositoryApplyProgress = {requestId: string; phase: 'preparing' | 'applying' | 'complete' | 'failed'};
@@ -70,6 +72,7 @@ export type NativeBridge = {
   selectPluginPackage():Promise<PluginPackageReview|null>;
   installPluginPackage(input:{ticket:string;requestId:string}):Promise<PluginPackageEntry>;
   cancelPluginPackageReview(input:{ticket:string}):Promise<void>;
+  nativeTeachRequest(input:Record<string,unknown>):Promise<any>;
   listPluginPackages():Promise<PluginPackageEntry[]>;
   setPluginPackageEnabled(input:{pluginId:string;enabled:boolean}):Promise<PluginPackageEntry>;
   rollbackPluginPackage(input:{pluginId:string;requestId:string}):Promise<PluginPackageEntry>;
@@ -92,6 +95,7 @@ export type NativeBridge = {
   recoverPackageUpdate(input:{repo:string;operationId:string;direction:'resume'|'rollback'}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeResult>;
   rollbackPackageUpdate(input:{repo:string;operationId:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeResult>;
   reviewPackageExport(input:{repo:string;collectionId:string;version:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').PackageReview>;
+  saveTeachPublication(input:{planId:string}):Promise<{saved:boolean;filename?:string}>;
   savePackageExport(input:{repo:string;planId:string;kind:'source'|'offline'}):Promise<{saved:boolean;filename?:string;sha256?:string}>;
   cancelPackagePlan(input:{repo:string;planId:string}):Promise<unknown>;
   getReadingEvidence(input:{repo:string;path:string;ref:string}):Promise<import('./ReadingEvidenceContext').ReadingEvidence>;
@@ -127,11 +131,14 @@ export type NativeBridge = {
   refreshApplicationAccount(): Promise<ApplicationAccountState>;
   updateApplicationProfile(input: {displayName: string}): Promise<ApplicationAccountState>;
   signOutApplicationAccount(): Promise<ApplicationAccountState>;
+  connectRepositoryGitHub(input: {repo:string;url:string;branch:string}): Promise<RepositoryUpdates>;
   getRepositoryUpdates(input: {repo: string}): Promise<RepositoryUpdates>;
   checkRepositoryUpdates(input: {repo: string; requestId: string; useAccount: boolean}): Promise<RepositoryUpdateComparison>;
   getRepositoryUpdateProgress(input: {requestId: string}): Promise<RepositoryUpdateProgress | null>;
   cancelRepositoryUpdate(input: {requestId: string}): Promise<void>;
   readRepositoryUpdateFile(input: {repo: string; checkId: string; path: string}): Promise<RepositoryUpdateFile>;
+  reviewRepositoryPush(input:{repo:string;checkId:string}):Promise<RepositoryPushReview>;
+  pushRepository(input:{repo:string;checkId:string;reviewId:string;requestId:string;useAccount:true}):Promise<RepositoryPushed>;
   reviewRepositoryUpdate(input: {repo: string; checkId: string}): Promise<RepositoryUpdateReview>;
   applyRepositoryUpdate(input: RepositoryUpdateApplyInput): Promise<RepositoryUpdateApplied>;
   getRepositoryApplyProgress(input: {requestId: string}): Promise<RepositoryApplyProgress | null>;

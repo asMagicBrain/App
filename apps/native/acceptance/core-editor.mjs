@@ -1,0 +1,44 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createDriver,nativeTarget,testRoot,until} from './native-driver.mjs';
+const output=await fs.mkdtemp(path.join(await fs.mkdir(testRoot,{recursive:true}).then(()=>testRoot),'core-editor-'));
+const data=path.join(output,'data'),root=path.join(data,'workspaces/asMagicBrain/Workspace');
+const driver=await createDriver({...nativeTarget(data),output,workspacePath:root});
+let page,running=false,failure;
+const button=name=>page.getByRole('button',{name,exact:true});
+const editor=()=>page.locator('.cm-content[contenteditable=true]');
+const replace=async text=>{await editor().click();await page.keyboard.press('Meta+a');await page.keyboard.insertText(text);};
+const text=()=>editor().innerText();
+try{
+ page=await driver.launch();running=true;await button('Manage plugins').waitFor();
+ await page.evaluate(async()=>{const r=await window.asMagicBrain.request({repo:'Workspace',operation:'create',args:{path:'Other file.md',text:'# Other\n'}});if(!r.ok)throw Error(r.error.message);});
+ await page.evaluate(async()=>{const r=await window.asMagicBrain.request({repo:'Workspace',operation:'create',args:{path:'interactive.html',text:'<!doctype html><html><body><h1>Local test</h1><input type="range" min="0" max="10"></body></html>'}});if(!r.ok)throw Error(r.error.message);});
+ await page.reload();await button('Manage plugins').click();await page.getByText('No plugins installed',{exact:true}).waitFor();assert.equal(await page.getByRole('button',{name:'Pro Editor',exact:true}).count(),0);await button('Return to workspace').click();
+ await button('interactive.html').first().click();await button('Review interactive view').click();assert.equal(await button('Stop').count(),0);await button('Run interactive view').click();await button('Stop').waitFor();await button('Stop').click();await button('Run interactive view').waitFor();await button('Close interactive view').click();
+ // Open README through the existing repository table.
+ await page.getByRole('treeitem',{name:/^README\.md /}).click();await button('Edit this file').click();
+ await page.getByRole('group',{name:'Markdown formatting',exact:true}).waitFor();assert.equal(await button('Bold selection').count(),0);assert.equal(await button('Insert equation').count(),0);
+ await replace('# Notes\n\n$$\nx^2\n$$');await page.keyboard.press('Meta+Home');await button('Visual').click();await page.locator('.pro-visual-widget').waitFor();await button('Source').click();
+ await replace('hello');assert.equal(await button('Document statistics').count(),0);assert.equal(await page.locator('.np-document-tools').count(),0);assert.equal(await page.locator('.pro-document-statistics').innerText(),'1 word · 5 characters · 1 line');assert.equal(await page.locator('.pro-presentation .pro-document-statistics').count(),1);await page.keyboard.press('Meta+a');await page.keyboard.press('Meta+b');assert.equal(await text(),'**hello**');await page.keyboard.press('Meta+b');assert.equal(await text(),'hello');
+ await page.keyboard.press('Meta+i');assert.equal(await text(),'*hello*');await page.keyboard.press('Meta+z');assert.equal(await text(),'hello');
+ await page.keyboard.press('Meta+2');assert.equal(await text(),'## hello');
+ await replace('/tab');await page.getByRole('option',{name:/table/}).waitFor();await page.keyboard.press('Tab');assert.match(await text(),/Column 1/);await page.keyboard.insertText('Name');await page.keyboard.press('Tab');await page.keyboard.insertText('Value');assert.match(await text(),/Name \| Value/);
+ await replace('```py');await page.getByRole('option',{name:/python/}).waitFor();await page.keyboard.press('Tab');assert.equal(await text(),'```python');
+ await replace('[Other](');await page.getByRole('option',{name:/Other%20file.md/}).waitFor();await page.getByRole('option',{name:/Other%20file.md/}).click();await page.keyboard.insertText(')');assert.equal(await text(),'[Other](Other%20file.md)');
+ await button('Save').click();await until(async()=> (await fs.readFile(path.join(root,'README.md'),'utf8')).includes('[Other](Other%20file.md)'));
+ await page.getByRole('tab',{name:'Split',exact:true}).click();await page.getByLabel('Insert Markdown',{exact:true}).selectOption('table');await until(async()=> (await text()).includes('Column 1'));
+ await page.evaluate(()=>{for(const [selector,label] of [['.pro-authoring','PA1 · Formatting and snippets'],['.rfe-editor-frame','PA2 · One CM6 document / live preview']]){const el=document.querySelector(selector),r=el.getBoundingClientRect(),mark=document.createElement('div');mark.className='qa-mark';Object.assign(mark.style,{position:'fixed',pointerEvents:'none',zIndex:99999,left:r.left+'px',top:r.top+'px',width:r.width+'px',height:Math.min(r.height,innerHeight-r.top)+'px',outline:'2px solid #8250df'});const badge=document.createElement('span');badge.textContent=label;Object.assign(badge.style,{background:'#8250df',color:'white',fontSize:'12px'});mark.append(badge);document.body.append(mark);}});await driver.screenshot('authoring-annotated');await page.evaluate(()=>document.querySelectorAll('.qa-mark').forEach(e=>e.remove()));
+ await driver.closeNormally();running=false;page=await driver.launch();running=true;
+ await page.getByRole('button',{name:'README.md',exact:true}).first().click();await button('Edit this file').waitFor();await button('Edit this file').click();await until(async()=> (await text()).includes('Column 1'));
+ // Seed the historical package through the host API to model an existing installation.
+ await driver.app.evaluate(({dialog},filename)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[filename]});},path.resolve('packages/pro-editor-plugin/asMagicBrain-Pro-Editor-0.1.0.asmbplugin'));
+ await page.evaluate(async()=>{const review=await window.asMagicBrain.selectPluginPackage();if(!review.ok)throw Error(review.error.message);const r=await window.asMagicBrain.installPluginPackage({ticket:review.value.ticket,requestId:crypto.randomUUID()});if(!r.ok)throw Error(r.error.message);});
+ await driver.closeNormally();running=false;page=await driver.launch();running=true;
+ await button('Manage plugins').click();await page.getByText('Included in app',{exact:true}).waitFor();assert.equal(await page.getByRole('switch',{name:'Enable Pro Editor',exact:true}).count(),0);
+ await button('View details').click();await button('Uninstall…').click();await button('Uninstall').click();await page.getByText('No plugins installed',{exact:true}).waitFor();await button('Return to workspace').click();await button('README.md').first().click();await button('Edit this file').click();await page.getByRole('group',{name:'Markdown formatting',exact:true}).waitFor();assert.match(await text(),/Column 1/);
+
+ assert.deepEqual(driver.errors,[]);await driver.closeNormally();running=false;
+}catch(e){failure=e;if(page)await fs.writeFile(path.join(output,'failure-aria.yml'),await page.locator('body').ariaSnapshot().catch(()=>''));}
+finally{if(running)await driver.closeNormally().catch(()=>{});await driver.report({passed:!failure,failure:failure?.stack});}
+if(failure)throw failure;console.log(JSON.stringify({passed:true,output}));

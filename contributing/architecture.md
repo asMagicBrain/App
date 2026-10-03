@@ -59,3 +59,7 @@ These are current admission bounds, not performance promises. Different operatio
 | Reviewed GitHub Apply | At most 1,000 changed paths; only complete, eligible clean fast-forward reviews. |
 
 Media reading has format-specific size/admission rules. Large file copies stream data and remain bounded by disk capacity, entry/depth limits, and private journal capacity; they are independent of the text editor limit. A repository near discovery capacity should not be treated as fully browsable after adding more entries.
+
+### Locally created GitHub connections
+
+An explicit connection binds a canonical GitHub HTTPS destination and the current local branch to the repository’s private stable state key. Clone provenance remains authoritative for cloned repositories. Editable Git config cannot redirect network operations. First publication to an absent branch reviews the complete outgoing history and files, then requires an exact absent-ref lease; unrelated/diverged histories stay blocked. Connecting performs no upload.

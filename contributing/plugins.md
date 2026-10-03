@@ -1,10 +1,13 @@
 # Plugin contracts
 
+
+**Current integration:** standard editor features are built in and no longer depend on Pro package activation. The old exact package is recognized only for compatibility/removal. asTeach still uses its separate exact package binding. The Pro package sections below describe the preserved earlier design.
+
 [Architecture](architecture.md) · [Local package format](plugin-packages.md) · [User guide](../docs/plugins.md)
 
 Host API **1** and manifest schema **1** support application-owned trusted modules. The local installer accepts inert declarative `.asmbplugin` archives; it is not a third-party code loader. Imported artifact scripts require the separate explicit review and execution boundary below. Registry metadata is not an isolation boundary.
 
-Stage 4.5 verifies and stores declarative resources, exposes reviewed offline lifecycle controls in the Plugins UI, and uses one exact package identity to admit the already compiled Pro Editor module. Other installed packages cannot register runtime modules or contributions. See [local plugin packages](plugin-packages.md).
+The host verifies and stores declarative resources, exposes reviewed offline lifecycle controls in Plugins, and admits asTeach only through approved exact package identities. Other installed packages cannot register runtime modules or contributions. See [local plugin packages](plugin-packages.md).
 
 ## Manifest and registration
 

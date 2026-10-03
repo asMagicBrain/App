@@ -53,14 +53,14 @@ const escapedAt = (source, position) => {
 function inlineMath(state, silent) {
   if (!state.env.technical) return false;
   const start = state.pos, source = state.src;
-  const dollar = source[start] === '$';
-  const opening = dollar ? '$' : source.slice(start, start + 2) === '\\(' ? '\\(' : '';
-  if (!opening || (dollar && (source[start + 1] === '$' || source[start - 1] === '$'))) return false;
+  const dollar = source[start] === '$', double = source.slice(start,start+2)==='$$';
+  const opening = double ? '$$' : dollar ? '$' : source.slice(start, start + 2) === '\\(' ? '\\(' : '';
+  if (!opening || (dollar && source[start - 1] === '$') || (double && source[start + 2] === '$')) return false;
   // Dollar math is deliberately conservative: no initial digit/whitespace,
   // no trailing whitespace, and no adjacent alphanumeric prose. Use \(...\)
   // for numeric-leading formulas; $5, $10 and ordinary prices stay text.
-  if (dollar && (/[\s\d]/u.test(source[start + 1] ?? ' ') || /[\p{L}\p{N}]/u.test(source[start - 1] ?? ''))) return false;
-  const close = dollar ? '$' : '\\)';
+  if (dollar && ((!double && /[\s\d]/u.test(source[start + 1] ?? ' ')) || (double && /\s/u.test(source[start + 2] ?? ' ')) || /[\p{L}\p{N}]/u.test(source[start - 1] ?? ''))) return false;
+  const close = double ? '$$' : dollar ? '$' : '\\)';
   // An unsuccessful scan proves there is no closing delimiter before its code
   // or line boundary for every later opener in that same interval. Cache that
   // boundary to avoid quadratic rescans of hostile unmatched-dollar prose.
@@ -70,7 +70,7 @@ function inlineMath(state, silent) {
   for (let index = contentStart; index < state.posMax; index++) {
     if (source[index] === '\n' || source[index] === '`') { misses[close] = index; return false; }
     if (!source.startsWith(close, index) || escapedAt(source, index)) continue;
-    if (dollar && (/\s/u.test(source[index - 1] ?? ' ') || /[\p{L}\p{N}$]/u.test(source[index + 1] ?? ''))) return false;
+    if (dollar && (/\s/u.test(source[index - 1] ?? ' ') || /[\p{L}\p{N}$]/u.test(source[index + close.length] ?? ''))) return false;
     if (index === contentStart) return false;
     if (!silent) {
       const count = state.env.mathTokenCount ?? 0;

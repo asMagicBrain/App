@@ -123,3 +123,18 @@ test('an acknowledged draft and appearance survive a stopped host process withou
  assert.equal((await request(service,'open',{path:'README.md'})).draft.text,'acknowledged private draft');
  assert.deepEqual(await service.getAppearance(),{themeId:'dark',hideUnavailable:true});assert.match(fs.readFileSync(path.join(f.source,'README.md'),'utf8'),/^# Workspace/);
 });
+
+
+test('explicit GitHub connection persists privately, refuses replacement and rejects remote redirection',async t=>{
+ const f=fixture(t);let service=await createNativeService(f);f.after(()=>service.close());
+ assert.equal((await service.getRepositoryUpdates({repo:'Workspace'})).reason,'local-only');
+ for(const url of ['https://example.com/user/repo','https://github.com/user/repo?token=secret','file:///tmp/repo'])await assert.rejects(service.connectRepositoryGitHub({repo:'Workspace',url,branch:'main'}),{code:'INVALID_GITHUB_URL'});
+ await assert.rejects(service.connectRepositoryGitHub({repo:'Workspace',url:'https://github.com/test/course',branch:'other'}),{code:'BRANCH_CHANGED'});
+ for(const branch of ['main..x','main/.lock','main/../other','main/'])await assert.rejects(service.connectRepositoryGitHub({repo:'Workspace',url:'https://github.com/test/course',branch}),{code:'INVALID_REQUEST'});
+ const result=await service.connectRepositoryGitHub({repo:'Workspace',url:'https://github.com/test/course',branch:'main'});
+ assert.equal(result.sourceUrl,'https://github.com/test/course.git');assert.equal(result.eligible,true);
+ await assert.rejects(service.connectRepositoryGitHub({repo:'Workspace',url:'https://github.com/test/other',branch:'main'}),{code:'GITHUB_ALREADY_CONNECTED'});
+ assert.doesNotMatch(fs.readFileSync(path.join(f.source,'.git/config'),'utf8'),/github.com/);
+ await service.close();service=await createNativeService(f);
+ assert.equal((await service.getRepositoryUpdates({repo:'Workspace'})).sourceUrl,result.sourceUrl);
+});

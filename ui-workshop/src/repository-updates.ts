@@ -1,5 +1,5 @@
 import {getNativeBridge, nativeOperation} from './native-bridge.mjs';
-import type {RepositoryApplyProgress, RepositoryUpdateApplied, RepositoryUpdateApplyInput, RepositoryUpdateComparison, RepositoryUpdateFile, RepositoryUpdateProgress, RepositoryUpdateReview, RepositoryUpdates} from './native-types';
+import type {RepositoryPushReview, RepositoryPushed, RepositoryApplyProgress, RepositoryUpdateApplied, RepositoryUpdateApplyInput, RepositoryUpdateComparison, RepositoryUpdateFile, RepositoryUpdateProgress, RepositoryUpdateReview, RepositoryUpdates} from './native-types';
 
 const relations = new Set(['up-to-date', 'remote-ahead', 'local-ahead', 'diverged', 'unrelated', 'remote-branch-missing', 'local-empty']);
 const statuses = new Set(['added', 'modified', 'deleted', 'type-changed']);
@@ -45,6 +45,17 @@ export async function readRepositoryUpdateFile({repo, checkId, path}: {repo: str
   if (!value || value.checkId !== checkId || value.path !== path || !statuses.has(value.status) || typeof value.binary !== 'boolean' ||
       typeof value.unsupported !== 'boolean' || typeof value.previewOmitted !== 'boolean' || !count(value.beforeSize) || !count(value.afterSize) ||
       ![value.before, value.after, value.beforeMode, value.afterMode].every(item => item === null || typeof item === 'string')) invalid();
+  return value;
+}
+
+export async function reviewRepositoryPush(input:{repo:string;checkId:string}):Promise<RepositoryPushReview> {
+  const value=await nativeOperation(()=>bridge().reviewRepositoryPush(input));
+  if(!value||value.checkId!==input.checkId||typeof value.reviewId!=='string'||!value.reviewId||typeof value.sourceUrl!=='string'||typeof value.branch!=='string'||!value.localHead||!oid(value.localHead)||!oid(value.remoteHead)||!Number.isFinite(value.expiresAt)||!Array.isArray(value.commits)||!value.commits.length||!value.commits.every(c=>c.oid&&oid(c.oid)&&typeof c.subject==='string')||!Array.isArray(value.files)||!value.files.every(f=>typeof f.path==='string'&&statuses.has(f.status)))invalid();
+  return value;
+}
+export async function pushRepository(repo:string,review:RepositoryPushReview,requestId:string):Promise<RepositoryPushed>{
+  const value=await nativeOperation(()=>bridge().pushRepository({repo,checkId:review.checkId,reviewId:review.reviewId,requestId,useAccount:true}));
+  if(!value||value.status!=='pushed'||value.head!==review.localHead||value.branch!==review.branch||value.sourceUrl!==review.sourceUrl)invalid();
   return value;
 }
 
@@ -96,6 +107,10 @@ export function repositoryApplyUnavailable(reason?: string): string {
 export function repositoryUpdateError(reason: unknown): string {
   const code = reason && typeof reason === 'object' && 'code' in reason ? String(reason.code) : '';
   const messages: Record<string, string> = {
+    PUSH_CLEAN_REQUIRED: 'Save and commit your changes, and resolve retained drafts before reviewing a Push.',
+    PUSH_RECHECK_REQUIRED: 'The branch or review changed. Check GitHub again and prepare a new Push review.',
+    PUSH_REVIEW_LIMIT: 'This Push exceeds the review limit of 1,000 commits or changed paths.',
+    PUSH_OUTCOME_UNKNOWN: 'Push could not be confirmed. GitHub may have received it. Check for updates before trying again.',
     APPLY_UNAVAILABLE: 'Applying updates requires the current native application.',
     APPLY_BUSY: 'A repository update is already running. Wait for it to finish.',
     APPLY_NOT_FOUND: 'This update is no longer available. Review it again.',

@@ -1,3 +1,4 @@
+import {relativeExplorerPath} from './repository-explorer-model';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import type {LocalWorkspaceClient, WorkspaceEntry} from './local-workspace-client';
 import type {ExplorerCommand} from './RepositoryExplorer';
@@ -6,10 +7,10 @@ import {getNativeBridge,nativeOperation} from './native-bridge.mjs';
 
 type Item = {path:string; token:string; newPath?:string};
 type TrashItem = {trashId:string; path:string; type?:string; byteLength?:number};
-type Dialog = {kind:'move'|'trash'; paths:string[]; destination:string}|{kind:'restore'; entries:TrashItem[]};
+type Dialog = {kind:'move'|'trash'; paths:string[]; destination:string}|{kind:'restore'; entries:TrashItem[]}|{kind:'empty-trash'; entries:TrashItem[]};
 type ImportOwner = {repository:string;active:boolean;ticket:string|null;cancelRequested:boolean};
 type Options = {
- repository:string; workspace:LocalWorkspaceClient; local:boolean; entries:WorkspaceEntry[]; enabled:boolean; busy:boolean;
+ relativeDirectory?:string; repository:string; workspace:LocalWorkspaceClient; local:boolean; entries:WorkspaceEntry[]; enabled:boolean; busy:boolean;
  execute(action:()=>Promise<void>,recovery?:boolean):Promise<void>;
  onChanged(result:ManagementResult):Promise<void>;
  onNewFile(parent:string):void; onNewFolder(parent:string):void;
@@ -39,6 +40,7 @@ export function useRepositoryManagement(options:Options) {
  const rename=async(path:string,name:string)=>execute(async()=>{if(!name||/[\/\\]/.test(name))throw new Error('Enter a filename without folder separators.');if(fileName(path)===name)return;await mutate('move',(await inspect([path])).map(item=>({...item,newPath:[parentPath(path),name].filter(Boolean).join('/')})));});
  const command=async(command:ExplorerCommand,paths:string[],destination='')=>{
   try{
+   if(command==='copy-relative-path'){await navigator.clipboard.writeText((paths.length?paths:['']).map(path=>relativeExplorerPath(path,options.relativeDirectory??'')).join('\n'));options.onNotice('Relative path copied.');return;}
    if(command==='copy-path'){await navigator.clipboard.writeText(paths.length?paths.join('\n'):'.');options.onNotice('Path copied.');return;}
    if(!options.enabled||recovery)return;
    if(command==='new-file'){options.onNewFile(destination);return;}
@@ -56,9 +58,15 @@ export function useRepositoryManagement(options:Options) {
    });
   }catch(error){report(error);}
  };
- const submit=async()=>{if(!dialog||dialog.kind==='restore')return;try{await execute(async()=>{const items=await inspect(dialog.paths);await mutate(dialog.kind==='trash'?'trash':'move',items.map(item=>dialog.kind==='trash'?item:{...item,newPath:[dialog.destination.trim().replace(/\/$/,''),fileName(item.path)].filter(Boolean).join('/')}));setDialog(null);});}catch{/* Keep dialog and original selection for correction. */}};
+ const submit=async()=>{if(!dialog||dialog.kind==='restore'||dialog.kind==='empty-trash')return;try{await execute(async()=>{const items=await inspect(dialog.paths);await mutate(dialog.kind==='trash'?'trash':'move',items.map(item=>dialog.kind==='trash'?item:{...item,newPath:[dialog.destination.trim().replace(/\/$/,''),fileName(item.path)].filter(Boolean).join('/')}));setDialog(null);});}catch{/* Keep dialog and original selection for correction. */}};
  const restore=async(trashId:string)=>{try{await execute(async()=>{const result=await options.workspace.request<Partial<ManagementResult>&{path:string}>('restore',{trashId});const restored:ManagementResult={status:'completed',operation:'restore',items:[{path:result.path}],pathMoves:[],changedPaths:result.changedPaths??[result.path]};try{await options.onChanged(restored);setDialog({kind:'restore',entries:await options.workspace.request<TrashItem[]>('listTrash')});}catch(error){unfinishedRefresh.current=restored;hold(true);throw new Error(`Restored files were retained, but this view needs recovery: ${(error as Error).message}`);}options.onNotice(`Restored ${result.path}.`);});}catch{/* Recovery/collision remains visible. */}};
- const reconcile=async()=>{try{await execute(async()=>{const result=unfinishedRefresh.current??await options.workspace.request<ManagementResult>('reconcile');if(result.status==='completed'&&result.operation)await options.onChanged(result);else await options.onChanged({status:result.status,operation:'move',items:[],pathMoves:[],changedPaths:[]});if(dialog?.kind==='restore')setDialog({kind:'restore',entries:await options.workspace.request<TrashItem[]>('listTrash')});unfinishedRefresh.current=null;hold(false);options.onNotice('Local file-operation recovery completed.');},true);}catch{/* Preserve the actionable recovery state. */}};
+ const emptyTrash=async()=>{if(dialog?.kind!=='empty-trash')return;try{await execute(async()=>{
+  const result=await options.workspace.request<ManagementResult>('emptyTrash',{trashIds:dialog.entries.map(item=>item.trashId)});
+  try{await options.onChanged(result);setDialog({kind:'restore',entries:await options.workspace.request<TrashItem[]>('listTrash')});}
+  catch(error){unfinishedRefresh.current=result;hold(true);throw new Error(`Trash was emptied, but this view needs recovery: ${(error as Error).message}`);}
+  options.onNotice('Local Trash emptied.');
+ });}catch{/* Keep the reviewed list and recovery controls visible. */}};
+ const reconcile=async()=>{try{await execute(async()=>{const result=unfinishedRefresh.current??await options.workspace.request<ManagementResult>('reconcile');if(result.status==='completed'&&result.operation)await options.onChanged(result);else await options.onChanged({status:result.status,operation:'move',items:[],pathMoves:[],changedPaths:[]});if(dialog?.kind==='restore'||dialog?.kind==='empty-trash')setDialog({kind:'restore',entries:await options.workspace.request<TrashItem[]>('listTrash')});unfinishedRefresh.current=null;hold(false);options.onNotice('Local file-operation recovery completed.');},true);}catch{/* Preserve the actionable recovery state. */}};
  const cancelImport=async()=>{const owner=importOwner.current;if(!owner.active)return;owner.cancelRequested=true;setCancelling(true);const bridge=getNativeBridge(),ticket=owner.ticket;if(ticket&&bridge)try{await nativeOperation(()=>bridge.cancelExternalFiles({ticket}));}catch(error){if(owner.active)report(error);}};
  const importFiles=async(files:File[]|null,destination:string)=>{const owner=importOwner.current;return execute(async()=>{
   if(!owner.active||owner.repository!==options.repository)return;
@@ -77,21 +85,25 @@ export function useRepositoryManagement(options:Options) {
   }catch(error){if(!owner.active)return;if((error as {code?:string}).code==='IMPORT_CANCELLED')options.onNotice('Import cancelled.');else throw Object.assign(new Error(externalImportProblem(error)),{code:(error as {code?:string}).code});}
   finally{const ticket=owner.ticket;owner.ticket=null;if(ticket)await nativeOperation(()=>bridge.cancelExternalFiles({ticket})).catch(()=>{});if(owner.active){setImporting(false);setCancelling(false);}}
  });};
- return {clipboard,dialog,setDialog,dialogError,recovery,command,rename,move,submit,restore,reconcile,importFiles,importing,cancelling,cancelImport};
+ return {clipboard,dialog,setDialog,dialogError,recovery,command,rename,move,submit,restore,emptyTrash,reconcile,importFiles,importing,cancelling,cancelImport};
 }
 export function RepositoryManagementDialog({manager,busy}:{manager:ReturnType<typeof useRepositoryManagement>;busy:boolean}) {
  const ref=useRef<HTMLDialogElement>(null),id=useId(),dialog=manager.dialog;
  useLayoutEffect(()=>{if(dialog)ref.current?.showModal();else ref.current?.close();},[Boolean(dialog)]);
+ useEffect(()=>{if(dialog?.kind==='empty-trash')ref.current?.querySelector<HTMLButtonElement>('footer button')?.focus();},[dialog?.kind]);
  const close=()=>{if(!busy)manager.setDialog(null);};
  return <>{manager.importing&&<div className="rfe-import-progress" role="status"><span>{manager.cancelling?'Cancelling import…':'Importing files…'}</span><button type="button" disabled={manager.cancelling} onClick={()=>void manager.cancelImport()}>Cancel</button></div>}<dialog ref={ref} className="rfe-commit-dialog rfe-management-dialog" aria-labelledby={`${id}-title`}
   onCancel={event=>{event.preventDefault();close();}} onKeyDown={event=>event.stopPropagation()}>
-  {dialog&&<form onSubmit={event=>{event.preventDefault();void manager.submit();}}>
-   <h2 id={`${id}-title`}>{dialog.kind==='restore'?'Local Trash':dialog.kind==='trash'?'Move to Trash?':'Move to folder'}</h2>
+  {dialog&&<form onSubmit={event=>{event.preventDefault();void (dialog?.kind==='empty-trash'?manager.emptyTrash():manager.submit());}}>
+   <h2 id={`${id}-title`}>{dialog.kind==='restore'?'Local Trash':dialog.kind==='empty-trash'?'Empty Local Trash?':dialog.kind==='trash'?'Move to Trash?':'Move to folder'}</h2>
    {dialog.kind==='restore' ? <>
     <p>Restore files and folders to their original paths.</p>
     {dialog.entries.length ? <ul className="rfe-trash-list">{dialog.entries.map(item=><li key={item.trashId}>
      <span>{item.path}</span><button type="button" disabled={busy} onClick={()=>void manager.restore(item.trashId)}>Restore</button>
     </li>)}</ul> : <p>Trash is empty.</p>}
+   </> : dialog.kind==='empty-trash' ? <>
+    <p>Permanently delete {dialog.entries.length} item{dialog.entries.length===1?'':'s'} and any retained drafts from this repository’s Local Trash? This cannot be undone.</p>
+    <ul className="rfe-management-paths">{dialog.entries.map(item=><li key={item.trashId}>{item.path}</li>)}</ul>
    </> : <>
     <ul className="rfe-management-paths">{dialog.paths.map(path=><li key={path}>{path}</li>)}</ul>
     {dialog.kind==='trash' ? <p>The saved files and their retained drafts can be restored from Local Trash. This does not create a Git commit.</p> : <>
@@ -100,8 +112,9 @@ export function RepositoryManagementDialog({manager,busy}:{manager:ReturnType<ty
     </>}
    </>}
    {manager.dialogError&&<p role="alert" className="rfe-error">{manager.dialogError}</p>}
-   <footer><button type="button" autoFocus={dialog.kind!=='move'} disabled={busy} onClick={close}>{dialog.kind==='restore'?'Close':'Cancel'}</button>
-    {dialog.kind!=='restore'&&<button type="submit" disabled={busy}>{dialog.kind==='trash'?'Move to Trash':'Move'}</button>}
+   <footer><button type="button" autoFocus={dialog.kind!=='move'} disabled={busy} onClick={()=>dialog.kind==='empty-trash'?manager.setDialog({kind:'restore',entries:dialog.entries}):close()}>{dialog.kind==='restore'?'Close':'Cancel'}</button>
+    {dialog.kind==='restore'&&<button type="button" className="rfe-danger" disabled={busy||manager.recovery||!dialog.entries.length} onClick={()=>manager.setDialog({kind:'empty-trash',entries:dialog.entries})}>Empty Trash…</button>}
+    {dialog.kind!=='restore'&&<button type="submit" className={dialog.kind==='empty-trash'?'rfe-danger':undefined} disabled={busy||manager.recovery}>{dialog.kind==='empty-trash'?'Empty Trash':dialog.kind==='trash'?'Move to Trash':'Move'}</button>}
    </footer>
   </form>}
  </dialog></>;

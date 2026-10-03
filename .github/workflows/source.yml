@@ -68,13 +68,16 @@ jobs:
         run: npm run typecheck
       - name: Build source targets
         run: npm run build
+      - name: Resolve failure evidence directory
+        if: failure()
+        run: echo "ASMB_FAILURE_RUNS=$(node -p 'require("node:path").resolve(process.env.ASMB_TEST_ROOT, "runs")')" >> "$GITHUB_ENV"
       - name: Preserve in-repository failure logs
         if: ${{ failure() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: source-test-failure-${{ matrix.os }}
           path: |
-            ${{ env.ASMB_TEST_ROOT }}/runs/source-unit-*/tests.log
-            ${{ env.ASMB_TEST_ROOT }}/runs/source-unit-*/result.json
+            ${{ env.ASMB_FAILURE_RUNS }}/source-unit-*/tests.log
+            ${{ env.ASMB_FAILURE_RUNS }}/source-unit-*/result.json
           if-no-files-found: ignore
           retention-days: 7

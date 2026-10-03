@@ -10,6 +10,7 @@ type Action = () => boolean | void;
 type Choice = {id:string;label:string;description?:string;accessibleName?:string;disabled?:boolean;current?:boolean;handoffFocus?:boolean;onSelect?:(returnFocus?:HTMLButtonElement|null)=>boolean|void};
 type ChoiceGroup = {id:string;title:string;choices:readonly Choice[]};
 type Props = {
+ studentView?:boolean; onPrepareStudent?:()=>void; studentAvailable?:boolean; onTemplate?:()=>void;
   courses:readonly TeachStudyCourse[];
   homeActive?:boolean;
   calendarState:TeachCalendarState;
@@ -61,13 +62,13 @@ function ChoiceMenu({label,title,groups,disabled=false,compact=false}: {
   </DropdownMenu.Root>;
 }
 
-export function TeachBreadcrumb({courses,homeActive=false,activeCourse,calendarState,summaries,onHome,onCourses,onCourse,onAddTerm,onTerm,onPage}:Props) {
+export function TeachBreadcrumb({studentView=false,onPrepareStudent,studentAvailable=true,onTemplate,courses,homeActive=false,activeCourse,calendarState,summaries,onHome,onCourses,onCourse,onAddTerm,onTerm,onPage}:Props) {
   const selectedCode=activeCourse?.code;
   const summary=activeCourse?summaries[activeCourse.id]:undefined;
   const homeTitle='Instructor page';
   const sectionId=summary?.sectionId??'home',sectionTitle=summary?.sectionTitle??homeTitle;
   const readySections=new Set(summary?.readySectionIds??(activeCourse?.reference?.pages.filter(page=>teachDisplaySource(page.source).trim()).map(page=>page.id)??[]));
-  const pageAvailable=sectionId==='home'||sectionId==='student'||sectionId==='calendar'||readySections.has(sectionId);
+  const pageAvailable=sectionId==='home'||sectionId==='student'||sectionId==='calendar'||sectionId==='template'||readySections.has(sectionId);
   const courseGroups=groupTeachCourses(courses);
   const uniqueCourses=courseGroups.map(group=>selectCurrentTeachTerm(group.terms,calendarState.terms)!);
   const terms=selectedCode?courseGroups.find(group=>teachCourseKey(group.course.code)===teachCourseKey(selectedCode))?.terms??[]:[];
@@ -84,8 +85,10 @@ export function TeachBreadcrumb({courses,homeActive=false,activeCourse,calendarS
   const termGroup:ChoiceGroup={id:'terms',title:'Year and term',choices:termChoices.length?termChoices:[{id:'empty',label:'Year Term',description:'Select a course first',accessibleName:'Year Term — Select a course first',disabled:true}]};
   const pageGroup:ChoiceGroup={id:'pages',title:'Course pages',choices:activeCourse?[
     {id:'home',label:homeTitle,description:activeCourse.readOnly?'Read-only course reference':'One complete course document',current:sectionId==='home',onSelect:()=>onPage('home')},
-    {id:'student',label:'Student page',description:'Preview and review a student version',current:sectionId==='student',onSelect:()=>onPage('student')},
-    {id:'calendar',label:'Course calendar',description:'Dates and class sessions',current:sectionId==='calendar',onSelect:()=>onPage('calendar')},
+    {id:'student',label:'Student page',disabled:!studentAvailable,description:'Preview and review a student version',current:sectionId==='student',onSelect:()=>onPage('student')},
+    ...(!studentView?[{id:'calendar',label:'Course calendar',description:'Dates and class sessions',current:sectionId==='calendar',onSelect:()=>onPage('calendar')}]:[]),
+    ...(onPrepareStudent?[{id:'prepare-student',label:'Prepare Student pages…',onSelect:onPrepareStudent}]:[]),
+    ...(onTemplate&&!studentView?[{id:'template',label:'Instructor template',description:'Edit the template for new terms',current:sectionId==='template',onSelect:onTemplate}]:[]),
     ...(activeCourse.reference?.pages.map(page=>({id:page.id,label:page.title,description:'Preserved reference',disabled:!readySections.has(page.id),current:page.id===sectionId,onSelect:()=>onPage(page.id)}))??[]),
   ]:[{id:'empty',label:'Course page',description:'Select a term first',accessibleName:'Course page — Select a term first',disabled:true}]};
   const compactLabel=activeCourse?sectionTitle:'Courses';
@@ -95,7 +98,7 @@ export function TeachBreadcrumb({courses,homeActive=false,activeCourse,calendarS
     <li className="pws-breadcrumb-catalog"><span aria-hidden="true">/</span><div className="pws-breadcrumb-split"><button type="button" className="pws-breadcrumb-label" aria-label="Courses — all courses" aria-current={!homeActive&&!activeCourse?'page':undefined} title="All courses" onClick={onCourses}>Courses</button>{!activeCourse&&<ChoiceMenu label="Choose course" title="Courses" groups={[courseGroup]} disabled={!courses.length}/>}</div></li>
     {activeCourse&&<>
       <li className="pws-breadcrumb-code pws-breadcrumb-desktop"><span aria-hidden="true">/</span><div className="pws-breadcrumb-split"><button type="button" className="pws-breadcrumb-label" aria-label={`${selectedCode} — open course`} title={`${selectedCode} · Open current or latest term`} onClick={()=>onCourse(selectedCode!)}>{selectedCode}</button><ChoiceMenu label="Choose course" title="Courses" groups={[courseGroup]}/></div></li>
-      <li className="pws-breadcrumb-term pws-breadcrumb-desktop"><span aria-hidden="true">/</span><div className="pws-breadcrumb-split"><button type="button" className="pws-breadcrumb-label" aria-label={`${activeCourse.year} ${activeCourse.season} — open ${activeCourse.code} ${homeTitle}`} title={`${activeCourse.year} ${activeCourse.season} · ${homeTitle}`} onClick={()=>onPage('home')}>{activeCourse.year} {activeCourse.season}</button><ChoiceMenu label="Choose year and term" title="Year and term" groups={[termGroup]}/></div></li>
+      <li className="pws-breadcrumb-term pws-breadcrumb-desktop"><span aria-hidden="true">/</span><div className="pws-breadcrumb-split"><button type="button" className="pws-breadcrumb-label" aria-label={`${activeCourse.year} ${activeCourse.season} — open ${activeCourse.code} ${homeTitle}`} title={`${activeCourse.year} ${activeCourse.season} · ${homeTitle}`} onClick={()=>onPage(studentView?'student':'home')}>{activeCourse.year} {activeCourse.season}</button><ChoiceMenu label="Choose year and term" title="Year and term" groups={[termGroup]}/></div></li>
       <li className="pws-breadcrumb-current pws-breadcrumb-desktop"><span aria-hidden="true">/</span><div className="pws-breadcrumb-split"><button type="button" className="pws-breadcrumb-label" aria-label={`${sectionTitle} — current page`} aria-current="page" title={`${sectionTitle}${pageAvailable?'':' · No content yet'}`} disabled={!pageAvailable} onClick={()=>onPage(sectionId)}>{sectionTitle}</button><ChoiceMenu label="Choose course page" title="Course pages" groups={[pageGroup]}/></div></li>
       <li className="pws-breadcrumb-compact"><span aria-hidden="true">/</span><ChoiceMenu label="Open course navigation" title="Course navigation" groups={[catalogGroup,courseGroup,termGroup,pageGroup]} compact/></li>
       <li className="pws-breadcrumb-compact-current"><span aria-hidden="true">/</span><strong aria-current="page" title={compactLabel} className={!pageAvailable?'pws-breadcrumb-empty':undefined}>{compactLabel}</strong></li>

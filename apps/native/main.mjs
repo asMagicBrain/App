@@ -69,7 +69,7 @@ const trusted = event => Boolean(window && !window.isDestroyed() && event.sender
 const openExternal = value => {try {const url = new URL(value); if (['https:', 'http:', 'mailto:'].includes(url.protocol)) void shell.openExternal(url.href).catch(error => console.error('External link could not open:', error.message));} catch {}};
 const publicErrors = Object.freeze({PLUGIN_PACKAGE_INVALID:'This plugin package is not valid.',PLUGIN_PACKAGE_UNSAFE:'This plugin package contains unsupported files.',PLUGIN_PACKAGE_INTEGRITY:'This plugin package failed its integrity check.',PLUGIN_PACKAGE_LIMIT:'This plugin package exceeds the supported limits.',PLUGIN_PACKAGE_INCOMPATIBLE:'This plugin requires a different asMagicBrain version.',PLUGIN_PACKAGE_CONFLICT:'This plugin version conflicts with installed bytes.',PLUGIN_PACKAGE_MISSING:'This plugin is no longer installed.',PLUGIN_PACKAGE_NO_ROLLBACK:'No previous plugin version is available.',PLUGIN_PACKAGE_RECOVERY_REQUIRED:'Plugin storage needs recovery before it can be changed.',ENOENT:'This file or folder is no longer available. Refresh the repository and try again.',ENOTDIR:'This file or folder is no longer available. Refresh the repository and try again.',DRAFT_CONFLICT:'This file has an unsaved draft. Save or resolve the draft, then review a new request.',STALE_PLAN:'The saved files or drafts changed. Prepare a new review before applying changes.',CHOICE_REQUIRED:'Choose a resolution for each proposed change.',PERMISSION_DENIED:'Enable the required repository permission in Local automation.',OPERATION_NOT_REVIEWABLE:'This request is no longer waiting for review.',ROLLBACK_CONFLICT:'Files changed after this update. Resolve those changes before rolling back.'});
 const respondError = error => ({ok: false, error: {code: typeof error?.code === 'string' ? error.code : 'NATIVE_OPERATION_FAILED', message: publicErrors[error?.code] ?? (typeof error?.publicMessage === 'string' ? error.publicMessage : typeof error?.message === 'string' ? error.message : 'Native operation failed.')}});
-const methods = new Set(['listPluginPackages','setPluginPackageEnabled','rollbackPluginPackage','uninstallPluginPackage','approveAutomation','cancelAutomation','packageStatus','reviewPackageBase','registerPackageBase','reviewPackageUpdate','applyPackageUpdate','recoverPackageUpdate','rollbackPackageUpdate','reviewPackageExport','cancelPackagePlan','getReadingEvidence','getReadingReference','resolveReadingReference','readingHistory','catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'getRepositoryUpdates', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
+const methods = new Set(['nativeTeachRequest','listPluginPackages','setPluginPackageEnabled','rollbackPluginPackage','uninstallPluginPackage','approveAutomation','cancelAutomation','packageStatus','reviewPackageBase','registerPackageBase','reviewPackageUpdate','applyPackageUpdate','recoverPackageUpdate','rollbackPackageUpdate','reviewPackageExport','cancelPackagePlan','getReadingEvidence','getReadingReference','resolveReadingReference','readingHistory','catalog', 'read', 'readAsset', 'revealItem', 'bootstrap', 'request', 'importArchive', 'createRepository', 'connectRepositoryGitHub','getRepositoryUpdates', 'reviewRepositoryPush', 'reviewRepositoryUpdate', 'readRepositoryUpdateFile', 'renameRepository', 'duplicateRepository', 'trashRepository', 'listTrashedRepositories', 'restoreRepository', 'getAppearance', 'setAppearance', 'getRepositoryPins', 'setRepositoryPinned', 'listRepositoryFiles', 'searchRepositoryText', 'cancelRepositorySearch']);
 
 async function stopAutomation(){
   try{if(service)await service.setAutomationGrants({enabled:false,grants:[]});}
@@ -148,6 +148,7 @@ ipcMain.handle('asmb:native', async (event, input) => {
     if(input.method==='cancelClone')return {ok:true,value:await cloneCoordinator.cancelClone(input.args)};
     if(input.method==='applyRepositoryUpdate')return {ok:true,value:await applyCoordinator.applyRepositoryUpdate(input.args)};
     if(input.method==='getRepositoryApplyProgress')return {ok:true,value:applyCoordinator.getRepositoryApplyProgress(input.args)};
+    if(input.method==='pushRepository')return {ok:true,value:await updateCoordinator.pushRepository(input.args)};
     if(input.method==='checkRepositoryUpdates')return {ok:true,value:await updateCoordinator.checkRepositoryUpdates(input.args)};
     if(input.method==='getRepositoryUpdateProgress')return {ok:true,value:updateCoordinator.getRepositoryUpdateProgress(input.args)};
     if(input.method==='cancelRepositoryUpdate')return {ok:true,value:await updateCoordinator.cancelRepositoryUpdate(input.args)};
@@ -177,11 +178,11 @@ ipcMain.handle('asmb:native', async (event, input) => {
       const review=pluginReview;if(!review||review.ticket!==value.ticket||Date.now()>review.expiresAt){pluginReview=null;throw Object.assign(Error('Review this plugin package again before installing.'),{code:'PLUGIN_PACKAGE_REVIEW_EXPIRED'});}
       pluginReview=null;return {ok:true,value:await service.installPluginPackage({bytes:review.bytes,requestId:value.requestId})};
     }
-    if(input.method==='savePackageExport'){
+    if(input.method==='savePackageExport'||input.method==='saveTeachPublication'){
       if(pickerPending||pendingClose)throw Error('Wait for the current file picker or close operation.');
       pickerPending=true;try{
         // Build revalidates the reviewed saved set before any destination is written.
-        const output=await service.buildPackageExport(input.args);
+        const output=await (input.method==='saveTeachPublication'?service.buildTeachPublication(input.args):service.buildPackageExport(input.args));
         const selected=await dialog.showSaveDialog(window,{title:'Export saved files',defaultPath:output.filename,buttonLabel:'Save export',filters:[{name:'ZIP archive',extensions:['zip']}]});
         if(selected.canceled||!selected.filePath)return {ok:true,value:{saved:false}};
         if(!trusted(event)||pendingClose)throw Error('The document window changed. Review the export again.');
@@ -277,7 +278,7 @@ try {
     githubAuth = createGitHubAuth({clientId:githubApp.clientId,storagePolicy:'session',fetch:(...args)=>globalThis.fetch(...args),
       openExternal:url=>{if(url!=='https://github.com/login/device')throw Error('Invalid GitHub verification URL.');return shell.openExternal(url);}});
     cloneCoordinator = createCloneCoordinator({clone:(request,options)=>service.cloneRepository(request,options),getCredential:()=>githubAuth.getCredential()});
-    updateCoordinator = createUpdateCoordinator({check:(request,options)=>service.checkRepositoryUpdates(request,options),getCredential:()=>githubAuth.getCredential()});
+    updateCoordinator = createUpdateCoordinator({push:(request,options)=>service.pushRepository(request,options),check:(request,options)=>service.checkRepositoryUpdates(request,options),getCredential:()=>githubAuth.getCredential()});
     applyCoordinator = createApplyCoordinator({apply:(request,options)=>service.applyRepositoryUpdate(request,options)});
     githubAccount = createGitHubAccountCoordinator({auth:githubAuth,cloneCoordinator,updateCoordinator});
     session.defaultSession.setPermissionRequestHandler((wc, permission, callback) => callback(permission === 'clipboard-sanitized-write' && wc === window?.webContents && isApplicationPage(wc.getURL())));
@@ -315,7 +316,11 @@ try {
     window.webContents.on('did-start-navigation',details=>{if(details.isMainFrame&&!details.isSameDocument){artifactHost?.stop();pluginReview=null;externalTickets.releaseOwner(owner);}});
     window.webContents.once('destroyed',()=>{artifactHost?.stop();pluginReview=null;externalTickets.releaseOwner(owner);});
     window.on('close', event => {if (!allowQuit) {event.preventDefault(); requestClose();}});
-    window.once('ready-to-show', () => window.show());
+    const restoreNativeButtons = () => {if (process.platform === 'darwin' && !window.isDestroyed()) {window.setWindowButtonVisibility(true);window.setWindowButtonPosition({x:14,y:14});}};
+    window.on('show', restoreNativeButtons);
+    window.on('leave-full-screen', restoreNativeButtons);
+    window.on('restore', restoreNativeButtons);
+    window.once('ready-to-show', () => {window.show();restoreNativeButtons();});
     window.webContents.on('render-process-gone', (_event, details) => {console.error('Native renderer exited:', details.reason); void recoverRenderer(details.reason);});
     await window.loadURL(pageURL);
   }

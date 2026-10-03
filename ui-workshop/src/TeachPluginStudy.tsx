@@ -12,6 +12,7 @@ import {buildDocumentOutline, type DocumentOutlineEntry} from './outline-model';
 import {teachStudyCourse, type TeachStudyCourse} from './teach-plugin-fixture';
 import type {TeachCourseSummary} from './TeachCoursesStudy';
 import {TeachStudentReviewDialog, type TeachStudentEdition} from './TeachStudentReviewDialog';
+import {TeachPublishDialog} from './TeachPublishDialog';
 import {composeTeachStudentSource, createTeachInstructorDocument, splitTeachStudentSections} from './teach-document.mjs';
 import {teachDisplaySource, renderTeachSource} from './teach-content.mjs';
 import {useTeachSplitScroll} from './useTeachSplitScroll';
@@ -25,6 +26,8 @@ export type TeachPluginStudyProps = {
   calendarState:TeachCalendarState;
   onCalendarChange:React.Dispatch<React.SetStateAction<TeachCalendarState>>;
   navigationRequest?: TeachPageNavigationRequest;
+  initialSectionId?: 'home'|'student'|'calendar';
+  initialReviewedStudent?: boolean;
   onNavigationGuardChange?(guard:(()=>boolean)|null):void;
   onBackToCourses?(): void;
   onSessionChange?(summary: TeachCourseSummary): void;
@@ -84,21 +87,26 @@ const emptyReferenceAssets: Readonly<Record<string, string>> = {};
 const normalizedHeading = (title: string) => title.trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 
 /** One saved/draft document and independent reviewed versions per mounted term. */
-export function TeachPluginStudy({course = teachStudyCourse, calendarState, onCalendarChange, active = true, navigationRequest, onNavigationGuardChange, onBackToCourses, onSessionChange, sidebarOpen, onSidebarOpenChange, outlineOpen, onOutlineOpenChange}: TeachPluginStudyProps) {
+export function TeachPluginStudy({course = teachStudyCourse, calendarState, onCalendarChange, active = true, navigationRequest, initialSectionId='home', initialReviewedStudent=false, onNavigationGuardChange, onBackToCourses, onSessionChange, sidebarOpen, onSidebarOpenChange, outlineOpen, onOutlineOpenChange}: TeachPluginStudyProps) {
   const [document] = useState(() => createTeachInstructorDocument(course));
   const [session, setSession] = useState<DocumentSession>(() => ({saved: document.source, draft: document.source, reset: 0}));
-  const [selected, setSelected] = useState('home'), [mode, setMode] = useState<'preview' | 'edit' | 'split'>('preview');
+  const [selected, setSelected] = useState<string>(initialSectionId), [mode, setMode] = useState<'preview' | 'edit' | 'split'>('preview');
   const [referenceMode, setReferenceMode] = useState<'preview' | 'source' | 'split'>('preview');
   const [studentMode, setStudentMode] = useState<'preview' | 'source'>('preview');
-  const [editions, setEditions] = useState<TeachStudentEdition[]>([]);
-  const [studentVersion, setStudentVersion] = useState<number>();
+  const [editions, setEditions] = useState<TeachStudentEdition[]>(()=>{
+    if(!initialReviewedStudent)return [];
+    const sections=splitTeachStudentSections(document.source).filter(section=>!(section.recognized&&section.empty)),ids=sections.map(section=>section.id);
+    return [{number:1,source:composeTeachStudentSource(sections,ids),instructorSource:document.source,includedSectionIds:ids}];
+  });
+  const [studentVersion, setStudentVersion] = useState<number|undefined>(initialReviewedStudent?1:undefined);
   const [reviewSource, setReviewSource] = useState<string | null>(null);
+  const [publishDestination,setPublishDestination]=useState<'export'|'github'|'gitbook'|null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(248), [outlineWidth, setOutlineWidth] = useState(232);
   const [notice, setNotice] = useState(course.readOnly ? 'Read-only reference. Original files remain unchanged.' : 'One Instructor document for this course term.');
   const [activeHeading, setActiveHeading] = useState<string>();
   const [pendingJump, setPendingJump] = useState<{title?: string; fragment?: string} | null>(null);
   const root = useRef<HTMLDivElement>(null), reading = useRef<HTMLDivElement>(null), editor = useRef<EditorView | null>(null);
-  const reviewTrigger = useRef<HTMLButtonElement>(null);
+  const reviewTrigger = useRef<HTMLButtonElement>(null),publishTrigger=useRef<HTMLButtonElement|null>(null);
   const cache = useRef<EditorCache>(new Map());
   const identity = useId();
   const activeRef = useRef(active), sessionChange = useRef(onSessionChange);
@@ -143,7 +151,7 @@ export function TeachPluginStudy({course = teachStudyCourse, calendarState, onCa
     });
     return () => onNavigationGuardChange?.(null);
   }, [onNavigationGuardChange]);
-  useEffect(() => {if (!active) setReviewSource(null);}, [active]);
+  useEffect(() => {if (!active) {setReviewSource(null);setPublishDestination(null);}}, [active]);
   const updateDraft = useCallback((_id: string, text: string) => setSession(previous => ({...previous, draft: text})), []);
   const save = useCallback((_id: string, text: string) => {
     if (course.readOnly || editor.current?.composing) return;
@@ -278,7 +286,7 @@ export function TeachPluginStudy({course = teachStudyCourse, calendarState, onCa
           </div>
           </div>
           </div>
-          {studentSelected && <div className="teach-student-outputs" data-unavailable><span>Student output</span>{['Export', 'GitHub', 'GitBook'].map(label => <button type="button" key={label} disabled title="Not available in this Storybook study">{label}</button>)}</div>}
+          {studentSelected && <div className="teach-student-outputs"><span>Student output</span>{([['export','Export'],['github','GitHub'],['gitbook','GitBook']] as const).map(([id,label]) => <button type="button" key={id} disabled={!edition||Boolean(course.readOnly)} title={!edition?'Create a reviewed Student version first.':course.readOnly?'Reference courses cannot be prepared for publication.':undefined} onClick={event=>{publishTrigger.current=event.currentTarget;setPublishDestination(id);}}>{label}</button>)}{!edition&&<small>Create a reviewed Student version first.</small>}</div>}
         </div>
       </section>
       {outlineOpen && <aside className="teach-outline" style={{'--panel-resize-width': `${outlineWidth}px`} as React.CSSProperties}>
@@ -293,5 +301,6 @@ export function TeachPluginStudy({course = teachStudyCourse, calendarState, onCa
       setEditions(previous => [...previous, next]); setStudentVersion(next.number); setStudentMode('preview'); setReviewSource(null);
       setNotice(`Student version ${next.number} created in this session. The Instructor page is unchanged.`);
     }}/>}
+    {publishDestination&&edition&&active&&<TeachPublishDialog course={course} edition={edition} initialDestination={publishDestination} returnFocusRef={publishTrigger} onClose={()=>setPublishDestination(null)} onPrepared={setNotice}/>}
   </div>;
 }

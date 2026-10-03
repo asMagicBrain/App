@@ -50,7 +50,7 @@ test('documentation is last after creation, pinned repositories, rename and rest
 
 test('host denies documentation mutations even when renderer requests them directly; Duplicate creates an editable independent repository', async t => {
   const f = await fixture(t), original = fs.readFileSync(path.join(f.root(docs), 'README.md'));
-  for (const operation of ['checkpoint', 'save', 'create', 'rename', 'discard', 'createFolder', 'manage', 'restore', 'reconcile', 'checkpointNew', 'discardNew', 'gitInitialize', 'gitCommit', 'setCommitPreferences']) {
+  for (const operation of ['checkpoint', 'save', 'create', 'rename', 'discard', 'createFolder', 'manage', 'restore', 'emptyTrash', 'reconcile', 'checkpointNew', 'discardNew', 'gitInitialize', 'gitCommit', 'setCommitPreferences']) {
     await assert.rejects(request(f.service, docs, operation, {}), {code: 'DOCS_READ_ONLY'}, operation);
   }
   await assert.rejects(f.service.renameRepository({repository: docs, name: 'Renamed'}), {code: 'DOCS_READ_ONLY'});

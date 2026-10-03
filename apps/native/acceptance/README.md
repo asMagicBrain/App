@@ -117,3 +117,9 @@ Test a candidate, then the unchanged exact final package. Check both appearance 
 GitHub acquisition/update drivers can contact public GitHub; account drivers can start provider flows. Run them only within authorized network/account scope. Label synthetic providers and lifecycle interception; they do not establish live account eligibility.
 
 The macOS Playwright launcher needs inspection capabilities disabled in external releases. Use a compatible driver for the actual signed app; never re-enable production debug fuses or weaken entitlements for a harness. Linux renderer CDP leaves shipped Node inspection fuses intact. See [packaging](../PACKAGING.md).
+
+## App and asTeach release check
+
+Run `node apps/native/acceptance/preview-release.mjs --run-isolated` against the exact package. Supply `ASMB_PACKAGED_EXECUTABLE`, `ASMB_EXPECTED_SOURCE_COMMIT`, `ASMB_EXPECTED_BUILD_NUMBER`, `ASMB_TEACH_PACKAGE` (0.1.2), `ASMB_LEGACY_TEACH_PACKAGE` (0.1.1), and an isolated `ASMB_ACCEPTANCE_RUN_ROOT` inside `ASMB_TEST_ROOT/runs`.
+
+The campaign exercises optional installation, verified legacy upgrade and rollback, restart, paired course creation, the built-in editor without Pro Editor, Instructor-to-Student review, multi-page output and uninstall with preserved course files. It uses synthetic content and excludes live account/provider qualification. The Mac picker is redirected to fixture files and the test window is hidden to avoid intercepting an operator’s typing; Ubuntu uses its native GTK chooser. Retain each receipt and screenshot with the package’s exact source identity.

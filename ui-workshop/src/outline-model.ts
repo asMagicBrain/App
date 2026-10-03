@@ -1,3 +1,4 @@
+import {installComments, visibleInlineText} from '../../apps/desktop/ui/markdown-comments.mjs';
 import MarkdownIt, {type Token} from 'markdown-it';
 
 export type DocumentOutlineEntry = {
@@ -14,6 +15,7 @@ export type DocumentOutlineEntry = {
 // Keep these options aligned with markdown-preview.mjs. Heading recognition is
 // the parser's job, including fences, indentation, containers and setext syntax.
 const parser = new MarkdownIt({html: false, linkify: false, typographer: false, breaks: false, maxNesting: 32});
+installComments(parser);
 
 function lineStarts(source: string): number[] {
   const starts = [0];
@@ -27,12 +29,8 @@ function lineStarts(source: string): number[] {
   return starts;
 }
 
-function visibleTitle(tokens: Token[]): string {
-  return tokens.map(token => {
-    if (token.type === 'softbreak' || token.type === 'hardbreak') return ' ';
-    if (token.type === 'text' || token.type === 'code_inline' || token.type === 'image') return token.content;
-    return token.children ? visibleTitle(token.children) : '';
-  }).join('').replace(/\s+/gu, ' ').trim();
+function visibleTitle(tokens: Token[]) {
+  return visibleInlineText(tokens).replace(/\s+/gu, ' ').trim();
 }
 
 /** Read-only outline of actual Markdown. Pass the current CM6/buffer text for

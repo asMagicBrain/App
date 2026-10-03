@@ -80,3 +80,14 @@ test('host cancellation code maps to a cancelled progress state',async()=>{
   await assert.rejects(c.checkRepositoryUpdates(input),{code:'UPDATES_CANCELLED'});
   assert.equal(c.getRepositoryUpdateProgress({requestId:input.requestId}).phase,'cancelled');
 });
+
+test('Push requires authenticated review IDs, remains host-only, and disconnect waits for uncertain remote outcome',async()=>{
+ const entered=deferred();let calls=0;
+ const c=createUpdateCoordinator({getCredential:async()=>({token:'private'}),push:async(input,{credential,signal})=>{
+  calls++;assert.equal(credential.token,'private');assert.equal(input.useAccount,undefined);entered.resolve();
+  await new Promise(resolve=>signal.addEventListener('abort',resolve,{once:true}));throw Object.assign(Error('PUSH_OUTCOME_UNKNOWN'),{code:'PUSH_OUTCOME_UNKNOWN'});
+ }});
+ const input={...request(true),checkId:randomUUID(),reviewId:randomUUID()};
+ await assert.rejects(c.pushRepository({...input,useAccount:false}),{code:'INVALID_REQUEST'});assert.equal(calls,0);
+ const pushing=c.pushRepository(input);await entered.promise;await c.disconnect(async()=>{});await assert.rejects(pushing,{code:'PUSH_OUTCOME_UNKNOWN'});assert.equal(calls,1);assert.equal(c.getRepositoryUpdateProgress({requestId:input.requestId}).phase,'failed');
+});

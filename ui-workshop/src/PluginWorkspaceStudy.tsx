@@ -50,8 +50,9 @@ function PluginManager({enabled,onEnabledChange,onOpen}: {enabled:boolean;onEnab
 
 type PanelChoices={sidebar:boolean;outline:boolean};
 const defaultPanels:PanelChoices={sidebar:true,outline:false};
-function MountedTeachCourse({course,active,panels,navigationRequest,onPanels,onSummary,onGuard,onBack,calendarState,onCalendarChange}: {
+function MountedTeachCourse({course,active,panels,navigationRequest,initialSectionId,initialReviewedStudent,onPanels,onSummary,onGuard,onBack,calendarState,onCalendarChange}: {
   course:TeachStudyCourse;active:boolean;panels:PanelChoices;navigationRequest?:TeachPageNavigationRequest;
+  initialSectionId?:'home'|'student'|'calendar';initialReviewedStudent?:boolean;
   onPanels(id:string,changes:Partial<PanelChoices>):void;
   onSummary(id:string,summary:TeachCourseSummary):void;
   onGuard(id:string,guard:(()=>boolean)|null):void;
@@ -65,20 +66,21 @@ function MountedTeachCourse({course,active,panels,navigationRequest,onPanels,onS
   useLayoutEffect(()=>{
     if(active) surface.current?.querySelector<HTMLElement>('.teach-calendar-page, .teach-editor-pane:not([hidden]) .cm-content, .teach-reading:not([hidden])')?.focus({preventScroll:true});
   },[active]);
-  return <div className="pws-surface" ref={surface} hidden={!active}><TeachPluginStudy course={course} calendarState={calendarState} onCalendarChange={onCalendarChange} active={active} navigationRequest={navigationRequest} onNavigationGuardChange={registerGuard}
+  return <div className="pws-surface" ref={surface} hidden={!active}><TeachPluginStudy course={course} calendarState={calendarState} onCalendarChange={onCalendarChange} active={active} navigationRequest={navigationRequest} initialSectionId={initialSectionId} initialReviewedStudent={initialReviewedStudent} onNavigationGuardChange={registerGuard}
     sidebarOpen={panels.sidebar} onSidebarOpenChange={open=>onPanels(course.id,{sidebar:open})}
     outlineOpen={panels.outline} onOutlineOpenChange={open=>onPanels(course.id,{outline:open})}
     onBackToCourses={onBack} onSessionChange={report}/></div>;
 }
 
 /** Browser-only presentation study. Course and editor sessions never write through a host adapter. */
-export function PluginWorkspaceStudy({initialView='plugins',initialTheme='light-default',initialEmpty=false,initialCourses}: {initialView?:Exclude<PluginView,null>;initialTheme?:string;initialEmpty?:boolean;initialCourses?:readonly TeachStudyCourse[]}) {
+export function PluginWorkspaceStudy({initialView='plugins',initialLanding='home',initialCourseId,initialSectionId='home',initialReviewedStudent=false,initialTheme='light-default',initialEmpty=false,initialCourses}: {initialView?:Exclude<PluginView,null>;initialLanding?:'home'|'courses';initialCourseId?:string;initialSectionId?:'home'|'student'|'calendar';initialReviewedStudent?:boolean;initialTheme?:string;initialEmpty?:boolean;initialCourses?:readonly TeachStudyCourse[]}) {
   const [view,setView]=useState<PluginView>(initialView);
   const [enabled,setEnabled]=useState(true);
   const [courses,setCourses]=useState<readonly TeachStudyCourse[]>(()=>initialCourses??(initialEmpty?[]:teachStudyCourses));
+  const initialSelectedCourse=initialView==='teach'&&courses.some(item=>item.id===initialCourseId)?initialCourseId??null:null;
   const readOnlyCatalog=Boolean(initialCourses?.length&&initialCourses.every(item=>item.readOnly));
-  const [selectedId,setSelectedId]=useState<string|null>(null);
-  const [landing,setLanding]=useState<'home'|'courses'>('home');
+  const [selectedId,setSelectedId]=useState<string|null>(initialSelectedCourse);
+  const [landing,setLanding]=useState<'home'|'courses'>(initialLanding);
   const [teacherProfile,setTeacherProfile]=useState(emptyTeacherProfile);
   const [calendarState,setCalendarState]=useState<TeachCalendarState>(()=>referenceTeachCalendarState(courses) as TeachCalendarState);
   const [recent,setRecent]=useState<readonly TeachRecentDocument[]>([]);
@@ -86,7 +88,7 @@ export function PluginWorkspaceStudy({initialView='plugins',initialTheme='light-
   const newTermReturnFocus=useRef<HTMLButtonElement|null>(null);
   const [navigationRequests,setNavigationRequests]=useState<Record<string,TeachPageNavigationRequest>>({});
   const navigationGuards=useRef(new Map<string,()=>boolean>());
-  const [visited,setVisited]=useState<readonly string[]>([]);
+  const [visited,setVisited]=useState<readonly string[]>(initialSelectedCourse?[initialSelectedCourse]:[]);
   const [panels,setPanels]=useState<Record<string,PanelChoices>>({});
   const [summaries,setSummaries]=useState<Record<string,TeachCourseSummary>>({});
   const course=courses.find(item=>item.id===selectedId);
@@ -151,7 +153,7 @@ export function PluginWorkspaceStudy({initialView='plugins',initialTheme='light-
     <div className="pws-surface" ref={homeSurface} hidden={view!=='teach'||Boolean(course)||landing!=='home'}><TeachHomeStudy calendarState={calendarState} onCalendarChange={setCalendarState} courses={courses} recent={recent} teacherProfile={teacherProfile} readOnly={readOnlyCatalog} onSaveProfile={setTeacherProfile} onOpenDocument={openDocument} onOpenTerm={id=>openDocument({courseId:id,sectionId:'calendar',sectionTitle:'Course calendar'})} onCreate={createCourse} onReturnToRepository={()=>setView(null)}/></div>
     <div className="pws-surface" ref={coursesSurface} hidden={view!=='teach'||Boolean(course)||landing!=='courses'}><TeachCoursesStudy courses={courses} calendarState={calendarState} readOnly={readOnlyCatalog} summaries={summaries} teacherProfile={teacherProfile} onOpen={openCourse} onCourse={openCurrentCourse} onAddTerm={addTerm} onCreate={createCourse} onReturnToRepository={()=>setView(null)}/></div>
     {newTermCode&&<NewCourseDialog returnFocusRef={newTermReturnFocus} courses={courses} courseCode={newTermCode} teacherProfile={teacherProfile} onClose={()=>setNewTermCode(undefined)} onCreate={created=>{setNewTermCode(undefined);createCourse(created);}}/>}
-    {courses.filter(item=>visited.includes(item.id)).map(item=><MountedTeachCourse key={item.id} course={item} calendarState={calendarState} onCalendarChange={setCalendarState} active={activeCourse?.id===item.id} panels={panels[item.id]??defaultPanels} navigationRequest={navigationRequests[item.id]} onPanels={updatePanels} onSummary={reportSummary} onGuard={registerNavigationGuard} onBack={showCourses}/>)}
+    {courses.filter(item=>visited.includes(item.id)).map(item=><MountedTeachCourse key={item.id} course={item} calendarState={calendarState} onCalendarChange={setCalendarState} active={activeCourse?.id===item.id} panels={panels[item.id]??defaultPanels} navigationRequest={navigationRequests[item.id]} initialSectionId={item.id===initialSelectedCourse?initialSectionId:undefined} initialReviewedStudent={item.id===initialSelectedCourse&&initialReviewedStudent} onPanels={updatePanels} onSummary={reportSummary} onGuard={registerNavigationGuard} onBack={showCourses}/>)}
   </>;
   const headerContext=view==='plugins'?<div className="tcs-header-context"><button type="button" title="Plugins" onClick={()=>setView('plugins')}><strong>Plugins</strong></button></div>:<TeachBreadcrumb courses={courses} homeActive={view==='teach'&&!course&&landing==='home'} activeCourse={activeCourse} calendarState={calendarState} summaries={summaries} onHome={showHome} onCourses={showCourses} onCourse={openCurrentCourse} onAddTerm={addTerm} onTerm={openCourse} onPage={openCoursePage}/>;
   return <FocusedWriting repositoryHeader repositoryCode initialRepository="asTeach-App" initialTheme={initialTheme} workspaceStudy={{

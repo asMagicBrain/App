@@ -80,12 +80,17 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     }
     if (value.pending !== null) {
       const pending = value.pending;
+      if(pending.kind==='empty-trash'){
+        if(!exact(pending,['kind','trashIds'])||!Array.isArray(pending.trashIds)||!pending.trashIds.length
+          ||new Set(pending.trashIds).size!==pending.trashIds.length||pending.trashIds.some(id=>!trashed.has(id)))fail('RECOVERY_REQUIRED');
+        return value;
+      }
       if(pending.kind==='management'){
         if(!exact(pending,['kind','phase','plan','after'])||!['staging','prepared','completed','rollback'].includes(pending.phase)||!exact(pending.after,['documents','drafts','trash','recoveredDrafts']))fail('RECOVERY_REQUIRED');
         validateManagementPlan(pending.plan);validateState({...value,...pending.after,pending:null});return value;
       }
       if (!exact(pending, ['requestId','changes','after']) || !validId(pending.requestId) || !Array.isArray(pending.changes)
-        || !pending.changes.length || pending.changes.length > 2 || !exact(pending.after, ['documents','drafts','trash'])) fail('RECOVERY_REQUIRED');
+        || !pending.changes.length || pending.changes.length > 8 || !exact(pending.after, ['documents','drafts','trash'])) fail('RECOVERY_REQUIRED');
       for (const change of pending.changes) {
         if (!exact(change, ['path','beforeHash','afterHash','bytes']) || !(change.beforeHash === null || digest(change.beforeHash))
           || !(change.afterHash === null || digest(change.afterHash))) fail('RECOVERY_REQUIRED');
@@ -267,6 +272,39 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     transact([{ path: relative, bytes }], { documents: state.documents, drafts, trash: state.trash }, { sourceOnly: true, expectedHashes: [baseHash] });
     return { status: 'saved', ...open(relative) };
   }
+  // Host-only compound saves reuse the same journal and transaction engine.
+  // No renderer operation exposes this method. Existing drafts are never consumed.
+  function writeBatch(files) {
+    load(); writable();
+    if (!Array.isArray(files) || !files.length || files.length > 8) fail('INVALID_REQUEST');
+    const keys = new Set();
+    const inputs = files.map(file => {
+      if (!exact(file, ['path','baseHash','text'])) fail('INVALID_REQUEST');
+      safePath(file.path);
+      const key = portablePathKey(file.path);
+      if (keys.has(key)) fail('CONFLICT'); keys.add(key);
+      const bytes = sourceText(file.text);
+      if (file.baseHash !== null && !digest(file.baseHash)) fail('INVALID_BASE');
+      return {path:file.path,bytes};
+    });
+    const commit = () => {
+     for (const file of files) {
+      const key = portablePathKey(file.path);
+      const item = inspect(file.path);
+      if (item.hash !== file.baseHash) fail('CONFLICT');
+      if (item.readOnly) fail('READ_ONLY');
+      if (state.trash.some(entry => managementPathContains(entry.path,file.path))) fail('TRASH_PATH_RESERVED');
+      const d = state.documents.find(entry => entry.path === file.path);
+      if (state.drafts.some(entry => entry.documentId === d?.documentId) || state.recoveredDrafts.some(entry => portablePathKey(entry.path) === key)) fail('DRAFT_CONFLICT');
+     }
+     transact(inputs, {documents:state.documents,drafts:state.drafts,trash:state.trash}, {sourceOnly:true,expectedHashes:files.map(file=>file.baseHash)});
+    };
+    const apply = index => index < files.length
+      ? withDirectories(files[index].path, false, () => apply(index + 1))
+      : commit();
+    apply(0);
+    return files.map(file => open(file.path));
+  }
   function rename({ path: relative, newPath, baseHash }) {
     const result=manage({operation:'move',items:[{path:relative,newPath,token:baseHash}]});
     const item=management.inspectEntry({path:newPath});return {...result,status:'renamed',...(item.type==='file'?open(newPath):item)};
@@ -285,6 +323,26 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     if (inspect(entry.path).bytes !== null) fail('ALREADY_EXISTS');
     transact([{ path: entry.path, bytes: Buffer.from(entry.bytes, 'base64') }], { documents: state.documents, drafts: state.drafts, trash: state.trash.filter(v => v.trashId !== trashId) }, { expectedHashes: [null] });
     return { status: 'restored', ...open(entry.path) };
+  }
+  function finishEmptyTrash(){
+    const ids=new Set(state.pending.trashIds),entries=state.trash.filter(entry=>ids.has(entry.trashId));
+    management.emptyTrash(entries.filter(entry=>entry.format==='tree-v1'));
+    const removed=relative=>entries.some(entry=>managementPathContains(entry.path,relative));
+    const documents=state.documents.filter(document=>!removed(document.path)),kept=new Set(documents.map(document=>document.documentId));
+    persist({...state,documents,drafts:state.drafts.filter(draft=>kept.has(draft.documentId)),
+      recoveredDrafts:state.recoveredDrafts.filter(draft=>!removed(draft.path)),trash:state.trash.filter(entry=>!ids.has(entry.trashId)),pending:null});
+    return {status:'completed',operation:'empty-trash',items:entries.map(({path,trashId})=>({path,trashId})),pathMoves:[],changedPaths:[]};
+  }
+  function emptyTrash({trashIds}){
+    load();writable();
+    if(!Array.isArray(trashIds)||trashIds.some(id=>!validId(id))||new Set(trashIds).size!==trashIds.length)fail('INVALID_REQUEST');
+    // The confirmation applies to exactly the displayed list, not newer items.
+    if(trashIds.length!==state.trash.length||state.trash.some(entry=>!trashIds.includes(entry.trashId)))fail('CONFLICT');
+    if(!trashIds.length)return {status:'completed',operation:'empty-trash',items:[],pathMoves:[],changedPaths:[]};
+    management.checkTrashRemoval(state.trash.filter(entry=>entry.format==='tree-v1'));
+    persist({...state,pending:{kind:'empty-trash',trashIds}});
+    try{hooks.at?.('empty-trash-after-intent');return finishEmptyTrash();}
+    catch(error){throw Object.assign(new Error('RECOVERY_REQUIRED'),{code:'RECOVERY_REQUIRED',cause:error});}
   }
   function listTrash() { load(); return state.trash.map(entry=>entry.format==='tree-v1'?{trashId:entry.trashId,path:entry.path,type:entry.snapshot.type,token:entry.snapshot.token,hash:entry.snapshot.token,byteLength:entry.snapshot.byteLength,fileCount:entry.snapshot.fileCount,entryCount:entry.snapshot.entryCount,documentId:state.documents.find(document=>document.path===entry.path)?.documentId??null}:(({trashId,documentId,path,hash})=>({trashId,documentId,path,hash,type:'file'}))(entry)); }
   function inspectEntry(request){load();return management.inspectEntry(request);}
@@ -334,9 +392,9 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
   }
   // Trusted host-only intake. External paths never enter the renderer-facing
   // operation dispatcher; all source bytes are copied, never moved or deleted.
-  function importExternal({sources,destination='',reservedPaths=[]}){
+  function importExternal({sources,destination='',reservedPaths=[],strictNames=false}){
     load();writable();
-    const prepared=management.prepareImport({sources,destination,reservedPaths:[...state.documents.map(item=>item.path),...state.trash.map(item=>item.path),...state.recoveredDrafts.map(item=>item.path),...reservedPaths]});
+    const prepared=management.prepareImport({sources,destination,strictNames,reservedPaths:[...state.documents.map(item=>item.path),...state.trash.map(item=>item.path),...state.recoveredDrafts.map(item=>item.path),...reservedPaths]});
     if(!prepared.plan)fail('NO_IMPORTABLE_FILES');
     const plan=prepared.plan,after={documents:state.documents,drafts:state.drafts,trash:state.trash,recoveredDrafts:state.recoveredDrafts};
     const found=discover();if(!found.complete||found.entries.length+plan.items.reduce((total,item)=>total+item.snapshot.entryCount,0)>10000)fail('LIMIT_EXCEEDED');
@@ -356,6 +414,7 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     // Mixed/ambiguous source outcomes remain retained for manual recovery; never blindly replay.
     if (adapter.inspectRecovery().blocked) fail('RECOVERY_REQUIRED');
     if (!state.pending) return { status: 'current' };
+    if(state.pending.kind==='empty-trash')return finishEmptyTrash();
     if(state.pending.kind==='management'){
       const pending=state.pending;
       if(pending.phase==='staging'){management.abortStaging(pending.plan);persist({...state,pending:null});return {...managementResult(pending.plan),status:'retained-old'};}
@@ -400,12 +459,12 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
     return { status: 'adopted', count: references.length };
   }
   function status() { load(); return { identity: { localOwnerId, localRootId, checkoutId }, draftCount: state.drafts.length, draftPaths: state.drafts.map(draft=>state.documents.find(document=>document.documentId===draft.documentId).path),
-    recoveredDrafts: structuredClone(state.recoveredDrafts), recoveryRequired: Boolean(state.pending) || adapter.inspectRecovery().blocked, pending: state.pending ? { paths: state.pending.kind==='management'?state.pending.plan.items.flatMap(item=>[item.path,item.newPath].filter(Boolean)):state.pending.changes.map(v => v.path) } : null }; }
+    recoveredDrafts: structuredClone(state.recoveredDrafts), recoveryRequired: Boolean(state.pending) || adapter.inspectRecovery().blocked, pending: state.pending ? { paths: state.pending.kind==='empty-trash'?state.trash.filter(entry=>state.pending.trashIds.includes(entry.trashId)).map(entry=>entry.path):state.pending.kind==='management'?state.pending.plan.items.flatMap(item=>[item.path,item.newPath].filter(Boolean)):state.pending.changes.map(v => v.path) } : null }; }
   load();
   // Persist the binding even before the first document: another folder/owner may not reuse this store.
   if (!snapshot.events.length) persist(state);
-  return Object.freeze({ identity: Object.freeze({ localOwnerId, localRootId, checkoutId }), discover, open, checkpoint, discard, rename, trash, restore, listTrash, reconcile, adoptReferences, inspectEntry, manage, importExternal,
-    save: request => write(request), createFolder, create: ({ path, text = '' }) => {
+  return Object.freeze({ identity: Object.freeze({ localOwnerId, localRootId, checkoutId }), discover, open, checkpoint, discard, rename, trash, restore, listTrash, emptyTrash, reconcile, adoptReferences, inspectEntry, manage, importExternal,
+    writeBatch, save: request => write(request), createFolder, create: ({ path, text = '' }) => {
       load(); writable(); sourceText(text);
       return withDirectories(path, false, () => write({ path, text, baseHash: null }, true));
     }, state: status,
