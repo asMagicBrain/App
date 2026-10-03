@@ -128,7 +128,7 @@ export function inspectPluginPackage(input, {hostApiVersion = PLUGIN_HOST_API_VE
 }
 
 /** Deterministic package builder for first-party tooling and test fixtures. */
-export function createPluginPackage({manifest, resources = []}) {
+export function createPluginPackage({manifest, resources = [], compression='deflate'}) {
   const normalized = validateManifest(manifest);
   if (!Array.isArray(resources) || resources.length !== normalized.resources.length) fail('PLUGIN_PACKAGE_INVALID');
   const supplied = new Map();
@@ -140,6 +140,6 @@ export function createPluginPackage({manifest, resources = []}) {
   const manifestBytes = Buffer.from(JSON.stringify(normalized, null, 2)+'\n');
   const payload = [{path:MANIFEST_PATH, bytes:manifestBytes}, ...normalized.resources.map(resource => supplied.get(portablePathKey(resource.path)))];
   const integrity = {schemaVersion:1, algorithm:'sha256', files:payload.map(item => ({path:item.path, bytes:item.bytes.length, sha256:sha256(item.bytes)}))};
-  const archive = createPackageZip([...payload, {path:INTEGRITY_PATH, bytes:Buffer.from(JSON.stringify(integrity, null, 2)+'\n')}]);
+  const archive = createPackageZip([...payload, {path:INTEGRITY_PATH, bytes:Buffer.from(JSON.stringify(integrity, null, 2)+'\n')}],{compression});
   inspectPluginPackage(archive); return archive;
 }

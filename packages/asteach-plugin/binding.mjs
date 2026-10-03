@@ -1,4 +1,4 @@
-export const teachPackageDigest='1a2d2b708f0386fb3a68dcc7bf0aa35f070e53cafdfba2fa7edcd44efcfd8749';
+export const teachPackageDigest='21cc7809476e9cd2b3959a1148bdd14f3293df34102aae75e41364e1dd872c0b';
 export const legacyTeachPackageDigest='73d24a5d2253d72545a336352842b724b46121a86b006e0e058f307a4ca616db';
 // Preserve the exact previously installed teaching package across application upgrades.
 export const isTrustedTeachPackage=entry=>entry?.id==='asmagicbrain.asteach'

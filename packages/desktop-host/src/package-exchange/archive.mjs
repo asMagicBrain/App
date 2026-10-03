@@ -57,17 +57,18 @@ export function parsePackage(archive) {
 
 /** Deterministic bounded ZIP (DEFLATE), followed by the independent admission
  * parser. It is not an archive executable, and contains no symbolic links. */
-export function createPackageZip(files) {
+export function createPackageZip(files, {compression='deflate'} = {}) {
+  if (!['deflate','store'].includes(compression)) failure('INVALID_PACKAGE');
   if (!Array.isArray(files) || files.length > ZIP_IMPORT_LIMITS.entries) failure('LIMIT_EXCEEDED');
   const locals = [], centrals = []; let offset=0, expanded=0;
   for (const item of [...files].sort((a,b)=>a.path.localeCompare(b.path))) {
     if (!safePath(item.path)) failure('INVALID_PATH');
     const name=Buffer.from(item.path), bytes=Buffer.from(item.bytes);
     if (bytes.length > ZIP_IMPORT_LIMITS.memberBytes || (expanded += bytes.length) > ZIP_IMPORT_LIMITS.expandedBytes) failure('LIMIT_EXCEEDED');
-    const compressed=deflateRawSync(bytes), sum=crc32(bytes), header=Buffer.alloc(30), central=Buffer.alloc(46);
-    header.writeUInt32LE(0x04034b50); header.writeUInt16LE(20,4); header.writeUInt16LE(0x800,6); header.writeUInt16LE(8,8); header.writeUInt16LE(33,12);
+    const method=compression==='store'?0:8, compressed=method===0?bytes:deflateRawSync(bytes), sum=crc32(bytes), header=Buffer.alloc(30), central=Buffer.alloc(46);
+    header.writeUInt32LE(0x04034b50); header.writeUInt16LE(20,4); header.writeUInt16LE(0x800,6); header.writeUInt16LE(method,8); header.writeUInt16LE(33,12);
     header.writeUInt32LE(sum,14); header.writeUInt32LE(compressed.length,18); header.writeUInt32LE(bytes.length,22); header.writeUInt16LE(name.length,26);
-    central.writeUInt32LE(0x02014b50); central.writeUInt16LE(0x314,4); central.writeUInt16LE(20,6); central.writeUInt16LE(0x800,8); central.writeUInt16LE(8,10); central.writeUInt16LE(33,14);
+    central.writeUInt32LE(0x02014b50); central.writeUInt16LE(0x314,4); central.writeUInt16LE(20,6); central.writeUInt16LE(0x800,8); central.writeUInt16LE(method,10); central.writeUInt16LE(33,14);
     central.writeUInt32LE(sum,16); central.writeUInt32LE(compressed.length,20); central.writeUInt32LE(bytes.length,24); central.writeUInt16LE(name.length,28); central.writeUInt32LE(0x81a40000,38); central.writeUInt32LE(offset,42);
     locals.push(header,name,compressed); centrals.push(central,name); offset += header.length+name.length+compressed.length;
   }

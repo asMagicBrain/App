@@ -5,7 +5,7 @@ import {createPluginPackage,inspectPluginPackage} from '../../packages/desktop-h
 
 const root=fileURLToPath(new URL('.',import.meta.url));
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
-const bytes=createPluginPackage({manifest,resources:[{path:'content/about.txt',bytes:fs.readFileSync(path.join(root,'about.txt'))}]});
+const bytes=createPluginPackage({manifest,compression:'store',resources:[{path:'content/about.txt',bytes:fs.readFileSync(path.join(root,'about.txt'))}]});
 const output=path.resolve(process.argv[2] ?? (()=>{throw Error('Provide an output path inside the test workspace');})());
 fs.writeFileSync(output,bytes,{mode:0o644});
 const inspected=inspectPluginPackage(bytes);
