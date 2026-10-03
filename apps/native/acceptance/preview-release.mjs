@@ -28,7 +28,9 @@ async function choose(file){
  await button('Install plugin…').click();
  const win=await until(()=>{try{return execFileSync('/usr/bin/xdotool',['search','--onlyvisible','--name','^Install plugin$'],{encoding:'utf8'}).trim().split('\n').at(-1)||false;}catch(e){if(e.status===1)return false;throw e;}},{timeout:30000,label:'GTK plugin picker'});
  execFileSync('/usr/bin/xdotool',['windowactivate','--sync',win]);execFileSync('/usr/bin/xdotool',['key','--clearmodifiers','ctrl+l']);execFileSync('/usr/bin/xdotool',['type','--clearmodifiers','--delay','1','--',file]);execFileSync('/usr/bin/xdotool',['key','--clearmodifiers','Return']);
- await new Promise(r=>setTimeout(r,250));execFileSync('/usr/bin/xdotool',['key','--clearmodifiers','Return']);
+ // A second unconditional Return can dismiss the app's subsequent review
+ // dialog once GTK has closed. Wait for this exact chooser to disappear.
+ await until(()=>{try{return !execFileSync('/usr/bin/xdotool',['search','--onlyvisible','--name','^Install plugin$'],{encoding:'utf8'}).trim().split('\n').includes(win);}catch(e){if(e.status===1)return true;throw e;}},{timeout:30000,label:'GTK chooser closes after file selection'});
 }
 async function install(file){await choose(file);await page.getByRole('dialog',{name:'Install asTeach?',exact:true}).waitFor();await button('Install plugin').click();await page.getByRole('switch',{name:'Enable asTeach',exact:true}).waitFor();}
 async function launch(){page=await driver.launch();running=true;if(driver.app)await driver.app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().forEach(w=>w.hide()));await button('Manage plugins').waitFor();}
