@@ -43,9 +43,9 @@ try {
   packageMetadata = app.isPackaged ? JSON.parse(fs.readFileSync(path.join(app.getAppPath(), 'native-package.json'), 'utf8')) : null;
   const startup = resolveNativeStartup({args: process.argv, packaged: app.isPackaged, metadata: packageMetadata,
     sourceTestRoot: app.isPackaged ? undefined : process.env.ASMB_TEST_ROOT,
-    home: app.getPath('home'), appData: app.getPath('appData')});
+    home: app.getPath('home'), appData: app.getPath('appData'), executable: app.getPath('exe')});
   buildConfig = startup.configuration; testRoot = startup.testRoot; profilePaths = startup.paths;
-  app.setName(buildConfig.channel === 'preview' ? 'asMagicBrain Preview' : app.isPackaged ? 'asMagicBrain' : 'asMagicBrain Native Preview');
+  app.setName(buildConfig.channel === 'preview' ? 'asMagicBrain Preview' : 'asMagicBrain Development');
   assertGitRuntime({packaged: app.isPackaged});
   admitNativeProfile({args: process.argv, testRoot, channel: buildConfig.channel, paths: profilePaths});
   ({dataRoot, profileRoot, temporaryRoot} = profilePaths);
@@ -269,7 +269,7 @@ try {
         buttons: ['Quit', 'Back Up and Restore Access'], defaultId: 0, cancelId: 0, noLink: true});
       return choice.response === 1;
     }});
-    service = await createNativeService({dataRoot,bundledDocs,storageIdentity:storageAdmission.context,profileLock:storageAdmission.profileLock,revealInFileManager:filename=>shell.showItemInFolder(filename)});
+    service = await createNativeService({dataRoot,bundledDocs,getGitHubCredential:()=>githubAuth.getCredential(),githubFetch:(...args)=>globalThis.fetch(...args),storageIdentity:storageAdmission.context,profileLock:storageAdmission.profileLock,revealInFileManager:filename=>shell.showItemInFolder(filename)});
     externalTickets=createExternalFileTickets({prepare:paths=>service.prepareExternalFiles(paths),importFiles:(request,options)=>service.importExternalFiles(request,options)});
     // Account credentials live only in this main process. Existing encrypted
     // account files are deliberately neither opened nor changed by this policy.
@@ -280,7 +280,7 @@ try {
     cloneCoordinator = createCloneCoordinator({clone:(request,options)=>service.cloneRepository(request,options),getCredential:()=>githubAuth.getCredential()});
     updateCoordinator = createUpdateCoordinator({push:(request,options)=>service.pushRepository(request,options),check:(request,options)=>service.checkRepositoryUpdates(request,options),getCredential:()=>githubAuth.getCredential()});
     applyCoordinator = createApplyCoordinator({apply:(request,options)=>service.applyRepositoryUpdate(request,options)});
-    githubAccount = createGitHubAccountCoordinator({auth:githubAuth,cloneCoordinator,updateCoordinator});
+    githubAccount = createGitHubAccountCoordinator({auth:githubAuth,cloneCoordinator,updateCoordinator,beforeChange:()=>service.pauseTeachGitHub(),afterChange:()=>service.resumeTeachGitHub()});
     session.defaultSession.setPermissionRequestHandler((wc, permission, callback) => callback(permission === 'clipboard-sanitized-write' && wc === window?.webContents && isApplicationPage(wc.getURL())));
     session.defaultSession.setPermissionCheckHandler((wc, permission) => permission === 'clipboard-sanitized-write' && wc === window?.webContents && isApplicationPage(wc.getURL()));
     const dist = path.join(here, 'dist');
@@ -302,7 +302,7 @@ try {
       ...(process.platform === 'darwin' ? [{label: 'View', submenu: [{role: 'togglefullscreen', accelerator: 'Control+Command+F'}]}] : []),
       {label: 'Window', submenu: [{role: 'minimize'}, {role: 'zoom'}, {label: 'Close', accelerator: 'CmdOrCtrl+W', click: requestClose}]},
     ]));
-    window = new BrowserWindow({width: 1440, height: 1000, minWidth: 360, minHeight: 480, title: 'asMagicBrain',
+    window = new BrowserWindow({width: 1440, height: 1000, minWidth: 360, minHeight: 480, title: app.getName(),
       // Native macOS controls sit in the shared 40px titlebar content area. The
       // green button uses AppKit fullscreen; red still reaches the close guard.
       ...(process.platform === 'darwin' ? {frame: true, titleBarStyle: 'hidden', trafficLightPosition: {x: 14, y: 14}, fullscreenable: true} : {frame: false}),

@@ -77,13 +77,12 @@ export function nativeProfilePaths({args = [], testRoot, packaged, home, appData
   if (override) {
     dataRoot = override.root;
     profileRoot = dataRoot + '-electron-profile';
-  } else if (packaged) {
-    if (typeof testRoot !== 'string' || !path.isAbsolute(testRoot)) throw profileError('ASMB_PROFILE_ARGUMENT', 'The development package requires its recorded Test directory.');
-    dataRoot = path.join(testRoot, 'packaged-preview', 'data');
-    profileRoot = dataRoot + '-electron-profile';
   } else {
-    profileRoot = path.join(appData, 'asMagicBrain Native Preview');
-    dataRoot = path.join(profileRoot, 'managed-data');
+    if (typeof testRoot !== 'string' || !path.isAbsolute(testRoot)) throw profileError('ASMB_PROFILE_ARGUMENT', 'Development requires its designated Test directory.');
+    // Source and packaged development share one dedicated profile. Legacy
+    // native-preview/packaged-preview data is preserved, never auto-adopted.
+    dataRoot = path.join(testRoot, 'development-profile', 'data');
+    profileRoot = dataRoot + '-electron-profile';
   }
   return {dataRoot, profileRoot, temporaryRoot: path.join(profileRoot, 'tmp')};
 }

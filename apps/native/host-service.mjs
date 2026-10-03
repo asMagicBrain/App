@@ -1,3 +1,12 @@
+import {createTeachSubmissions} from './teach-submissions.mjs';
+import {openRawFile} from '../../packages/desktop-host/src/local-git/raw-file.mjs';
+import {createTeachProjects} from './teach-projects.mjs';
+import {createTeachStaffAccess} from './teach-staff-access.mjs';
+import {createTeachGitHubProvider} from './teach-github-provider.mjs';
+import {createTeachGitHubSetup} from './teach-github-setup.mjs';
+import {createPromotionReceipts} from './teach-promotion-receipts.mjs';
+import {createTeachRepositoryGraph} from './teach-repository-graph.mjs';
+import {buildRolePromotion,PROMOTION_LIMITS} from './teach-promotion.mjs';
 import {createRepositoryConnections,validConnectionBranch} from './repository-connections.mjs';
 import {createTeachPairs} from './teach-pairs.mjs';
 import {internalTeachPath,teachMetadataPaths} from '../../packages/asteach-plugin/metadata.mjs';
@@ -112,7 +121,7 @@ function updatePath(value){return isInspectableRelativePath(value)&&value.split(
  * executable or capability. Only one service may hold a profile at a time.
  * Existing data is never reseeded: damaged, moved or incomplete storage holds
  * for recovery instead of becoming a new empty profile. */
-async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManager,ripgrepPath,searchLimits,bundledDocs,profileLock}={}){
+async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManager,ripgrepPath,searchLimits,bundledDocs,profileLock,getGitHubCredential,githubFetch}={}){
  if(typeof dataRoot!=='string'||!path.isAbsolute(dataRoot)||path.normalize(dataRoot)!==dataRoot)fail('INVALID_DATA_ROOT');
  const root=privateDirectory(dataRoot,true);assertOutsideGit(root.path);
  const ownedPreview=hasPreviewDataOwnership(root.path);
@@ -332,8 +341,8 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    finally{if(owned){checkDirectory(pin);const live=exists(filename);if(live&&identity(live)===owned){fs.unlinkSync(filename);syncDirectory(pin);}}}
   });
   const teachDefaults=createTeachDefaults(createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,".asmb-teach-defaults"),true).path,bindingHash:createHash("sha256").update(bindingHash+":teach-defaults:1").digest("hex")}));
-  const importTeachCourse=async value=>{
-    if(!validCreationId(value.requestId)||!validRepositoryName(value.name)||value.bytes.length>262144)fail('INVALID_REQUEST');
+  const importTeachCourse=async (value,{maxBytes=262144}={})=>{
+    if(!validCreationId(value.requestId)||!validRepositoryName(value.name)||!Buffer.isBuffer(value.bytes)||value.bytes.length>maxBytes)fail('INVALID_REQUEST');
     const pin=importer.catalog.ensure(),filename=path.join(pin.path,`upload-${randomUUID()}.zip`);let owned;
     try{writeExclusive(filename,value.bytes);owned=identity(fs.lstatSync(filename));const result=await importer.importArchive({name:value.name,archivePath:filename,requestId:value.requestId,initializeHistory:false});syncBindings();workspace.close();openWorkspace();return result;}
     finally{if(owned){checkDirectory(pin);const live=exists(filename);if(live&&identity(live)===owned){fs.unlinkSync(filename);syncDirectory(pin);}}}
@@ -350,7 +359,67 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    writeBatch:async(name,files)=>workspace.writeBatch(name,await Promise.all(files.map(async file=>({...file,path:await teachPath(name,file.path)})))),
    importCourse:importTeachCourse,ensurePair:ensureTeachPair
   });
-  const publicationArchive=(output,ctx)=>createPackageZip([...output.files,{path:'asmagicbrain-package.json',bytes:Buffer.from(JSON.stringify({format:'asMagicBrain-package',schemaVersion:1,collectionId:ctx.collectionId,version:'1',semantics:'snapshot',files:output.files.map(file=>({path:file.path,sha256:file.hash}))}))}]);
+  const promotionReceipts=createPromotionReceipts(createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-promotion-receipts'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-promotion-receipts:1').digest('hex')}));
+  const graphStore=createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-graph'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-graph:1').digest('hex')});
+  const graph=createTeachRepositoryGraph({store:graphStore,snapshot:async name=>{
+   const courses=await teach({operation:'list'}),found=courses.find(c=>c.repo===name);if(!found)fail('INVALID_COURSE');
+   await managementReady(name);const entries=readingRepositories(),instructor=entries.find(e=>e.name===name),pair=teachPairs.get(instructor.stableId);
+   const reservedIds=courses.flatMap(c=>{const id=entries.find(e=>e.name===c.repo)?.stableId,p=teachPairs.get(id);return [id,p?.destinationId,...Object.values(graph.get(c.course.courseId)?.bindings??{})].filter(Boolean);});
+   return {courseId:found.course.courseId,instructorId:instructor.stableId,studentId:pair?.destinationId??null,courseHash:found.hash,terms:found.course.terms.map(t=>`${t.year}-${t.season}`),repositories:entries.filter(e=>e.name!==record.workspaceName&&!isDocumentation(e.name)).map(e=>{const p=updateManagerFor(e.name)?.provenance;return {name:e.name,stableId:e.stableId,sourceUrl:p?.sourceUrl??null,branch:p?.branch??null};}),reservedIds};
+  }});
+  const teachGitHubProvider=createTeachGitHubProvider({getCredential:getGitHubCredential,fetch:githubFetch});
+  const teachGitHubContext=async(name,role)=>{
+   const settings=await graph.settings(name),entry=settings.roles.find(r=>r.role===role);if(!entry?.available)fail('TEACH_GRAPH_BINDING');const ready=await managementReady(entry.name),trusted=updateManagerFor(entry.name)?.provenance;
+   if(trusted&&ready.git.branch!==trusted.branch)fail('BRANCH_CHANGED');return {courseId:settings.courseId,role,bindingId:entry.repositoryId,localName:entry.name,migrated:settings.migrated,revision:settings.revision,branch:trusted?.branch??ready.git.branch,identity:ready.source.identity,stateKey:ready.binding.stateKey,url:trusted?.sourceUrl??null,terms:settings.terms,otherUrls:settings.roles.filter(r=>r.role!==role).map(r=>r.sourceUrl).filter(Boolean)};
+  };
+  const githubSetup=createTeachGitHubSetup({fetch:githubFetch,store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-github'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-github:1').digest('hex')}),provider:teachGitHubProvider,context:teachGitHubContext,connect:async(ctx,remote)=>{const ready=await managementReady(ctx.localName);if(ready.source.identity!==ctx.identity||ready.git.branch!==ctx.branch)fail('CONFLICT');const prior=updateManagerFor(ctx.localName)?.provenance;if(prior){if(prior.sourceUrl.toLowerCase()!==remote.url.toLowerCase()||prior.branch!==ctx.branch)fail('GITHUB_ALREADY_CONNECTED');return;}connections.set(ready.binding.stateKey,{identity:ready.source.identity,sourceUrl:canonicalGitHubUrl(remote.url),branch:ctx.branch});}});
+  const teachStaff=createTeachStaffAccess({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-staff'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-staff:1').digest('hex')}),provider:teachGitHubProvider,context:teachGitHubContext,setupStatus:id=>githubSetup.status(id)});
+  const projects=createTeachProjects({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-projects'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-projects:1').digest('hex')}),snapshot:async name=>{const settings=await graph.settings(name),courses=await teach({operation:'list'}),found=courses.find(c=>c.course.courseId===settings.courseId);if(!found)fail('INVALID_COURSE');return {...settings,code:courseKey(found.course.code)};},createLocal:async(team,files)=>{await importTeachCourse({name:team.localName,requestId:team.requestId,bytes:createPackageZip(files)});const entry=readingRepositories().find(e=>e.name===team.localName);if(!entry)fail('TEACH_GRAPH_BINDING');return entry;}});
+  const projectContext=async(projectId,role)=>{if(role!=='instructors')fail('INVALID_REQUEST');const team=projects.get(projectId);if(!team)fail('TEACH_GRAPH_BINDING');const entry=readingRepositories().find(r=>r.stableId===team.bindingId);if(!entry)fail('TEACH_GRAPH_BINDING');const ready=await managementReady(entry.name),trusted=updateManagerFor(entry.name)?.provenance;if(trusted&&ready.git.branch!==trusted.branch)fail('BRANCH_CHANGED');return {courseId:team.id,role,bindingId:team.bindingId,localName:entry.name,migrated:true,revision:team.revision,branch:trusted?.branch??ready.git.branch,identity:ready.source.identity,stateKey:ready.binding.stateKey,url:trusted?.sourceUrl??null,terms:[team.term],otherUrls:readingRepositories().filter(r=>r.stableId!==team.bindingId).map(r=>updateManagerFor(r.name)?.provenance?.sourceUrl).filter(Boolean)};};
+  const projectProvider={session:async()=>{const session=await teachGitHubProvider.session();const observed=async remote=>remote?{...remote,isolation:await session.projectIsolation(remote)}:null;return {...session,inspect:async(owner,name)=>observed(await session.inspect(owner,name)),create:async input=>observed(await session.create(input))};}};
+  const projectGitHub=createTeachGitHubSetup({requireIsolation:true,fetch:githubFetch,store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-project-github'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-project-github:1').digest('hex')}),provider:projectProvider,context:projectContext,connect:async(ctx,remote)=>{const ready=await managementReady(ctx.localName);if(ready.source.identity!==ctx.identity||ready.git.branch!==ctx.branch)fail('CONFLICT');const prior=updateManagerFor(ctx.localName)?.provenance;if(prior){if(prior.sourceUrl.toLowerCase()!==remote.url.toLowerCase()||prior.branch!==ctx.branch)fail('GITHUB_ALREADY_CONNECTED');return;}connections.set(ready.binding.stateKey,{identity:ready.source.identity,sourceUrl:canonicalGitHubUrl(remote.url),branch:ctx.branch});}});
+  const projectStaff=createTeachStaffAccess({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-project-staff'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-project-staff:1').digest('hex')}),provider:projectProvider,context:projectContext,setupStatus:id=>projectGitHub.status(id)});
+  const requireProject=async(repo,projectId)=>{const settings=await graph.settings(repo),team=projects.get(projectId);if(!team||team.courseId!==settings.courseId)fail('TEACH_GRAPH_BINDING');return team;};
+  const submissionRoot=privateDirectory(path.join(privateRoot.path,'.asmb-teach-submission-snapshots'),true);
+  const snapshotBytes=digest=>{if(!/^[0-9a-f]{64}$/.test(digest))fail('INVALID_REQUEST');checkDirectory(submissionRoot);const file=openRawFile(path.join(submissionRoot.path,digest+'.zip'),256*1024*1024);try{const bytes=Buffer.alloc(file.size);let offset=0;while(offset<bytes.length){const n=fs.readSync(file.fd,bytes,offset,bytes.length-offset,offset);if(!n)fail('RECOVERY_REQUIRED');offset+=n;}file.verify();checkDirectory(submissionRoot);if(createHash('sha256').update(bytes).digest('hex')!==digest)fail('RECOVERY_REQUIRED');return bytes;}finally{file.close();}};
+  const submissions=createTeachSubmissions({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-submissions'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-submissions:1').digest('hex')}),provider:teachGitHubProvider,context:async(repo,projectId)=>{const project=await requireProject(repo,projectId),ctx=await projectContext(projectId,'instructors'),record=projectGitHub.status(projectId).roles.instructors;if(!record||record.bindingId!==ctx.bindingId||record.remote.url!==ctx.url)fail('GITHUB_NOT_CONNECTED');return {project,remote:record.remote,branch:ctx.branch};},archive:async(digest,bytes)=>{checkDirectory(submissionRoot);const filename=path.join(submissionRoot.path,digest+'.zip');if(exists(filename)){if(!snapshotBytes(digest).equals(bytes))fail('RECOVERY_REQUIRED');return;}writeExclusive(filename,bytes);},openArchive:async(digest)=>{const name='Submission_'+digest.slice(0,20),requestId=digest.slice(0,8)+'-'+digest.slice(8,12)+'-'+'4'+digest.slice(13,16)+'-'+'8'+digest.slice(17,20)+'-'+digest.slice(20,32);await importTeachCourse({name,requestId,bytes:snapshotBytes(digest)},{maxBytes:256*1024*1024});return {repo:name,immutableArchive:true,reviewCopyEditable:true};}});
+
+  async function pipelineContext(input){
+   const courses=await teach({operation:'list'}),found=courses.find(c=>c.repo===input.repo),folder=`${input.year}-${input.season}`;
+   if(!found?.course.terms.some(t=>`${t.year}-${t.season}`===folder))fail('INVALID_TERM');
+   const roles=graph.get(found.course.courseId);if(!roles)fail('TEACH_GRAPH_REQUIRED');
+   if(!['instructors','assistants'].includes(input.fromRole)||!['instructors','assistants','students'].includes(input.toRole)||input.fromRole===input.toRole||input.toRole==='instructors'&&input.fromRole!=='assistants')fail('INVALID_REQUEST');
+   const entries=readingRepositories();if(entries.find(e=>e.name===input.repo)?.stableId!==roles.bindings.instructors)fail('TEACH_GRAPH_BINDING');const source=entries.find(e=>e.stableId===roles.bindings[input.fromRole]),destination=entries.find(e=>e.stableId===roles.bindings[input.toRole]);
+   if(!source||!destination||source.name===destination.name)fail('TEACH_GRAPH_BINDING');
+   if(input.destination!==destination.name)fail('TEACH_GRAPH_BINDING');
+   promotionReceipts.ready();const ready=await managementReady(source.name);await managementReady(destination.name);const gitStatus=await workspace.execute(source.name,'gitStatus',{});
+   const runtime=await workspace.execute(source.name,'runtimeStatus',{});if(runtime.draftPaths.length||runtime.recoveredDrafts.length||workspace.bootstrap(source.name).newDrafts.length)fail('DRAFT_CONFLICT');
+   return {root:ready.source,identity:ready.source.identity,recordHash:JSON.stringify({course:found.hash,graph:roles,head:ready.git.head}),sourceCommit:gitStatus.files?.some(f=>input.paths?.includes(f.path))?null:ready.git.head??null,sourceId:source.stableId,destinationId:destination.stableId,sourceRepo:source.name,sourceRole:input.fromRole,toRole:input.toRole,destinationRepo:destination.name,folder,paths:input.paths,courseId:found.course.courseId,collectionId:'asteach-'+found.course.courseId,semantics:'patch'};
+  }
+  const promotion=createTeachPublication({build:buildRolePromotion,context:pipelineContext,
+   destinations:async()=>readingRepositories().map(e=>({name:e.name,identity:pinDirectory(path.join(organization.path,e.name)).identity})),
+   compare:async(name,output,ctx)=>{
+    const manager=exchangeFor(name),status=manager.status();if(status.registration&&status.registration.collectionId!==ctx.collectionId)fail('PUBLICATION_COLLECTION_CONFLICT');
+    if(status.registration)return {kind:'update',...await manager.reviewUpdate({archive:publicationArchive(output,ctx),semantics:'patch',version:'1',scope:output.folder})};
+    const inventory=await workspace.execute(name,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    const registration=await manager.emptyRegistrationReview({collectionId:ctx.collectionId,version:'1'});
+    return {kind:'first',planId:registration.planId,rows:output.files.map(f=>({path:f.path,action:inventory.entries.some(e=>e.path===f.path||f.path.startsWith(e.path+'/')&&e.type==='file')?'conflict':'add',conflict:inventory.entries.some(e=>e.path===f.path||f.path.startsWith(e.path+'/')&&e.type==='file')})),warnings:[]};
+   },
+   copy:async(name,output,ctx,comparison)=>{
+    if(comparison.rows.some(r=>r.conflict||r.protectedDraft)||comparison.warnings.length)fail('PUBLICATION_UPDATE_CONFLICT');
+    const targetRoot=(await managementReady(name)).source,priorHashes=[];for(const file of output.files){let sha256=null;try{sha256=createHash('sha256').update(readPublicationFile(targetRoot,file.path)).digest('hex');}catch(error){if(!['ENOENT','PARTIAL','NOT_FOUND'].includes(error.code))throw error;}priorHashes.push({path:file.path,sha256});}
+    promotionReceipts.begin({courseId:ctx.courseId,sourceId:ctx.sourceId,destinationId:ctx.destinationId,sourceCommit:ctx.sourceCommit,sourceRole:ctx.sourceRole,toRole:ctx.toRole,files:output.files.map(f=>({path:f.path,sha256:f.hash,bytes:f.bytes.length})),priorHashes});
+    let result;try{result=await packageMutation(name,async manager=>{
+     let reviewed=comparison;if(comparison.kind==='first'){await manager.registerBase({planId:comparison.planId});reviewed=await manager.reviewUpdate({archive:publicationArchive(output,ctx),semantics:'patch',version:'1',scope:output.folder});}
+     if(reviewed.rows.some(r=>r.conflict||r.protectedDraft)||reviewed.warnings.length)fail('PUBLICATION_UPDATE_CONFLICT');
+     return manager.apply({planId:reviewed.planId,choices:reviewed.rows.filter(r=>r.choices.length).map(r=>({path:r.path,choice:'use-incoming'}))});
+    });
+    }catch(error){if(!exchangeFor(name).status().recoveryRequired){let unchanged=true;for(const file of priorHashes){let actual=null;try{actual=createHash('sha256').update(readPublicationFile(targetRoot,file.path)).digest('hex');}catch(e){if(!['ENOENT','PARTIAL','NOT_FOUND'].includes(e.code)){unchanged=false;break;}}if(actual!==file.sha256){unchanged=false;break;}}if(unchanged)promotionReceipts.cancel();}throw error;}
+    promotionReceipts.complete(result.operationId);
+    return {repository:name,files:output.files.length,status:result.status,sourceCommit:ctx.sourceCommit,sourceRole:ctx.sourceRole,toRole:ctx.toRole,manifest:output.files.map(f=>({path:f.path,sha256:f.hash,bytes:f.bytes.length})),localOnly:true};
+   }
+  });
+  const publicationArchive=(output,ctx)=>createPackageZip([...output.files,{path:'asmagicbrain-package.json',bytes:Buffer.from(JSON.stringify({format:'asMagicBrain-package',schemaVersion:1,collectionId:ctx.collectionId,version:'1',semantics:ctx.semantics??'snapshot',files:output.files.map(file=>({path:file.path,sha256:file.hash}))}))}]);
   async function ensureTeachPair(found,preferred){
    if(!found)fail('INVALID_COURSE');await managementReady(found.repo);
    const source=readingRepositories().find(e=>e.name===found.repo);if(!source)fail('UNKNOWN_REPOSITORY');
@@ -456,7 +525,59 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   }
   const recordBindings=name=>record.repositoryBindings.find(b=>b.name===name);
   const teachDispatch=request=>{
-   const value={...request};let conversion;if(Object.hasOwn(value,'convertGitBook')){if(value.operation!=='reviewPublication'||typeof value.convertGitBook!=='boolean')fail('INVALID_REQUEST');conversion=value.convertGitBook;delete value.convertGitBook;}
+   const value={...request};
+   if(exact(value,['operation','repo'])&&value.operation==='projectSettings')return projects.settings(value.repo).then(result=>({...result,projects:result.projects.map(p=>({...p,github:projectGitHub.status(p.id),staff:projectStaff.status(p.id),submissions:submissions.status(p.id)}))}));
+   if(exact(value,['operation','repo','projectId','milestone','sequence'])&&value.operation==='reviewSubmission')return submissions.review(value);
+   if(exact(value,['operation','planId'])&&value.operation==='applySubmission')return submissions.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelSubmission')return submissions.cancel(value.planId);
+   if(exact(value,['operation','repo','projectId','receiptId'])&&value.operation==='openSubmission')return submissions.open(value);
+   if(exact(value,['operation','repo','year','season','label','repositoryId'])&&value.operation==='reviewProjectBinding')return projects.reviewBinding(value);
+   if(exact(value,['operation','planId'])&&value.operation==='applyProjectBinding')return projects.applyBinding(value.planId);
+   if(exact(value,['operation','repo','year','season','count'])&&value.operation==='reviewProjectCreation')return projects.reviewCreate(value);
+   if(exact(value,['operation','planId'])&&value.operation==='applyProjectCreation')return projects.applyCreate(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelProjectCreation')return projects.cancel(value.planId);
+   if(exact(value,['operation','repo'])&&value.operation==='recoverProjectCreation')return projects.recover(value.repo);
+   if(exact(value,['operation','repo','projectId','revision','policy'])&&value.operation==='saveProjectPolicy')return (async()=>{const team=await requireProject(value.repo,value.projectId);if(projectStaff.status(team.id).pending)fail('GITHUB_STAFF_RECOVERY_REQUIRED');return projects.policy(value);})();
+   if(exact(value,['operation','repo','projectId','mode','owner','repository'])&&value.operation==='reviewProjectGitHub')return (async()=>{await requireProject(value.repo,value.projectId);return projectGitHub.review({repo:value.projectId,role:'instructors',mode:value.mode,owner:value.owner,repository:value.repository,visibility:'private'});})();
+   if(exact(value,['operation','planId'])&&value.operation==='applyProjectGitHub')return projectGitHub.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelProjectGitHub')return projectGitHub.cancel(value.planId);
+   if(exact(value,['operation','repo','projectId'])&&value.operation==='verifyProjectGitHub')return (async()=>{await requireProject(value.repo,value.projectId);return projectGitHub.verify({repo:value.projectId,role:'instructors'});})();
+   if(exact(value,['operation','repo','projectId','direction'])&&value.operation==='recoverProjectGitHub')return (async()=>{await requireProject(value.repo,value.projectId);return projectGitHub.recover({repo:value.projectId,direction:value.direction});})();
+   if(exact(value,['operation','repo','projectId','login'])&&value.operation==='reviewProjectAccess')return (async()=>{const team=await requireProject(value.repo,value.projectId);const session=await projectProvider.session(),record=projectGitHub.status(team.id).roles.instructors;if(!record)fail('GITHUB_VERIFY_FIRST');const remote=await session.inspect(record.remote.owner,record.remote.name);if(!remote?.isolation?.complete)fail('GITHUB_PROJECT_ISOLATION_UNVERIFIED');const allowed=new Set([...team.policy.members,...remote.isolation.owners].map(v=>v.toLowerCase()));if(remote.collaborators.some(v=>!allowed.has(v.login.toLowerCase()))||remote.invitations.some(v=>!v.login||!allowed.has(v.login.toLowerCase())))fail('GITHUB_PROJECT_ACCESS_DRIFT');if(!team.policy.members.some(login=>login.toLowerCase()===value.login?.toLowerCase()))fail('GITHUB_STAFF_NOT_LISTED');const roster=projectStaff.status(team.id).roster,entries=team.policy.members.map(login=>({login,role:'assistant'}));if(JSON.stringify(roster.entries)!==JSON.stringify(entries))await projectStaff.saveRoster({repo:team.id,revision:roster.revision,entries});return projectStaff.review({repo:value.projectId,role:'instructors',login:value.login,permission:'write'});})();
+   if(exact(value,['operation','planId'])&&value.operation==='applyProjectAccess')return projectStaff.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelProjectAccess')return projectStaff.cancel(value.planId);
+   if(exact(value,['operation','repo','projectId','direction'])&&value.operation==='recoverProjectAccess')return (async()=>{await requireProject(value.repo,value.projectId);return projectStaff.recover({repo:value.projectId,direction:value.direction});})();
+   if(exact(value,['operation','repo','entries','revision'])&&value.operation==='saveCourseStaff')return teachStaff.saveRoster(value);
+   if(exact(value,['operation','repo','role','login','permission'])&&value.operation==='reviewStaffAccess')return teachStaff.review(value);
+   if(exact(value,['operation','planId'])&&value.operation==='applyStaffAccess')return teachStaff.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelStaffAccess')return teachStaff.cancel(value.planId);
+   if(exact(value,['operation','repo','direction'])&&value.operation==='recoverStaffAccess')return teachStaff.recover(value);
+   if(exact(value,['operation','repo','role','mode','owner','repository','visibility'])&&value.operation==='reviewGitHubSetup'){const {operation,...input}=value;return githubSetup.review(input);}
+   if(exact(value,['operation','planId'])&&value.operation==='applyGitHubSetup')return githubSetup.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelGitHubSetup')return githubSetup.cancel(value.planId);
+   if(exact(value,['operation','repo','role'])&&value.operation==='verifyGitHubAccess')return githubSetup.verify(value);
+   if(exact(value,['operation','repo','direction'])&&value.operation==='recoverGitHubSetup')return githubSetup.recover(value);
+   if(exact(value,['operation','repo','url','root'])&&value.operation==='saveGitBookMapping')return githubSetup.mapping(value);
+   if(exact(value,['operation','repo'])&&value.operation==='pipelineSettings')return graph.settings(value.repo).then(settings=>({...settings,provenance:promotionReceipts.status(settings.courseId),github:githubSetup.status(settings.courseId),staff:teachStaff.status(settings.courseId)}));
+   if(exact(value,['operation','repo','direction'])&&value.operation==='resolvePromotion')return (async()=>{
+    if(!['complete','cancel'].includes(value.direction))fail('INVALID_REQUEST');const settings=await graph.settings(value.repo),pending=promotionReceipts.pending();if(!pending||pending.courseId!==settings.courseId)fail('PROMOTION_RECOVERY_REQUIRED');
+    const destination=readingRepositories().find(e=>e.stableId===pending.destinationId);if(!destination)fail('TEACH_GRAPH_BINDING');const ready=await managementReady(destination.name);
+    if(exchangeFor(destination.name).status().recoveryRequired)fail('PROMOTION_RECOVERY_REQUIRED');
+    for(const file of value.direction==='complete'?pending.files:pending.priorHashes){let actual=null;try{actual=createHash('sha256').update(readPublicationFile(ready.source,file.path)).digest('hex');}catch(error){if(!['ENOENT','PARTIAL','NOT_FOUND'].includes(error.code))throw error;}if(actual!==file.sha256)fail('CONFLICT');}
+    if(value.direction==='complete')promotionReceipts.complete(null);else promotionReceipts.cancel();return {resolved:true};
+   })();
+   if(exact(value,['operation','repo','assistantId'])&&value.operation==='reviewRepositoryGraph')return graph.review(value.repo,value.assistantId);
+   if(exact(value,['operation','planId'])&&value.operation==='applyRepositoryGraph')return graph.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelRepositoryGraph')return graph.cancel(value.planId);
+   if(exact(value,['operation','repo','year','season','fromRole','toRole'])&&value.operation==='pipelineFiles')return (async()=>{
+    const settings=await graph.settings(value.repo),destination=settings.roles.find(r=>r.role===value.toRole)?.name;
+    const ctx=await pipelineContext({...value,destination}),inventory=await workspace.execute(ctx.sourceRepo,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    return {source:ctx.sourceRepo,destination,folder:ctx.folder,limits:PROMOTION_LIMITS,sourceCommit:ctx.sourceCommit,entries:inventory.entries.filter(e=>e.type==='file'&&e.path.startsWith(ctx.folder+'/'))};
+   })();
+   if(exact(value,['operation','repo','year','season','fromRole','toRole','destination','paths'])&&value.operation==='reviewPromotion'){const {operation,...input}=value;return promotion.review(input);}
+   if(exact(value,['operation','planId'])&&value.operation==='applyPromotion')return promotion.finish(value.planId,'copy');
+   if(exact(value,['operation','planId'])&&value.operation==='cancelPromotion')return promotion.cancel(value.planId);
+   let conversion;if(Object.hasOwn(value,'convertGitBook')){if(value.operation!=='reviewPublication'||typeof value.convertGitBook!=='boolean')fail('INVALID_REQUEST');conversion=value.convertGitBook;delete value.convertGitBook;}
    if((exact(value,['operation','repo'])||exact(value,['operation','repo','destination']))&&value.operation==='ensureStudent')return teach({operation:'list'}).then(records=>ensureTeachPair(records.find(r=>r.repo===value.repo),value.destination));
    if(exact(value,['operation','repo','year','season'])&&value.operation==='courseFiles')return courseFiles(value);
    if((exact(value,['operation','repo','year','season','destination'])||exact(value,['operation','repo','year','season','destination','selectedPages'])||exact(value,['operation','repo','year','season','destination','selectedPages','studentText','sourceHash']))&&value.operation==='reviewPublication'){const {operation,...input}=value;return publication.review({...input,...(conversion!==undefined?{convertGitBook:conversion}:{})});}
@@ -553,7 +674,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    pushRepository:(request,{signal,credential}={})=>{
     const value=copyRequest(request);if(!exact(value,['repo','checkId','reviewId','requestId'])||!['checkId','reviewId','requestId'].every(k=>validCreationId(value[k])))fail('INVALID_REQUEST');repo(value.repo);
     if(applyJobs.has(value.repo)||[...updateJobs].some(j=>j.repo===value.repo))fail('UPDATES_BUSY');applyJobs.add(value.repo);
-    return queue(async()=>{const context=await updatesContext(value.repo),ready=await applyReadiness(value.repo);if(!context.status.eligible||ready.recoveryRequired||ready.draftCount||ready.dirtyFileCount)fail('PUSH_CLEAN_REQUIRED');return context.manager.push({checkId:value.checkId,reviewId:value.reviewId,localHead:context.meta.head,localBranch:context.meta.branch},{signal,credential});}).catch(error=>{throw updateError(error);}).finally(()=>applyJobs.delete(value.repo));
+    return queue(async()=>{const context=await updatesContext(value.repo),ready=await applyReadiness(value.repo);if(!context.status.eligible||ready.recoveryRequired||ready.draftCount||ready.dirtyFileCount)fail('PUSH_CLEAN_REQUIRED');await githubSetup.guardPush(readingRepositories().find(r=>r.name===value.repo)?.stableId,credential);await projectGitHub.guardPush(readingRepositories().find(r=>r.name===value.repo)?.stableId,credential);return context.manager.push({checkId:value.checkId,reviewId:value.reviewId,localHead:context.meta.head,localBranch:context.meta.branch},{signal,credential});}).catch(error=>{throw updateError(error);}).finally(()=>applyJobs.delete(value.repo));
    },
    reviewRepositoryUpdate:request=>{
     let value;try{value=copyRequest(request);if(!exact(value,['repo','checkId'])||!validCreationId(value.checkId))fail('INVALID_REQUEST');repo(value.repo);if(applyJobs.has(value.repo)||[...updateJobs].some(job=>job.repo===value.repo))fail('UPDATES_BUSY');}catch(error){return Promise.reject(updateError(error));}
@@ -686,12 +807,14 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    listRepositoryFiles:request=>search.listRepositoryFiles(request),
    searchRepositoryText:request=>search.searchRepositoryText(request),
    cancelRepositorySearch:request=>search.cancelRepositorySearch(request),
+   pauseTeachGitHub:async()=>{githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();await serial;},
+   resumeTeachGitHub:()=>{githubSetup.resume();teachStaff.resume();projectGitHub.resume();projectStaff.resume();submissions.resume();},
    prepareSearchClose:()=>search.prepareClose(),
    resumeSearch:()=>search.resume(),
    getAppearance:()=>queue(()=>({...record.appearance})),
    setAppearance:value=>{let next;try{next=copyRequest(value);if(!appearanceValid(next))fail('INVALID_APPEARANCE');}catch(error){return Promise.reject(error);}return queue(()=>{persist({...record,appearance:next});return {...record.appearance};});},
    drain:async()=>{await search.drain();await Promise.allSettled([...updateJobs].map(job=>job.promise));await serial;},
-   close:()=>{if(closePromise)return closePromise;closing=true;void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
+   close:()=>{if(closePromise)return closePromise;closing=true;githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
   });
   const automationRoot=privateDirectory(path.join(privateRoot.path,'.asmb-automation'),true);
   const automation=createAutomationDispatch({api,applyPackage:(input,operationId)=>{const value=packageRequest(input,['planId','choices']);if(!validCreationId(operationId))fail('INVALID_REQUEST');return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices,operationId})));},validate:input=>queue(async()=>{const value=copyRequest(input);if(!exact(value,['repoId']))fail('INVALID_REQUEST');const entry=readingRepositories().find(entry=>entry.stableId===value.repoId);if(!entry)fail('UNKNOWN_REPOSITORY');assertApplyReady(entry.name);const found=await workspace.execute(entry.name,'discover',{}),paths=found.entries.filter(entry=>entry.type==='file').map(entry=>entry.path),files=[];for(const path of paths.slice(0,256)){let text;try{const snapshot=await readLocalRepository(entry.name,path,organization.path,'',{builtinRepositories:builtins()});if(typeof snapshot.content==='string'&&Buffer.byteLength(snapshot.content)<=65536)text=snapshot.content;}catch{}files.push({path,size:found.entries.find(entry=>entry.path===path)?.byteLength,...(text!==undefined?{text}:{})});}const result=validateAutomationFiles({files,inventoryPaths:paths,analyzeReferences});if(paths.length>256||found.truncated){result.truncated=true;result.status='truncated';}return result;}),write:automationWrite,importArchive:automationImport,importStatus:value=>queue(()=>importer.findCompletedImport(value)),store:createPrivateStore({privateRoot:automationRoot.path,bindingHash:createHash('sha256').update(bindingHash+':automation:1').digest('hex')})});

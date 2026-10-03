@@ -8,6 +8,7 @@ export type ExchangeResult = {status:'completed'|'rolled-back';operationId:strin
 export type OfflineRenderer = (input:{files:{path:string;bytes:Uint8Array}[];analyzeOnly:boolean}) => {files?:{path:string;bytes:Uint8Array}[];warnings:PackageWarning[]};
 export declare const EXCHANGE_LIMITS:Readonly<ExchangeLimits>;
 export declare function createPackageExchange(options:{sourceRoot:string;sourceBindingRoot?:string;privateRoot:string;getDraftPaths?:()=>string[]|Promise<string[]>;renderOffline?:OfflineRenderer;hooks?:{at?:(phase:string,value?:unknown)=>void;transactionAt?:(phase:string,index?:number)=>void;checkCancelled?:()=>void}}):Readonly<{
+ emptyRegistrationReview(request:{collectionId:string;version:string}):Promise<PackageReview>;
  registrationReview(input:{archive:Uint8Array;collectionId?:string;version?:string}):Promise<PackageReview>;
  registerBase(input:{planId:string}|{archive:Uint8Array;collectionId?:string;version?:string}):Promise<ExchangeStatus>;
  reviewUpdate(input:{archive:Uint8Array;semantics?:'snapshot'|'patch';version?:string}):Promise<PackageReview>;

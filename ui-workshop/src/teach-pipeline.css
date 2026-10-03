@@ -1,0 +1,11 @@
+.teach-pipeline{width:min(100%,1012px);margin:0 auto;padding:32px;box-sizing:border-box;color:var(--fgColor-default,#1f2328)}
+.teach-pipeline h1{font-size:24px;margin:0 0 8px}.teach-pipeline h2{font-size:18px;margin:28px 0 12px}.teach-pipeline p{line-height:1.5;color:var(--fgColor-muted,#59636e)}
+.teach-pipeline fieldset{border:0;padding:0;min-width:0}.teach-pipeline-table{overflow-x:auto}.teach-pipeline table{border-collapse:collapse;width:100%;font-size:14px;text-align:left}.teach-pipeline th,.teach-pipeline td{padding:12px;border-bottom:1px solid var(--borderColor-default,#d1d9e0);vertical-align:top}.teach-pipeline td a{color:inherit;overflow-wrap:anywhere;text-decoration:none}.teach-pipeline-actions{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:16px 0}.teach-pipeline-actions label{display:grid;gap:6px;font-size:14px}.teach-pipeline select{min-height:32px;padding:4px 8px;color:inherit;background:var(--bgColor-default,#fff);border:1px solid var(--borderColor-default,#d1d9e0);border-radius:6px;max-width:100%}.teach-pipeline-files{display:grid;gap:8px;margin:16px 0;overflow-wrap:anywhere}.teach-pipeline-files label{display:flex;gap:8px;align-items:flex-start}.teach-pipeline-review{padding-left:20px}.teach-pipeline-review code{overflow-wrap:anywhere}.teach-pipeline-review pre{white-space:pre-wrap;overflow-wrap:anywhere}.teach-pipeline [role=alert]{color:var(--fgColor-danger,#d1242f)}
+@media(max-width:700px){.teach-pipeline{padding:20px 16px}.teach-pipeline th,.teach-pipeline td{padding:8px}.teach-pipeline-actions{align-items:stretch;flex-direction:column}}
+
+.teach-pipeline input:not([type=checkbox]){min-height:32px;padding:4px 8px;border:1px solid var(--borderColor-default,#d1d9e0);border-radius:6px;background:var(--bgColor-default,#fff);color:inherit;max-width:100%;box-sizing:border-box}.teach-pipeline [data-teach-area=TP6]>label{display:grid;gap:6px;margin:12px 0}.teach-pipeline [data-teach-area=TP5] details{overflow-wrap:anywhere;margin:8px 0 20px}
+
+/* Course settings owns its scroll region inside the fixed desktop surface. */
+.teach-pipeline[data-teach-area=TP1]{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+
+.fw-main:has(>.teach-pipeline[data-teach-area=TP1]){min-height:0;overflow:hidden}

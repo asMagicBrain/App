@@ -33,8 +33,10 @@ async function harness({drain, channel = 'development', startupError, temporaryE
   const ipcMain = new EventEmitter();
   ipcMain.handle = (name, callback) => handlers.set(name, callback);
   const app = new EventEmitter();
+  let applicationName = 'asMagicBrain';
   Object.assign(app, {
-    isPackaged: false, getPath: () => '/fixture/app-data', setPath: (key, value) => paths.set(key, value), setName() {}, setAppLogsPath() {},
+    isPackaged: false, getPath: () => '/fixture/app-data', setPath: (key, value) => paths.set(key, value),
+    setName(value) {applicationName = value;}, getName: () => applicationName, setAppLogsPath() {},
     commandLine: {hasSwitch: name => name === 'no-sandbox' && sandboxDisabled}, enableSandbox: () => {sandboxEnables++;},
     requestSingleInstanceLock: () => true, whenReady: async () => {},
     quit: () => {events.push('app.quit'); app.emit('quit', {}, 0);}, exit: code => events.push(`app.exit:${code}`),

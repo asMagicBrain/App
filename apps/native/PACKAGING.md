@@ -100,3 +100,7 @@ For macOS Developer ID signing and notarization, follow [the signing guide](../.
 Run [native acceptance](acceptance/README.md) against the unchanged final package. Check runtime inventories, signatures where applicable, local workflows, and normal close/restart. Linux also needs installation, sandbox, desktop, and upgrade/removal checks; record the desktop/session and emulated or physical hardware.
 
 A local ad hoc Mac pass does not establish Developer ID, notarization, or independent Gatekeeper acceptance. Keep production entitlements and fuses intact. Preserve evidence and report skipped or simulated checks accurately. Follow [source export and publication](../../contributing/releasing.md#source-export) for those separate steps.
+
+## Development and installed Preview separation
+
+Development macOS candidates are named `asMagicBrain Development.app`, identify as `org.asmagicbrain.app.development`, and use `<ASMB_TEST_ROOT>/development-profile/data`. Source launches share that development data root. Legacy development profiles stay in place and are never automatically migrated. Development packages refuse launch from macOS Applications directories; use Preview packages there for normal use. Preview packages retain their existing app identity, user-home storage and download filenames. Explicit acceptance profiles remain isolated within Test.

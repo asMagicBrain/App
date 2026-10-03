@@ -71,3 +71,73 @@ Reviewed term output includes `student.md`, selected pages, assets, `SUMMARY.md`
 In **Prepare Student output**, enable **Convert GitBook HTML** to review a Markdown version of supported links, figures, tables and collapsible details. Conversion affects Student output only; Instructor files remain unchanged. Unsupported or active HTML blocks export until corrected.
 
 Original `SUMMARY.md` groups and page order are reused for selected pages. An identical course README is represented by the Student home rather than copied twice. Review warnings for nonportable links before sharing. Inline `$$…$$` equations are supported by the technical reader; front matter stays in saved source without appearing as prose.
+
+## Course repository roles
+
+Open **Choose course page → Course settings** to review local Instructor, Assistant and Student repository bindings. Existing courses keep their files, calendars and Git histories. Select an existing Assistant repository or create one, review the bindings, then save them. Open a bound role to use the normal explorer.
+
+For a reviewed local copy:
+
+1. Save source and destination edits.
+2. Choose the source and destination roles, then **Choose files**.
+3. Select the pages, code, dependencies and licenses to include.
+4. Review file content and destination changes, then confirm the copy.
+
+This workflow supports Instructor → Assistant, Instructor → Student and Assistant → Student. Copies exclude Git history and do not commit, push or change GitHub permissions. Role labels describe intended visibility. Use the GitHub access check below to inspect the remote before sharing.
+
+Linked local dependencies must be selected explicitly. Common Python, XML, OBJ and configuration files are copied as inert files. Selected `student.md` output includes GitBook navigation. The limit is 128 output files, 4 MiB per file and 32 MiB total; large model files need separate delivery. Review private information and test runnable output independently before sharing.
+
+Other terms, unrelated files, independent destination edits and drafts are preserved. Conflicts require a fresh review. If a copy is interrupted, resolve its package recovery first, then use **Verify completed copy** or **Verify unchanged destination** in Course settings. Local-copy records are provenance, not student submission receipts.
+
+## GitHub setup in Course settings
+
+After saving local repository bindings, choose a role, GitHub owner and repository name. **Bind existing** connects a repository you can write to; **Create empty** creates one after a separate review. Instructor and Assistant repositories must be private. Student repositories may be private or public. Each role needs a different remote repository. Creation does not upload course files or invite anyone.
+
+Creation requires your own GitHub account or an organization where you are an owner, and GitHub App **Administration: write** permission approved for the installation. If that permission is unavailable, bind an existing repository or ask the app owner about enabling creation.
+
+**Observed GitHub access** shows the last check, repository identity, visibility, your permissions, listed collaborators and pending invitations. Organization owners and inherited access may also apply. This is an observation, not a guarantee that a particular staff-only policy has been configured. No invitations or access changes are made here.
+
+If creation is interrupted, use **Recheck created repository**. It checks the existing result without creating another repository. Do not retry by creating another course.
+
+For Student delivery, save and commit approved files, then review Push through **Sync to GitHub**. Course settings can record the GitBook space URL, Student branch and term directory. Configure Git Sync in GitBook and verify its rendered pages there; recording this mapping does not activate or verify GitBook sync.
+
+## Course staff and repository access
+
+In **Course settings → Course staff**, add GitHub usernames as Instructors or Assistants, then **Save staff roster**. Up to 32 unique usernames are supported. This roster stays local. Removing an entry does not revoke GitHub access.
+
+To grant access, choose a saved staff account, a connected repository role and Read or Write, then **Review staff access**. The review shows the resolved GitHub user ID, numeric repository ID, visibility, signed-in account, existing access and proposed action. Confirm only after checking these details. Your account needs repository administration access and the GitHub App needs Administration write.
+
+Existing higher rights, organization ownership and inherited access are preserved. An existing invitation is reported rather than resent. A new invitation may notify the recipient and remains pending until accepted. These controls do not change organization membership, remove collaborators or enforce student write restrictions.
+
+If the response is interrupted, use **Recheck access change**. It reads GitHub without repeating the grant. If no requested grant is observable, **Verify no grant and clear intent** permits a fresh review; it does not undo a remote action. Recheck before making another grant.
+
+GitHub organization repositories support reviewed Read and Write grants. Personal repositories support collaborator access with Write; the app refuses a new Read-only invitation before sending it. Public personal-repository content is already readable without an invitation. The app never substitutes Write for a Read request. Personal Write reviews explicitly state that the recipient can write changes.
+
+## Private team projects
+
+After registering course roles, open **Course settings → Team projects**. Review creation of one to eight local sibling repositories for the selected term. Each starts with a brief, six worksheet placeholders, environment, code, results, poster, video and a submission manifest. Creation stays local and grants no GitHub access. Interrupted creation can resume without duplicating repositories. **Use an existing or cloned project repository** binds an unassigned sibling without copying starter files or replacing its content/history. Clone through the normal repository controls first. Rename repositories using the normal explorer; the team identity stays stable.
+
+Choose **Manage Team01** to save team/staff GitHub usernames and milestone IDs/deadlines. Deadlines are entered in UTC and also shown in Dubai time. Changing a team's deadline supplies an extension for future receipts; earlier receipts preserve the deadline used when verified. Local membership edits do not grant or revoke access.
+
+Review private GitHub creation/binding separately, then review Write access for each saved account. Empty remote setup uploads no files. Commit and Push remain separate. Organization project isolation requires observed base access **None**, complete owner/access inspection and no repository team grants. Unknown/inherited access blocks managed setup or grants rather than claiming isolation. Organization owners always retain access. Recheck access and reconcile accounts outside the local policy in GitHub; no automatic removal or visibility changes occur.
+
+## Repository submissions
+
+Students can use ordinary GitHub/Git tooling. Commit a `submission.json` manifest with schemaVersion 1, the configured milestone ID, tracked `files` and optional GitHub release `artifacts`. Every entry declares its SHA-256 and byte size. File paths are relative to the repository root. Artifacts declare numeric release asset ID, name, hash and size. Publish a GitHub release tagged `asmb-submit/<milestone>/<sequence>`, for example `asmb-submit/final/1`. A push alone is not a submission.
+
+```json
+{
+  "schemaVersion": 1,
+  "milestone": "final",
+  "files": [{"path": "README.md", "sha256": "REPLACE_WITH_64_LOWERCASE_HEX_DIGITS", "size": 123}],
+  "artifacts": []
+}
+```
+
+The example's hash and size are placeholders. Compute them from the exact committed bytes. At least one tracked deliverable is required. Up to 128 files of 4 MiB each and eight release assets of 64 MiB each are supported, with 240 MiB combined. Large video/checkpoint data can use those release assets; larger or other storage schemes require a separate delivery arrangement and are refused by this verifier. Repository code and weights are never executed.
+
+In team settings, choose milestone and sequence, then **Verify submission**. Review the exact commit, release author, files, artifact hashes and server verification time. Confirmation rechecks them, archives all declared bytes privately and journals an immutable receipt. **Create snapshot review copy** imports an editable review repository while preserving the private archive unchanged.
+
+Receipt status uses GitHub server-observed verification time against the configured deadline. GitHub publication time is also recorded, but mutable tags/publication dates do not prove when the current content was first submitted. This conservative policy can mark a receipt late when the instructor verifies it after the deadline. It is not automatic student-side timestamping. Missing releases, access failure, malformed manifests and hash mismatch do not produce completed receipts. Reproducibility is a separate review; byte verification does not prove that code runs.
+
+Publish a new sequence to resubmit. Later commits, changed deadlines and moved tags cannot change retained receipts. Reusing a receipted tag for different content is refused. Grades and private marking stay outside project history. GitBook continues to consume only approved Student course material, separately from project submission snapshots.

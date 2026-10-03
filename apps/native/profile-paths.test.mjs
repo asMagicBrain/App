@@ -14,7 +14,7 @@ function testTemporaryRoot() {
 }
 test('a packaged development build keeps a stable data root across versions and bundle locations', () => {
   const paths = nativeProfilePaths(base);
-  assert.equal(paths.dataRoot, testRoot + '/packaged-preview/data');
+  assert.equal(paths.dataRoot, testRoot + '/development-profile/data');
   assert.equal(paths.profileRoot, paths.dataRoot + '-electron-profile');
   assert.equal(paths.temporaryRoot, paths.profileRoot + '/tmp');
 });
@@ -33,12 +33,11 @@ test('packaged metadata requires the absolute named Test directory', () => {
     assert.throws(() => packagedTestRoot(metadata));
   }
 });
-test('direct development launch retains its separate profile default', () => {
-  assert.deepEqual(nativeProfilePaths({...base, packaged: false, appData: '/Users/test/Library/Application Support'}), {
-    dataRoot: '/Users/test/Library/Application Support/asMagicBrain Native Preview/managed-data',
-    profileRoot: '/Users/test/Library/Application Support/asMagicBrain Native Preview',
-    temporaryRoot: '/Users/test/Library/Application Support/asMagicBrain Native Preview/tmp',
-  });
+test('source and packaged development use the same dedicated profile outside installed and legacy data', () => {
+  const packaged = nativeProfilePaths(base);
+  assert.deepEqual(nativeProfilePaths({...base, packaged: false, appData: '/Users/test/Library/Application Support'}), packaged);
+  assert.notEqual(packaged.dataRoot, testRoot + '/packaged-preview/data');
+  assert.notEqual(packaged.dataRoot, installedProfilePaths({home: '/Users/test', appData: '/Users/test/Library/Application Support', channel: 'preview'}).dataRoot);
 });
 
 test('installed layout separates managed documents from the OS application profile', () => {

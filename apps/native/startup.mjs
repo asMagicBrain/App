@@ -18,8 +18,12 @@ function existingTestRoot(value) {
 }
 
 /** Resolve only. Runtime integrity and ownership admission happen before writes. */
-export function resolveNativeStartup({args, packaged, metadata, sourceTestRoot, home, appData, platform = process.platform}) {
+export function resolveNativeStartup({args, packaged, metadata, sourceTestRoot, home, appData, executable, platform = process.platform}) {
   const configuration = resolveBuildConfiguration({args, packaged, metadata});
+  if (packaged && configuration.channel === 'development' && platform === 'darwin' && typeof executable === 'string' &&
+      [path.join('/Applications'), path.join(home, 'Applications')].some(root => executable.startsWith(root + path.sep))) {
+    fail('DEVELOPMENT_INSTALL_LOCATION', 'Open asMagicBrain Development from its development folder. Install the Preview application in Applications for normal use.');
+  }
   const roots = args.filter(arg => arg === '--test-root' || arg.startsWith('--test-root='));
   const tests = args.filter(arg => arg === '--test-user-home' || arg === '--test-data-root' || arg.startsWith('--test-user-home=') || arg.startsWith('--test-data-root='));
   if (roots.length > 1 || tests.length > 1 || roots.includes('--test-root') || tests.some(arg => !arg.includes('='))) {
@@ -47,6 +51,7 @@ export function startupFailureMessage(error) {
     ENOSPC: 'Free some space on the drive, then open asMagicBrain again.',
     EDQUOT: 'The storage quota is full. Free some space, then open asMagicBrain again.',
     ASMB_RUNTIME_TEMP: 'Linux could not create a short private temporary directory. Check that XDG_RUNTIME_DIR is a short physical directory owned by your user with mode 0700, or leave it unset to use the protected system /tmp directory.',
+    DEVELOPMENT_INSTALL_LOCATION: 'Open asMagicBrain Development from its development folder. Use the Preview application in Applications for normal work.',
     DEVELOPMENT_DATA_UNAVAILABLE: 'Reconnect the development drive, then open the development application again.',
     STORAGE_RECOVERY_UNSAFE: 'The storage checks could not establish a safe recovery. Your files are unchanged. Keep the workspace and its state folder together and contact support.',
     STORAGE_IDENTITY_MISMATCH: 'This workspace or its drive no longer matches the saved storage identity. Keep your files in place and contact support.',

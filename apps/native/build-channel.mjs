@@ -32,7 +32,7 @@ export function packageOptions(args) {
 export function packageIdentity({channel, bundleId}) {
   buildConfiguration(channel);
   return channel === 'development'
-    ? {bundleId, productName: 'asMagicBrain', packageName: 'asmagicbrain'}
+    ? {bundleId: 'org.asmagicbrain.app.development', productName: 'asMagicBrain Development', packageName: 'asmagicbrain-development'}
     : {bundleId: 'org.asmagicbrain.app.preview', productName: 'asMagicBrain Preview', packageName: 'asmagicbrain-preview'};
 }
 

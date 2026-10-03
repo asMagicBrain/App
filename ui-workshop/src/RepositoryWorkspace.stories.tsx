@@ -1,3 +1,4 @@
+import {TeachPipelineStudy} from './TeachPipelineStudy';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FocusedWriting } from './FocusedWriting';
 import { OutlineCompanionStudy } from './OutlineCompanionStudy';
@@ -39,3 +40,5 @@ export const TeachFirstCourse:Story={name:'asTeach — first course',render:()=>
 export const TeachDES5002Reference:Story={name:'asTeach — DES5002 reference',render:()=> <TeachReferenceStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Read-only local reference. Course text and images are loaded only from an explicitly configured external test fixture; none are bundled with Storybook.'}}}};
 
 export const ReadingNavigation:Story={name:'Reading navigation — history and evidence',render:()=> <ReadingNavigationStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Shared reading history and CM6 in-memory study. Two fictional measured/target reports, exact return positions and failed navigation. Native repository identities, filesystem references and persistence require packaged acceptance.'}}}};
+
+export const TeachRepositoryPipeline:Story={name:'asTeach — Repository pipeline Phase 1',render:()=> <TeachPipelineStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Session-only local role-binding migration and reviewed code manifest. Native durability, conflicts and recovery are qualified separately. GitHub provisioning, access verification, GitBook monitoring and team submissions remain Phase 2/3.'}}}};

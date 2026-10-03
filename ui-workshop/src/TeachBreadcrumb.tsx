@@ -10,7 +10,7 @@ type Action = () => boolean | void;
 type Choice = {id:string;label:string;description?:string;accessibleName?:string;disabled?:boolean;current?:boolean;handoffFocus?:boolean;onSelect?:(returnFocus?:HTMLButtonElement|null)=>boolean|void};
 type ChoiceGroup = {id:string;title:string;choices:readonly Choice[]};
 type Props = {
- studentView?:boolean; onPrepareStudent?:()=>void; studentAvailable?:boolean; onTemplate?:()=>void;
+ onSettings?:()=>void;assistantAvailable?:boolean;studentView?:boolean; onPrepareStudent?:()=>void; studentAvailable?:boolean; onTemplate?:()=>void;
   courses:readonly TeachStudyCourse[];
   homeActive?:boolean;
   calendarState:TeachCalendarState;
@@ -62,13 +62,13 @@ function ChoiceMenu({label,title,groups,disabled=false,compact=false}: {
   </DropdownMenu.Root>;
 }
 
-export function TeachBreadcrumb({studentView=false,onPrepareStudent,studentAvailable=true,onTemplate,courses,homeActive=false,activeCourse,calendarState,summaries,onHome,onCourses,onCourse,onAddTerm,onTerm,onPage}:Props) {
+export function TeachBreadcrumb({onSettings,assistantAvailable,studentView=false,onPrepareStudent,studentAvailable=true,onTemplate,courses,homeActive=false,activeCourse,calendarState,summaries,onHome,onCourses,onCourse,onAddTerm,onTerm,onPage}:Props) {
   const selectedCode=activeCourse?.code;
   const summary=activeCourse?summaries[activeCourse.id]:undefined;
   const homeTitle='Instructor page';
   const sectionId=summary?.sectionId??'home',sectionTitle=summary?.sectionTitle??homeTitle;
   const readySections=new Set(summary?.readySectionIds??(activeCourse?.reference?.pages.filter(page=>teachDisplaySource(page.source).trim()).map(page=>page.id)??[]));
-  const pageAvailable=sectionId==='home'||sectionId==='student'||sectionId==='calendar'||sectionId==='template'||readySections.has(sectionId);
+  const pageAvailable=sectionId==='home'||sectionId==='student'||sectionId==='calendar'||sectionId==='template'||sectionId==='settings'&&Boolean(onSettings)||sectionId==='assistant'&&Boolean(assistantAvailable)||readySections.has(sectionId);
   const courseGroups=groupTeachCourses(courses);
   const uniqueCourses=courseGroups.map(group=>selectCurrentTeachTerm(group.terms,calendarState.terms)!);
   const terms=selectedCode?courseGroups.find(group=>teachCourseKey(group.course.code)===teachCourseKey(selectedCode))?.terms??[]:[];
@@ -85,7 +85,9 @@ export function TeachBreadcrumb({studentView=false,onPrepareStudent,studentAvail
   const termGroup:ChoiceGroup={id:'terms',title:'Year and term',choices:termChoices.length?termChoices:[{id:'empty',label:'Year Term',description:'Select a course first',accessibleName:'Year Term — Select a course first',disabled:true}]};
   const pageGroup:ChoiceGroup={id:'pages',title:'Course pages',choices:activeCourse?[
     {id:'home',label:homeTitle,description:activeCourse.readOnly?'Read-only course reference':'One complete course document',current:sectionId==='home',onSelect:()=>onPage('home')},
+    ...(assistantAvailable?[{id:'assistant',label:'Assistant page',description:'Open the Assistant repository',current:sectionId==='assistant',onSelect:()=>onPage('assistant')}]:[]),
     {id:'student',label:'Student page',disabled:!studentAvailable,description:'Preview and review a student version',current:sectionId==='student',onSelect:()=>onPage('student')},
+    ...(onSettings?[{id:'settings',label:'Course settings',description:'Repository roles and local publication',current:sectionId==='settings',onSelect:onSettings}]:[]),
     ...(!studentView?[{id:'calendar',label:'Course calendar',description:'Dates and class sessions',current:sectionId==='calendar',onSelect:()=>onPage('calendar')}]:[]),
     ...(onPrepareStudent?[{id:'prepare-student',label:'Prepare Student pages…',onSelect:onPrepareStudent}]:[]),
     ...(onTemplate&&!studentView?[{id:'template',label:'Instructor template',description:'Edit the template for new terms',current:sectionId==='template',onSelect:onTemplate}]:[]),
