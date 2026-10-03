@@ -43,7 +43,7 @@ npm run native
 
 Preparation downloads checksum-pinned Electron and Git inputs, including Git sources, build recipes, and licenses. Builds verify prepared inputs and stop if they are missing or changed. Runtime preparation preserves an existing extracted runtime instead of replacing it.
 
-The source launcher uses an isolated development profile. Quit through the app so pending work drains. [Native acceptance](../apps/native/acceptance/README.md) uses repository-installed `playwright-core`, disposable data, and an actual desktop session.
+Source launches and packaged development builds use the same dedicated `<ASMB_TEST_ROOT>/development-profile/data` and a separate Electron profile. They do not adopt the older `native-preview` or `packaged-preview` profiles. Development packages have the `asMagicBrain Development` name and `org.asmagicbrain.app.development` identity. On macOS, keep them in the development folder: launching a development package from system or user Applications is refused before profile writes. Install a Preview package in Applications for normal use; replacing that Preview package preserves its user data. Existing older development copies are left unchanged. Quit through the app so pending work drains. [Native acceptance](../apps/native/acceptance/README.md) uses repository-installed `playwright-core`, disposable data, and an actual desktop session.
 
 On Ubuntu 24.04 x64 (`amd64`), install the build tools and bundled Git's system libraries, then prepare a candidate:
 

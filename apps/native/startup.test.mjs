@@ -52,7 +52,7 @@ test('packaged preview requires an explicit physical Test root only for paired i
 test('development retains its recorded Test root; preview rejects embedded development configuration', t => {
   const {testRoot, options} = fixture(t);
   const development = {...options, metadata: {schemaVersion: 1, channel: 'development', testRoot}};
-  assert.equal(resolveNativeStartup(development).paths.dataRoot, path.join(testRoot, 'packaged-preview/data'));
+  assert.equal(resolveNativeStartup(development).paths.dataRoot, path.join(testRoot, 'development-profile/data'));
   assert.throws(() => resolveNativeStartup({...development, metadata: {...development.metadata, testRoot: testRoot + '/missing/asMagicBrain-Test'}}), {code: 'DEVELOPMENT_DATA_UNAVAILABLE'});
   assert.throws(() => resolveNativeStartup({...options, metadata: {...options.metadata, testRoot}}), {code: 'INVALID_PACKAGE'});
   assert.throws(() => resolveNativeStartup({...options, args: ['--channel=development']}));
@@ -78,4 +78,15 @@ test('source startup admits a configured external data root and packaged startup
   assert.throws(() => resolveNativeStartup({...source, sourceTestRoot: path.join(appRoot, 'generated-tests')}));
   const packaged = {...options, metadata: {schemaVersion: 1, channel: 'development', testRoot}, sourceTestRoot: sourceRoot};
   assert.equal(resolveNativeStartup(packaged).testRoot, testRoot);
+});
+
+test('development packages reject Applications installation before any profile writes, while preview stays installable', t => {
+  const {testRoot, options} = fixture(t);
+  const metadata = {schemaVersion: 1, channel: 'development', testRoot};
+  for (const executable of ['/Applications/asMagicBrain Development.app/Contents/MacOS/asMagicBrain', options.home + '/Applications/asMagicBrain.app/Contents/MacOS/asMagicBrain']) {
+    assert.throws(() => resolveNativeStartup({...options, metadata, executable}), {code: 'DEVELOPMENT_INSTALL_LOCATION'});
+    assert.equal(fs.existsSync(path.join(testRoot, 'development-profile')), false);
+    assert.equal(resolveNativeStartup({...options, executable}).configuration.channel, 'preview');
+  }
+  assert.equal(resolveNativeStartup({...options, metadata, executable: testRoot + '/runs/candidate/asMagicBrain Development.app/Contents/MacOS/asMagicBrain'}).paths.dataRoot, testRoot + '/development-profile/data');
 });

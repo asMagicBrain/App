@@ -29,7 +29,7 @@ test('packaging defaults to development and preview receives a separate final re
 test('variant identities and candidate paths are distinct without changing development release output', () => {
   const development = packageIdentity({channel: 'development', bundleId: 'org.asmagicbrain.preview'});
   const preview = packageIdentity({channel: 'preview', bundleId: 'org.asmagicbrain.preview'});
-  assert.deepEqual(development, {bundleId: 'org.asmagicbrain.preview', productName: 'asMagicBrain', packageName: 'asmagicbrain'});
+  assert.deepEqual(development, {bundleId: 'org.asmagicbrain.app.development', productName: 'asMagicBrain Development', packageName: 'asmagicbrain-development'});
   assert.deepEqual(preview, {bundleId: 'org.asmagicbrain.app.preview', productName: 'asMagicBrain Preview', packageName: 'asmagicbrain-preview'});
   assert.notEqual(development.bundleId, preview.bundleId);
   const common = {version: '0.2.6', candidate: true, id: 'same-unique-id'};

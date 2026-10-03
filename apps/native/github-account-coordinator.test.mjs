@@ -54,3 +54,4 @@ test('only named account DTO operations are dispatched; no credential operation 
   }
   assert.equal(f.events.length,0);
 });
+test('course provider barrier settles before changing accounts and resumes afterward',async()=>{const events=[],auth={disconnect:async()=>events.push('disconnect')},transport={disconnect:async action=>action()},account=createGitHubAccountCoordinator({auth,cloneCoordinator:transport,updateCoordinator:transport,beforeChange:async()=>events.push('settle-course-setup'),afterChange:()=>events.push('resume-course-setup')});await account.request('disconnectGitHub');assert.deepEqual(events,['settle-course-setup','disconnect','resume-course-setup']);});

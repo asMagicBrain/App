@@ -47,7 +47,8 @@ if(fs.existsSync(destination))throw Error('Version output already exists; preser
 const stage=path.join(parent,`.staging-${release.version}-${channel}-${randomUUID()}`);fs.mkdirSync(stage,{mode:0o700});
 const log=path.join(stage,'packaging.log');
 const record=(label,value)=>fs.appendFileSync(log,`${label}\n${value}\n`,{mode:0o600});
-const bundle=path.join(stage,'asMagicBrain.app');
+const bundleName=channel==='development'?'asMagicBrain Development.app':'asMagicBrain.app';
+const bundle=path.join(stage,bundleName);
 try{
  const archiveCandidates=[path.join(testRoot,'tooling-downloads',runtime.archive),path.join(testRoot,'runs/native-ui-20260917/downloads',runtime.archive)];
  const archive=archiveCandidates.find(filename=>fs.existsSync(filename));if(!archive||sha256(fs.readFileSync(archive))!==runtime.archiveSha256)throw Error('The preserved pinned runtime archive is missing or its checksum differs.');
@@ -141,5 +142,5 @@ try{
  // An exclusive reservation prevents concurrent builders from replacing a
  // completed version, including an existing empty directory.
  fs.mkdirSync(destination,{mode:0o700});fs.renameSync(stage,destination);
- console.log(JSON.stringify({kind:manifest.kind,channel,bundle:path.join(destination,'asMagicBrain.app'),manifest:path.join(destination,'package-manifest.json'),sourceCommit,sourceTag:metadata.sourceTag}));
+ console.log(JSON.stringify({kind:manifest.kind,channel,bundle:path.join(destination,bundleName),manifest:path.join(destination,'package-manifest.json'),sourceCommit,sourceTag:metadata.sourceTag}));
 }catch(error){try{fs.writeFileSync(path.join(stage,'failure.json'),JSON.stringify({schemaVersion:1,message:error.message,sourceCommit,sourceTag,candidate,retainedStaging:stage},null,2)+'\n',{flag:'wx',mode:0o600});}catch{}console.error(`Packaging failed; staging retained at ${stage}`);throw error;}

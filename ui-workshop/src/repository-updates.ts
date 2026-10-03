@@ -107,7 +107,7 @@ export function repositoryApplyUnavailable(reason?: string): string {
 export function repositoryUpdateError(reason: unknown): string {
   const code = reason && typeof reason === 'object' && 'code' in reason ? String(reason.code) : '';
   const messages: Record<string, string> = {
-    PUSH_CLEAN_REQUIRED: 'Save and commit your changes, and resolve retained drafts before reviewing a Push.',
+    PUSH_CLEAN_REQUIRED: 'Push requires a clean repository. Review saved changes and commit remaining files, including new files such as README.md. Save or resolve retained drafts, then review Push again.',
     PUSH_RECHECK_REQUIRED: 'The branch or review changed. Check GitHub again and prepare a new Push review.',
     PUSH_REVIEW_LIMIT: 'This Push exceeds the review limit of 1,000 commits or changed paths.',
     PUSH_OUTCOME_UNKNOWN: 'Push could not be confirmed. GitHub may have received it. Check for updates before trying again.',

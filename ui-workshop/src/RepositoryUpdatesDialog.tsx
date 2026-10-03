@@ -60,9 +60,9 @@ type Props = {
   repository: string; returnFocus?: HTMLElement | null; onClose(): void;
   beforeReview?(): Promise<void>; beforeApply?(): Promise<void>;
   onApplyingChange?(applying: boolean): void; onApplied?(result: RepositoryUpdateApplied): Promise<void>;
-  onApplyError?(reason: unknown): void;
+  onApplyError?(reason: unknown): void; onPushed?(): void;
 };
-export function RepositoryUpdatesDialog({repository, returnFocus, onClose, beforeReview, beforeApply, onApplyingChange, onApplied, onApplyError}: Props) {
+export function RepositoryUpdatesDialog({repository, returnFocus, onClose, beforeReview, beforeApply, onApplyingChange, onApplied, onApplyError, onPushed}: Props) {
   const id = useId(), dialog = useRef<HTMLDialogElement>(null), checkButton = useRef<HTMLButtonElement>(null);
   const active = useRef(true), request = useRef<string | null>(null), submitting = useRef(false), cancelling = useRef(false);
   const operationRef = useRef<'check' | 'review' | 'apply' | 'push' | null>(null), reviewPanel = useRef<HTMLElement>(null);
@@ -179,7 +179,7 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
     const reviewed=pushReview,requestId=crypto.randomUUID();
     submitting.current=true;operationRef.current='push';request.current=requestId;setOperation('push');setError('');setProgress('Pushing reviewed commits to GitHub…');
     await nativeOperation(async()=>{
-      try{await beforeApply?.();await pushRepository(repository,reviewed,requestId);if(active.current)setProgress('Commits pushed to GitHub. Check for updates to refresh the comparison.');}
+      try{await beforeApply?.();await pushRepository(repository,reviewed,requestId);if(active.current){onPushed?.();setProgress('Commits pushed to GitHub. Check for updates to refresh the comparison.');}}
       catch(reason){if(active.current){setProgress('');setError(repositoryUpdateError(reason));}}
       finally{submitting.current=false;operationRef.current=null;request.current=null;if(active.current){setOperation(null);setPushConfirmed(false);markStale();}invalidateGitHubConnection();}
     });

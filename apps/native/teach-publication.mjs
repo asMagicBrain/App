@@ -68,9 +68,9 @@ export function buildStudentPublication({root,term,studentPath,forbidden,selecte
  if(files.reduce((sum,file)=>sum+file.bytes.length,0)>32*1024*1024||files.some(file=>/\.(md|markdown)$/i.test(file.path)&&file.bytes.length>1024*1024))fail('LIMIT_EXCEEDED');
  return {folder,files,warnings:[...warnings],conversions};
 }
-export function createTeachPublication({context,destinations,copy,compare}){
+export function createTeachPublication({context,destinations,copy,compare,build=buildStudentPublication}){
  const plans=new Map();
- async function materialize(input){const ctx=await context(input);const output=buildStudentPublication(ctx);return {ctx,output};}
+ async function materialize(input){const ctx=await context(input);const output=build(ctx);return {ctx,output};}
  return {
   async review(input){
    const {ctx,output}=await materialize(input);const available=await destinations(input.repo);let target=null;
@@ -79,7 +79,7 @@ export function createTeachPublication({context,destinations,copy,compare}){
    const planId=randomUUID(),fingerprint=JSON.stringify({source:ctx.identity,record:ctx.recordHash,destination:target,files:output.files.map(f=>[f.path,f.hash])});
    for(const [id,p] of plans)if(p.expiresAt<Date.now())plans.delete(id);if(plans.size>=8)plans.delete(plans.keys().next().value);
    plans.set(planId,{input:{...input},fingerprint,comparison,expiresAt:Date.now()+300000});
-   return {planId,comparison,folder:output.folder,destination:target,files:output.files.map(f=>({path:f.path,bytes:f.bytes.length,sha256:f.hash,generated:Boolean(f.generated),preview:/\.md$/i.test(f.path)?f.bytes.toString('utf8').slice(0,16000):null})),warnings:output.warnings,conversions:output.conversions};
+   return {planId,comparison,folder:output.folder,destination:target,files:output.files.map(f=>({path:f.path,bytes:f.bytes.length,sha256:f.hash,generated:Boolean(f.generated),preview:(f.kind==='code'||f.kind==='document'||/\.md$/i.test(f.path))?f.bytes.toString('utf8').slice(0,16000):null})),warnings:output.warnings,conversions:output.conversions};
   },
   async finish(planId,kind){
    const plan=plans.get(planId);plans.delete(planId);if(!plan||plan.expiresAt<Date.now())fail('PUBLICATION_EXPIRED');

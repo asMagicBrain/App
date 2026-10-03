@@ -37,11 +37,11 @@ test('source launcher selects the Linux runtime, preserves desktop access and re
   const h = launch({platform: 'linux', arch: 'x64'}), [command, args, options] = h.spawned[0];
   assert.equal(h.selected, 1);
   assert.equal(command, fileURLToPath(new URL('../../.tooling/electron-linux-x64/electron', import.meta.url)));
-  assert.deepEqual(Array.from(args), [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--channel=development', '--test-data-root=/fixture/asMagicBrain-Test/native-preview/data']);
+  assert.deepEqual(Array.from(args), [fileURLToPath(new URL('./main.mjs', import.meta.url)), '--channel=development', '--test-data-root=/fixture/asMagicBrain-Test/development-profile/data']);
   assert.equal(options.env.DISPLAY, ':7'); assert.equal(options.env.WAYLAND_DISPLAY, 'wayland-7');
   assert.equal(options.env.DBUS_SESSION_BUS_ADDRESS, 'unix:path=/fixture/bus'); assert.equal(options.env.XDG_CONFIG_HOME, '/fixture/xdg');
   for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'ELECTRON_RUN_AS_NODE']) assert.equal(Object.hasOwn(options.env, name), false);
-  assert.equal(options.env.TMPDIR, '/fixture/asMagicBrain-Test/native-preview/tmp');
+  assert.equal(options.env.TMPDIR, '/fixture/asMagicBrain-Test/development-profile/tmp');
   assert.ok(!args.includes('--no-sandbox'));
   h.child.emit('exit', 3); assert.equal(h.process.exitCode, 3);
 });

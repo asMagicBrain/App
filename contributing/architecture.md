@@ -63,3 +63,17 @@ Media reading has format-specific size/admission rules. Large file copies stream
 ### Locally created GitHub connections
 
 An explicit connection binds a canonical GitHub HTTPS destination and the current local branch to the repository’s private stable state key. Clone provenance remains authoritative for cloned repositories. Editable Git config cannot redirect network operations. First publication to an absent branch reviews the complete outgoing history and files, then requires an exact absent-ref lease; unrelated/diverged histories stay blocked. Connecting performs no upload.
+
+### asTeach GitHub setup
+
+The main-process provider uses the connected account credential through a trusted callback and fixed GitHub HTTPS endpoints. Renderer requests contain role/owner/name/visibility and opaque review IDs; credentials never enter returned observations. Creation requires Administration write and owner capability, with a fresh account and local-binding comparison before mutation. Account changes and close pause setup and drain the host serial queue.
+
+A durable host-private `.asmb-teach-github` ledger pins numeric remote IDs and records dated access observations and pending creation intent. Lost-response recovery checks the unique creation marker and identity with GET only; it never repeats POST. A missing result can be cleared only with verified full-owner access. Managed-role Push rechecks remote identity, write access, archive status and private-role visibility. Existing unregistered connections retain their prior workflow. The ledger is neither a complete ACL policy nor a GitBook sync receipt; it sends no invitations.
+
+Qualification separates synthetic provider UI checks, live disposable-repository tests with trusted CLI credentials, and actual GitHub App device credentials. CLI qualification does not establish installation permission or the user sign-in path. Local staff roster and reviewed additive grants use the separate ledger below. Broad staff-policy enforcement and team submissions remain separate work.
+
+### Course staff access
+
+A separate host-private `.asmb-teach-staff` ledger keeps a revisioned local roster and durable pending repository-grant intent. The narrow bridge admits roster save, single-account read/write review, apply/cancel and GET-only recovery. Review resolves a personal GitHub numeric user ID and rechecks the pinned repository, local binding, branch, course revision, roster revision, signed-in account, visibility, current admin authority and complete listed access before PUT. Existing invitations and sufficient inherited/higher rights produce no mutation. Unknown outcomes block further grants until read-only recovery or explicitly verified clearing. No organization membership writes, admin grants, collaborator removal or access downgrade are implemented.
+
+The provider carries the freshly observed owner type into staff-grant review. New personal Read grants are refused before durable mutation intent; personal Write uses a zero-length PUT body, while organization grants use an explicit permission. Provider validation errors are distinct from repository-name conflicts. Unknown grant outcomes still require GET-only reconciliation.

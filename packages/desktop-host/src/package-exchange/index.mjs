@@ -81,6 +81,13 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
   function remember(review){for(const [key,value] of reviews)if(value.expiresAt<Date.now())reviews.delete(key);while(reviews.size>=8)reviews.delete(reviews.keys().next().value);reviews.set(review.planId,review);return publicReview(review);}
   function publicReview(review){return structuredClone({schemaVersion:1,kind:review.kind,planId:review.planId,expiresAt:review.expiresAt,packageDigest:review.packageDigest??null,collectionId:review.collectionId,version:review.version,semantics:review.semantics??null,rows:review.rows??[],drafts:review.drafts,warnings:review.warnings??[],excluded:review.excluded??[],fileCount:review.files?.length??0,limits:EXCHANGE_LIMITS});}
   function reviewById(planId,kind){ready();const review=reviews.get(planId);if(!review||review.kind!==kind||review.expiresAt<Date.now())failure('STALE_PLAN');return review;}
+  // Start a reviewed collection without adopting unrelated destination files.
+  // This is host-only; empty imported archives remain invalid.
+  async function emptyRegistrationReview({collectionId,version}){
+    ready();if(state.registration)failure('ALREADY_REGISTERED');if(!validLabel(collectionId)||!validLabel(version))failure('INVALID_PACKAGE');
+    const files=inventory(),draftPaths=await drafts();
+    return remember({kind:'register',planId:randomUUID(),expiresAt:Date.now()+EXCHANGE_LIMITS.reviewMs,packageDigest:null,collectionId,version,files:[],inventoryHash:inventoryHash(files),drafts:draftPaths,rows:[]});
+  }
   async function registrationReview({archive,collectionId,version}){
     ready();const incoming=parsePackage(archive);if(state.registration)failure('ALREADY_REGISTERED');
     collectionId??=incoming.metadata?.collectionId;version??=incoming.metadata?.version;
@@ -206,5 +213,5 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
     const bytes=createPackageZip(output);return {schemaVersion:1,kind,bytes,sha256:sha256(bytes),filename:`${review.collectionId}-${review.version}-${kind}.zip`,fileCount:files.length,warnings:review.warnings};
   }
   function status(){load();return {schemaVersion:1,registration:state.registration?{collectionId:state.registration.collectionId,version:state.registration.version,ownedFiles:state.registration.files.length}:null,recoveryRequired:Boolean(state.pending)||adapter.inspectRecovery().blocked,pending:state.pending?{operationId:state.pending.operationId,direction:state.pending.direction,phase:state.pending.phase,completed:state.pending.index,total:state.pending.changes.length,paths:state.pending.changes.map(change=>change.path)}:null,operations:state.operations.map(operation=>({operationId:operation.operationId,status:operation.phase,version:operation.after.version,createdAt:operation.createdAt,paths:operation.changes.map(change=>change.path),canRollback:operation===state.operations.at(-1)&&operation.phase==='completed'})),limits:EXCHANGE_LIMITS};}
-  load();return Object.freeze({ownedPaths(){ready();return state.registration?.files.map(file=>file.path)??[];},registrationReview,registerBase,reviewUpdate,apply,rollback,recover,status,reviewExport,buildExport,cancelPlan(planId){return {status:reviews.delete(planId)?'cancelled':'absent'};}});
+  load();return Object.freeze({ownedPaths(){ready();return state.registration?.files.map(file=>file.path)??[];},emptyRegistrationReview,registrationReview,registerBase,reviewUpdate,apply,rollback,recover,status,reviewExport,buildExport,cancelPlan(planId){return {status:reviews.delete(planId)?'cancelled':'absent'};}});
 }

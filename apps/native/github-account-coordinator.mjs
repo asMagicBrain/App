@@ -4,13 +4,13 @@ export const githubAccountMethods = new Set([
   'cancelGitHubConnection', 'cancelPendingGitHubConnection', 'openGitHubVerification', 'disconnectGitHub',
 ]);
 const fail = code => {throw Object.assign(Error({GITHUB_BUSY: 'A GitHub account change is already in progress.', GITHUB_CANCELLED: 'GitHub connection was cancelled.', SERVICE_CLOSED: 'The window is closing.'}[code] ?? 'Invalid GitHub request.'), {code});};
-export function createGitHubAccountCoordinator({auth, cloneCoordinator, updateCoordinator}) {
+export function createGitHubAccountCoordinator({auth, cloneCoordinator, updateCoordinator,beforeChange=async()=>{},afterChange=()=>{}}) {
   let mutation = null, paused = false, epoch = 0;
   function change(action) {
     if (mutation) fail('GITHUB_BUSY');
     // Settle authenticated downloads before replacing or forgetting identity.
     // Anonymous work remains independent of the account.
-    const task = Promise.resolve().then(() => cloneCoordinator.disconnect(() => updateCoordinator.disconnect(action)));
+    const task = Promise.resolve().then(async()=>{await beforeChange();try{return await cloneCoordinator.disconnect(() => updateCoordinator.disconnect(action));}finally{afterChange();}});
     mutation = task;
     void task.finally(() => {if (mutation === task) mutation = null;}).catch(() => {});
     return task;
@@ -39,9 +39,10 @@ export function createGitHubAccountCoordinator({auth, cloneCoordinator, updateCo
     },
     async prepareClose() {
       paused = true; epoch += 1;
+      await beforeChange();
       await auth.prepareClose();
       await mutation?.catch(() => {});
     },
-    resume() {paused = false; auth.resume();},
+    resume() {paused = false; afterChange(); auth.resume();},
   };
 }
