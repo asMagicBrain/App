@@ -1,3 +1,4 @@
+import {installComments, visibleInlineText} from '../../../../apps/desktop/ui/markdown-comments.mjs';
 import path from 'node:path';
 import MarkdownIt from 'markdown-it';
 import {installMath} from '../../../../apps/desktop/ui/markdown-math.mjs';
@@ -20,17 +21,18 @@ export function renderOffline({files,analyzeOnly=false}){
   const source=new Map(files.map(file=>[file.path,{...file,bytes:Buffer.from(file.bytes)}])),warnings=[],warningKeys=new Set();
   const warn=(file,code,message)=>{const key=JSON.stringify([file,code,message]);if(warningKeys.has(key))return;warningKeys.add(key);warnings.push({path:file,code,message});};
   const parser=new MarkdownIt({html:false,linkify:false,typographer:false,maxNesting:32});installMath(parser,{output:'htmlAndMathml',copyButton:false});
+  installComments(parser);
   const targetFor=(value,from)=>{const local=localLink(value,from);if(!local){warn(from,/^https?:|^mailto:/i.test(value)?'EXTERNAL_REFERENCE':'UNRESOLVED_REFERENCE',`Reference remains offline: ${String(value).slice(0,300)}`);return null;}if(!source.has(local.path)){warn(from,'MISSING_DEPENDENCY',`Missing local reference: ${local.path}`);return null;}return local;};
   parser.renderer.rules.link_open=(tokens,index,options,env)=>{const raw=tokens[index].attrGet('href')??'',target=targetFor(raw,env.sourcePath);env.linkTags.push(target?'a':'span');return target?`<a href="${escape(url(path.posix.relative(path.posix.dirname(env.sourcePath),target.path+'.html'))+(target.fragment?'#'+encodeURIComponent(target.fragment):''))}">`:'<span class="unavailable-link">';};
   parser.renderer.rules.link_close=(_tokens,_index,_options,env)=>`</${env.linkTags.pop()??'span'}>`;
-  parser.renderer.rules.image=(tokens,index,options,env)=>{const token=tokens[index],raw=token.attrGet('src')??'',alt=token.content||token.attrGet('alt')||'Image',target=targetFor(raw,env.sourcePath);if(!target||target.fragment||!IMAGE.test(target.path)){if(target)warn(env.sourcePath,'UNSUPPORTED_IMAGE',`Image stays source-only: ${target.path}`);return `<span class="notice">${escape(alt)} — image unavailable in offline reading.</span>`;}return `<img src="${escape(url(path.posix.relative(path.posix.dirname('reader/'+env.sourcePath+'.html'),'source/'+target.path)))}" alt="${escape(alt)}" loading="lazy">`;};
+  parser.renderer.rules.image=(tokens,index,options,env)=>{const token=tokens[index],raw=token.attrGet('src')??'',alt=visibleInlineText(token.children)||'Image',target=targetFor(raw,env.sourcePath);if(!target||target.fragment||!IMAGE.test(target.path)){if(target)warn(env.sourcePath,'UNSUPPORTED_IMAGE',`Image stays source-only: ${target.path}`);return `<span class="notice">${escape(alt)} — image unavailable in offline reading.</span>`;}return `<img src="${escape(url(path.posix.relative(path.posix.dirname('reader/'+env.sourcePath+'.html'),'source/'+target.path)))}" alt="${escape(alt)}" loading="lazy">`;};
   const fence=parser.renderer.rules.fence;
   parser.renderer.rules.fence=(tokens,index,options,env,self)=>{
     if(tokens[index].info.trim().toLowerCase()!=='mermaid')return fence(tokens,index,options,env,self);
     warn(env.sourcePath,'DIAGRAM_SOURCE_FALLBACK','Mermaid is included as readable source; the offline reader does not run a diagram engine.');
     return `<figure><figcaption>Mermaid diagram — source fallback</figcaption><p>Open this document in asMagicBrain to render supported diagrams. The complete diagram source is preserved below.</p><pre><code>${escape(tokens[index].content)}</code></pre></figure>`;
   };
-  parser.renderer.rules.heading_open=(tokens,index,options,env,self)=>{const inline=tokens[index+1]?.children??[],title=inline.filter(token=>['text','code_inline','image','math_inline'].includes(token.type)).map(token=>token.content).join('');const base=title.toLowerCase().replace(/[^\p{L}\p{N}\p{M}\s_-]/gu,'').replace(/\s/gu,'-')||'section';let anchor=base,n=0;while(env.anchors.has(anchor))anchor=`${base}-${++n}`;env.anchors.add(anchor);tokens[index].attrSet('id',anchor);return self.renderToken(tokens,index,options);};
+  parser.renderer.rules.heading_open=(tokens,index,options,env,self)=>{const inline=tokens[index+1]?.children??[],title=visibleInlineText(inline);const base=title.toLowerCase().replace(/[^\p{L}\p{N}\p{M}\s_-]/gu,'').replace(/\s/gu,'-')||'section';let anchor=base,n=0;while(env.anchors.has(anchor))anchor=`${base}-${++n}`;env.anchors.add(anchor);tokens[index].attrSet('id',anchor);return self.renderToken(tokens,index,options);};
   const pages=[];
   for(const [relative,file] of source){
     const text=mimeText(file.bytes),markdown=/\.(?:md|markdown)$/i.test(relative);let body;

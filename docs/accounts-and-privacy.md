@@ -22,10 +22,18 @@ For a GitHub clone, open **Check GitHub updates…** from the repository menu, t
 
 When an update is available, choose **Review update…**, inspect the changes, then choose **Apply update**. If local changes, drafts, or conflicting history prevent the update, resolve them before trying again.
 
-Push, merge, rebase, automatic background updates, SSH, and other Git servers are unavailable. Checking and applying updates do not upload local commits.
+### Push committed changes
+
+For a local repository, open **Check GitHub updates…** and enter its existing GitHub repository URL and matching branch to connect it. Cloned repositories already have a destination. Connect your GitHub account and choose **Check GitHub updates**. When local history is ahead, choose **Review Push…**. Review the destination, branch, outgoing commits and changed paths, then confirm **Push to GitHub**.
+
+Save and commit changes first; resolve retained drafts. Push uploads the outgoing commit history, including content subsequently changed or deleted. Push updates the connected branch, or creates that branch if it is absent. Unrelated or diverged history is blocked. If GitHub has changed, check and review again; merge and force-overwrite are unavailable.
+
+Your account and GitHub App installation must have **Contents: read and write** access to the destination. The current official registration may require an owner-approved permission upgrade before Push works. Checking and applying updates do not upload local commits.
+
+If Push cannot be confirmed, check for updates before retrying: GitHub may already have received it. New remote repository creation, merge, rebase, automatic background sync, SSH and other Git servers remain unavailable.
 
 ## Keep private information private
 
-Sign-in, clone, and update actions contact their services when you request them. Clicking a web link opens it in your browser. Local Markdown preview does not automatically fetch remote images or run embedded HTML or scripts. Importing a repository does not run its hooks or project code. Optional [interactive views](plugins.md#local-interactive-views) require a separate review and Run action.
+Sign-in, clone, and update actions contact their services when you request them. Clicking a web link opens it in your browser. Local Markdown preview does not automatically fetch remote images or run embedded HTML or scripts. Importing a repository does not run its hooks or project code. Optional [interactive views](editor.md#local-interactive-views) require a separate review and Run action.
 
 Do not put credentials in files you might commit or share. Before sending a bug report or screenshot, remove private text, account details, repository names, and personal paths. [Back up complete local state](data-and-recovery.md#make-a-backup) separately from Git history.

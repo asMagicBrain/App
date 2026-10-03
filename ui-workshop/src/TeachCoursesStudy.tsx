@@ -9,6 +9,7 @@ import './teach-courses-study.css';
 
 export type TeachCourseSummary = {sectionId:string; sectionTitle:string; dirtyCount:number; readySectionIds:readonly string[]};
 type Props = {
+  nativeMode?:boolean;onAddExisting?():void;
   courses:readonly TeachStudyCourse[];
   calendarState:TeachCalendarState;
   readOnly?:boolean;
@@ -72,7 +73,7 @@ export function CourseDialog({title,onClose,children,returnFocusRef}: {title:str
 
 const reservedRepositories=['Workspace','asMagicBrain-Docs','asMagicBrain-DevDocs','asTeach-App','research-notes','unavailable-course','studio-notes',...teachStudyCourses.map(course=>course.repository)];
 const safeCourseCode=(value:string)=>/^[A-Za-z0-9][A-Za-z0-9_/-]{0,31}$/.test(value)&&!/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(value);
-export function NewCourseDialog({courses,courseCode,teacherProfile=emptyTeacherProfile(),onClose,onCreate,returnFocusRef}:Pick<Props,'courses'|'teacherProfile'|'onCreate'>&{courseCode?:string;onClose():void;returnFocusRef?:React.RefObject<HTMLElement|null>}) {
+export function NewCourseDialog({nativeMode=false,courses,courseCode,teacherProfile=emptyTeacherProfile(),onClose,onCreate,returnFocusRef}:Pick<Props,'courses'|'teacherProfile'|'onCreate'|'nativeMode'>&{courseCode?:string;onClose():void;returnFocusRef?:React.RefObject<HTMLElement|null>}) {
   const [title,setTitle]=useState(''),[code,setCode]=useState(courseCode??'');
   const [year,setYear]=useState(String(Math.min(2100,Math.max(1949,new Date().getFullYear())))),[season,setSeason]=useState('');
   const [error,setError]=useState<{field:string;message:string}|null>(null);
@@ -86,7 +87,7 @@ export function NewCourseDialog({courses,courseCode,teacherProfile=emptyTeacherP
     let problem:{field:string;message:string}|null=null;
     if(!safeCourseCode(canonicalCode))problem={field:'code',message:'Enter a course code of up to 32 letters, numbers, slashes, hyphens or underscores. Start with a letter or number; reserved device names cannot be used.'};
     else if(existing?.readOnly)problem={field:'code',message:'Choose a new course code. This reference course is read-only.'};
-    else if(!existing&&reservedRepositories.some(name=>name.toLowerCase()===repository.toLowerCase()||name.toLowerCase()===canonicalCode.toLowerCase()))problem={field:'code',message:'This name is already used by another repository. Choose a different course code.'};
+    else if(!existing&&(nativeMode?['Workspace','asMagicBrain-Docs','asMagicBrain-DevDocs']:reservedRepositories).some(name=>name.toLowerCase()===repository.toLowerCase()||name.toLowerCase()===canonicalCode.toLowerCase()))problem={field:'code',message:'This name is already used by another repository. Choose a different course code.'};
     else if(courses.some(course=>course.code.toLowerCase()!==canonicalCode.toLowerCase()&&course.repository.toLowerCase()===repository.toLowerCase()))problem={field:'code',message:'This repository belongs to a different course code. Choose a different course code.'};
     else if(!courseName.trim())problem={field:'title',message:'Enter the full course name.'};
     else if(!/^\d{4}$/.test(year)||Number(year)<1949||Number(year)>2100)problem={field:'year',message:'Choose a teaching year from 1949 to 2100.'};
@@ -99,14 +100,14 @@ export function NewCourseDialog({courses,courseCode,teacherProfile=emptyTeacherP
   const invalid=(field:string)=>error?.field===field;
   return <CourseDialog title={courseCode?'Add term':'New course'} onClose={onClose} returnFocusRef={returnFocusRef}><form noValidate onSubmit={submit}>
     <p>{existing?'Add a teaching term to this course. Start with one course document and its section headings.':'Set up your course and its first teaching term. Saved teacher details will fill its teaching-team section.'}</p>
-    <label>Course Code<input autoFocus={!courseCode} readOnly={Boolean(courseCode)} name="code" value={code} maxLength={32} onChange={event=>{setCode(event.target.value);setError(null);}} placeholder="e.g. DES5002" aria-describedby="tcs-code-help" aria-invalid={invalid('code')} required/></label>
+    <label>Course Code<input autoFocus={!courseCode} readOnly={Boolean(courseCode)} name="code" value={code} maxLength={32} onChange={event=>{setCode(event.target.value);setError(null);}} placeholder="e.g. DES5002" aria-describedby="tcs-code-help" aria-invalid={invalid('code')} aria-errormessage={invalid('code')?'tcs-setup-error':undefined} required/></label>
     <p id="tcs-code-help" className="tcs-help">Your course code keeps its slashes. Only the repository folder name uses underscores instead.</p>
-    <label>Course Name<input name="title" value={courseName} readOnly={Boolean(existing)} maxLength={160} onChange={event=>{setTitle(event.target.value);setError(null);}} placeholder="e.g. Design research and practice" aria-describedby="tcs-name-help" aria-invalid={invalid('title')} required/></label>
+    <label>Course Name<input name="title" value={courseName} readOnly={Boolean(existing)} maxLength={160} onChange={event=>{setTitle(event.target.value);setError(null);}} placeholder="e.g. Design research and practice" aria-describedby="tcs-name-help" aria-invalid={invalid('title')} aria-errormessage={invalid('title')?'tcs-setup-error':undefined} required/></label>
     <p id="tcs-name-help" className="tcs-help">{existing?'Existing course — its name and repository are retained for the new term.':'The full name is saved with the course details, without lengthening its folder name.'}</p>
-    <fieldset className="tcs-term-fields"><legend>Year Season</legend><label>Year<TeachYearSelect autoFocus={Boolean(courseCode)} name="year" value={year} onChange={value=>{setYear(value);setError(null);}} invalid={invalid('year')} required/></label><label>Season<select name="season" value={season} onChange={event=>{setSeason(event.target.value);setError(null);}} aria-invalid={invalid('season')} required><option value="">Choose a season</option>{teachSeasons.map(item=><option key={item}>{item}</option>)}</select></label></fieldset>
-    <section className="tcs-storage-preview" aria-label="Course folder preview"><strong>Proposed teacher repository</strong><code>asMagicBrain / {canonicalCode?repository:'[Course Code]_asTeach'} / {termFolder} / instructor.md</code><p>Teacher source stays in its own course repository. A separate student repository would require a reviewed export.</p></section>
+    <fieldset className="tcs-term-fields"><legend>Year Season</legend><label>Year<TeachYearSelect autoFocus={Boolean(courseCode)} name="year" value={year} onChange={value=>{setYear(value);setError(null);}} invalid={invalid('year')} errorMessageId="tcs-setup-error" required/></label><label>Season<select name="season" value={season} onChange={event=>{setSeason(event.target.value);setError(null);}} aria-invalid={invalid('season')} aria-errormessage={invalid('season')?'tcs-setup-error':undefined} required><option value="">Choose a season</option>{teachSeasons.map(item=><option key={item}>{item}</option>)}</select></label></fieldset>
+    <section className="tcs-storage-preview" aria-label="Course folder preview"><strong>Proposed teacher repository</strong><code>asMagicBrain / {canonicalCode?repository:'[Course Code]_asTeach'} / {termFolder} / instructor.md</code>{nativeMode?<><strong>Proposed Student repository</strong><code>asMagicBrain / {canonicalCode?canonicalCode.replaceAll('/','_')+'_Students':'[Course Code]_Students'} / {termFolder} / student.md</code><p>Both repositories are prepared together. Review Instructor content before copying it to Students.</p></>:<p>Teacher source stays in its own course repository. A separate student repository would require a reviewed export.</p>}</section>
     {error&&<p role="alert" className="tcs-error" id="tcs-setup-error">{error.message}</p>}
-    <p className="tcs-session-note">Storybook preview: no folders are created on disk.</p>
+    {!nativeMode&&<p className="tcs-session-note">Storybook preview: no folders are created on disk.</p>}
     <footer><button type="button" className="pws-button" onClick={onClose}>Cancel</button><button type="submit" className="pws-button tcs-primary">{existing?'Create term':'Create course'}</button></footer>
   </form></CourseDialog>;
 }
@@ -141,7 +142,7 @@ export function AddCourseDialog({courses,onClose,onCreate}:Pick<Props,'courses'|
   </CourseDialog>;
 }
 
-export function TeachCoursesStudy({courses,calendarState,readOnly=false,summaries,teacherProfile,onOpen,onCourse,onAddTerm,onCreate,onReturnToRepository}:Props) {
+export function TeachCoursesStudy({nativeMode=false,onAddExisting,courses,calendarState,readOnly=false,summaries,teacherProfile,onOpen,onCourse,onAddTerm,onCreate,onReturnToRepository}:Props) {
   const [query,setQuery]=useState(''),[dialog,setDialog]=useState<'new'|'add'|null>(null);
   const courseGroups=groupTeachCourses(courses);
   const matchesQuery=(course:TeachStudyCourse)=>`${course.title} ${course.code} ${course.repository} ${course.year} ${course.season}`.toLowerCase().includes(query.trim().toLowerCase());
@@ -149,7 +150,7 @@ export function TeachCoursesStudy({courses,calendarState,readOnly=false,summarie
   const created=(course:TeachStudyCourse)=>{setDialog(null);setQuery('');onCreate(course);};
   return <section className="tcs-landing" aria-labelledby="tcs-heading" data-plugin-view="courses">
     <div className="tcs-content">
-      <header className="tcs-heading"><div><span className="tcs-eyebrow">asTeach</span><h1 id="tcs-heading" tabIndex={-1}>Courses</h1><p>Your course content, organized by teaching term.</p></div><div className="tcs-heading-actions">{readOnly?<span className="pws-badge">Reference courses</span>:<button type="button" className="pws-button" onClick={()=>setDialog('add')}>Add existing course</button>}<NewCourseButton onClick={()=>setDialog('new')}/></div></header>
+      <header className="tcs-heading"><div><span className="tcs-eyebrow">asTeach</span><h1 id="tcs-heading" tabIndex={-1}>Courses</h1><p>Your course content, organized by teaching term.</p></div><div className="tcs-heading-actions">{readOnly?<span className="pws-badge">Reference courses</span>:<button type="button" className="pws-button" onClick={()=>onAddExisting?onAddExisting():setDialog('add')}>Add existing course</button>}<NewCourseButton onClick={()=>setDialog('new')}/></div></header>
       {courses.length>0?<>
         <div className="tcs-list-heading"><h2>Courses <span className="pws-count">{matchingGroups.length}</span></h2><label className="pws-search"><span className="pws-sr-only">Search courses</span><input type="search" placeholder="Search courses" value={query} onChange={event=>setQuery(event.target.value)}/></label></div>
         <div className="tcs-list">{matchingGroups.map(group=>{
@@ -162,9 +163,9 @@ export function TeachCoursesStudy({courses,calendarState,readOnly=false,summarie
           </article>;
         })}{!matchingGroups.length&&<div className="tcs-empty"><h2>No matching courses</h2><p>Try a different name, code or teaching term.</p><button type="button" className="pws-button" onClick={()=>setQuery('')}>Clear search</button></div>}</div>
       </>:<div className="tcs-empty tcs-first"><span className="tcs-course-icon"><CourseIcon/></span><h2>Your first course starts here</h2><p>Create a course or add one you already have.<br/>Your files stay in your asMagicBrain workspace.</p><ol><li><strong>Prepare</strong><span>Build reusable Markdown sections.</span></li><li><strong>Teach</strong><span>Adapt your material for each term.</span></li><li><strong>Reuse</strong><span>Carry your improvements forward.</span></li></ol></div>}
-      <footer className="tcs-footer"><span>{readOnly?'Local reference · Original repositories unchanged.':'Storybook preview · Changes stay in this tab.'}</span><button type="button" onClick={onReturnToRepository}>Return to repository</button></footer>
+      <footer className="tcs-footer"><span>{nativeMode?'':readOnly?'Local reference · Original repositories unchanged.':'Storybook preview · Changes stay in this tab.'}</span><button type="button" onClick={onReturnToRepository}>Return to repository</button></footer>
     </div>
-    {dialog==='new'&&<NewCourseDialog courses={courses} teacherProfile={teacherProfile} onClose={()=>setDialog(null)} onCreate={created}/>}
+    {dialog==='new'&&<NewCourseDialog nativeMode={nativeMode} courses={courses} teacherProfile={teacherProfile} onClose={()=>setDialog(null)} onCreate={created}/>}
     {!readOnly&&dialog==='add'&&<AddCourseDialog courses={courses} onClose={()=>setDialog(null)} onCreate={created}/>}
   </section>;
 }

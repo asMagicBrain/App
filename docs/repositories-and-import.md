@@ -32,3 +32,9 @@ Wait for an operation to finish before closing. If you cancel late, an operation
 ## Bring in a GitHub repository
 
 Choose **Clone from GitHub** in the import dialog. A clone keeps the repository's Git history, branches, and tags. Public repositories can be cloned without signing in; private repositories need access. See [GitHub acquisition and updates](accounts-and-privacy.md#github-acquisition-and-updates).
+
+### Empty Local Trash
+
+Right-click empty space in the file explorer and choose **Restore from Trash…**. In **Local Trash**, choose **Empty Trash…**, review the items, then confirm **Empty Trash**. This permanently removes that repository’s trashed files, folders and retained drafts, and releases their filenames for reuse. Cancel keeps everything available for restoration.
+
+This does not empty macOS Trash, remove other repositories, or erase Git history and backups.

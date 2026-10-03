@@ -1,7 +1,9 @@
+import {installComments} from '../../../apps/desktop/ui/markdown-comments.mjs';
 import MarkdownIt from 'markdown-it';
 import {installMath, MATH_LIMITS} from '../../../apps/desktop/ui/markdown-math.mjs';
 
 const parser = new MarkdownIt({html: false, linkify: false, typographer: false, maxNesting: 32});
+installComments(parser);
 installMath(parser);
 export const PRO_VISUAL_LIMITS = Object.freeze({document: 524288, blocks: 32, diagrams: 16, block: 8192, renderedSource: 32768});
 

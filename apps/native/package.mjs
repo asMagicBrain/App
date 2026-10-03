@@ -130,6 +130,9 @@ try{
  const bundles=entries.filter(item=>item.type==='directory'&&/\.(?:app|framework)$/.test(item.path)).map(item=>path.join(bundle,item.path)).sort((a,b)=>b.length-a.length);
  for(const filename of bundles)record('sign bundle',run('/usr/bin/codesign',['--force','--sign','-','--timestamp=none',filename],{combined:true}));
  record('sign application',run('/usr/bin/codesign',['--force','--sign','-','--timestamp=none',bundle],{combined:true}));
+ // The vendor archive uses a reproducible 1980 directory timestamp. Finder
+ // should show when this application was actually assembled.
+ const assembledAt=new Date();fs.utimesSync(bundle,assembledAt,assembledAt);
  record('verify signature',run('/usr/bin/codesign',['--verify','--deep','--strict','--verbose=2',bundle],{combined:true}));
  record('signature details',run('/usr/bin/codesign',['--display','--verbose=4',bundle],{combined:true}));
  for(const input of inputs)if(sha256(fs.readFileSync(path.join(appRoot,input.path)))!==input.sha256)throw Error('Source/build input changed while packaging.');verifySource();

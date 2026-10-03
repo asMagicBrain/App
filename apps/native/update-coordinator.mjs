@@ -6,7 +6,7 @@ const phases = new Set(['connecting', 'receiving', 'comparing']);
 
 /** Host-only credentials and cancellation. Completed jobs retain plain DTOs,
  * never Git subprocess output or credentials. No working-tree update is offered. */
-export function createUpdateCoordinator({check, getCredential}) {
+export function createUpdateCoordinator({check, push, getCredential}) {
   const jobs = new Map();
   let active = null, closing = false, paused = false, disconnecting = false;
   function find(input) {
@@ -15,12 +15,13 @@ export function createUpdateCoordinator({check, getCredential}) {
     if (!job) fail('UPDATE_NOT_FOUND');
     return job;
   }
-  function checkRepositoryUpdates(input) {
+  function checkRepositoryUpdates(input, pushing=false) {
     try {
       if (closing || paused) fail('SERVICE_CLOSED');
-      if (!exact(input, ['repo', 'requestId', 'useAccount']) || !validCreationId(input.requestId) || !validRepositoryName(input.repo) || typeof input.useAccount !== 'boolean') fail('INVALID_REQUEST');
+      if (!exact(input, pushing?['repo','requestId','useAccount','checkId','reviewId']:['repo', 'requestId', 'useAccount']) || !validCreationId(input.requestId) || !validRepositoryName(input.repo) || typeof input.useAccount !== 'boolean') fail('INVALID_REQUEST');
       if (input.useAccount && disconnecting) fail('GITHUB_BUSY');
-      const request = {repo: input.repo, requestId: input.requestId};
+      if(pushing&&(!input.useAccount||!validCreationId(input.checkId)||!validCreationId(input.reviewId)||!push))fail('INVALID_REQUEST');
+      const request = {repo: input.repo, requestId: input.requestId,...(pushing?{checkId:input.checkId,reviewId:input.reviewId}:{})};
       const signature = JSON.stringify({...request, useAccount: input.useAccount});
       const previous = jobs.get(request.requestId);
       if (previous && previous.signature !== signature) fail('REQUEST_CONFLICT');
@@ -35,7 +36,7 @@ export function createUpdateCoordinator({check, getCredential}) {
         try {
           if (input.useAccount) credential = await getCredential();
           if (controller.signal.aborted) fail('UPDATE_CANCELLED');
-          const result = await check(request, {signal: controller.signal, credential,
+          const result = await (pushing?push:check)(request, {signal: controller.signal, credential,
             onProgress: event => {if (phases.has(event?.phase)) job.phase = event.phase;}});
           job.phase = 'complete';
           return result;
@@ -54,6 +55,7 @@ export function createUpdateCoordinator({check, getCredential}) {
   }
   return {
     checkRepositoryUpdates,
+    pushRepository:input=>checkRepositoryUpdates(input,true),
     getRepositoryUpdateProgress: input => {const job = find(input); return {requestId: job.requestId, phase: job.phase};},
     cancelRepositoryUpdate: input => cancelJob(find(input)),
     prepareClose: async () => {paused = true; if (active) await cancelJob(active);},

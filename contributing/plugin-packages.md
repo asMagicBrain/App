@@ -1,5 +1,8 @@
 # Local plugin packages
 
+
+**Current integration:** standard editor features are built in and no longer depend on Pro package activation. The old exact package is recognized only for compatibility/removal. asTeach still uses its separate exact package binding. The Pro package sections below describe the preserved earlier design.
+
 [Plugin contracts](plugins.md) · [Architecture](architecture.md) · [User guide](../docs/plugins.md)
 
 Stage 4.5 introduces the offline `.asmbplugin` package and its host-owned storage lifecycle. This is an installation boundary for inert declarative resources. It is not a JavaScript loader, renderer extension point, marketplace, network updater or sandbox.
@@ -87,7 +90,7 @@ Enable/disable changes persisted package state. Ordinary packages remain inert a
 
 The native host owns focused methods for inspection, listing, installation, enablement, rollback and uninstall. Stage 4.5C exposes only reviewed operations through the isolated preload bridge. The native picker reads and inspects the selected file, then returns a short-lived opaque review ticket with bounded metadata. No absolute storage path crosses into the renderer. Installation consumes that ticket once; close, reload, cancellation and expiry discard it.
 
-Stage 4.5D binds the exact committed Pro Editor package id, version, archive digest and publisher to the separately reviewed first-party module already compiled into the application. Removing or disabling the package removes its contributions; changing any package byte breaks the binding. This is an application-owned allowlist, not a general loader. Arbitrary package code is never imported into the renderer through this declarative contract. asTeach remains independent Storybook work and will use the completed distribution foundation later.
+asTeach binds exact approved package identities to the first-party teaching module already compiled into the application. Disabling or removing asTeach removes its contributions; changing any package byte breaks the binding. This is an application-owned allowlist, not a general loader. Arbitrary package code is never imported into the renderer. The previous asTeach 0.1.1 identity remains supported during app upgrades; the separately distributed 0.1.2 package uses the same reviewed lifecycle. Pro Editor features are built into the app; old Pro archives are retained only for compatibility and removal.
 
 The deterministic Pro package proof and builder are in [`packages/pro-editor-plugin`](../packages/pro-editor-plugin/). A changed source must produce a changed digest and a reviewed binding update.
 

@@ -1,3 +1,4 @@
+import {installComments, visibleInlineText} from '../../apps/desktop/ui/markdown-comments.mjs';
 import MarkdownIt from 'markdown-it';
 import {commonmarkLanguage} from '@codemirror/lang-markdown';
 import {localLink} from '../../apps/desktop/ui/markdown-preview.mjs';
@@ -6,6 +7,7 @@ import {approvedTeachAssetUrl, teachDisplaySource} from './teach-content.mjs';
 // These helpers operate only on strings supplied by the course session. They do
 // not read files, fetch assets, publish, or change the reference fixture.
 const parser = new MarkdownIt({html:false,linkify:false,typographer:false,breaks:false,maxNesting:32});
+installComments(parser);
 export const teachDocumentSections = Object.freeze([
   ['course-description','Course Description'], ['teaching-goals','Teaching Goals'],
   ['learning-outcomes','Learning Outcomes'], ['content-summary','Content Summary'],
@@ -36,8 +38,7 @@ function withoutMetadata(source) {
 }
 
 function visibleTitle(tokens) {
-  return tokens.map(token => ['text','code_inline','image'].includes(token.type)?token.content:
-    ['softbreak','hardbreak'].includes(token.type)?' ':token.children?visibleTitle(token.children):'').join('').replace(/\s+/gu,' ').trim();
+  return visibleInlineText(tokens).replace(/\s+/gu, ' ').trim();
 }
 
 function headings(source) {

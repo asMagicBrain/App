@@ -71,7 +71,7 @@ try{
   const directory=fs.opendirSync('.'),entries=[];
   try{for(let entry=directory.readSync();entry;entry=directory.readSync()){if(++visited>30000){limit();break;}entries.push(entry.name);}}finally{directory.closeSync();}
   for(const name of entries.sort()){
-   if(elapsed()||stopped)break;const relativePath=relative?relative+'/'+name:name;if(!allowed(relativePath))continue;
+   if(elapsed()||stopped)break;const relativePath=relative?relative+'/'+name:name;if(!allowed(relativePath)||(root.excluded??[]).includes(relativePath))continue;
    const state=fs.lstatSync(name,{bigint:true});if(state.isSymbolicLink()||(!state.isDirectory()&&!state.isFile()))continue;
    const candidate=relativePath+(state.isDirectory()?'/':'');
    if(kind==='text'){
@@ -107,7 +107,7 @@ try{
    const ref=await command(gitExecutable(),[...args,'rev-parse','--verify','--end-of-options',input.ref+'^{commit}']);const oid=ref.bytes.toString().trim();if(ref.code!==0||! /^[a-f0-9]{40,64}$/.test(oid))fail('INVALID_REF');
    const tree=await command(gitExecutable(),[...args,'ls-tree','-rz','--full-tree',oid]);if(tree.code!==0||tree.overflow||tree.timedOut)fail('SEARCH_LIMIT_EXCEEDED');
    for(const entry of decode(tree.bytes).split('\0').filter(Boolean)){
-    const tab=entry.indexOf('\t'),[mode,type]=entry.slice(0,tab).split(' '),name=entry.slice(tab+1);if(!['100644','100755'].includes(mode)||type!=='blob'||!allowed(name))continue;
+    const tab=entry.indexOf('\t'),[mode,type]=entry.slice(0,tab).split(' '),name=entry.slice(tab+1);if(!['100644','100755'].includes(mode)||type!=='blob'||!allowed(name)||(root.excluded??[]).includes(name))continue;
     if(result.paths.length>=limits.files){limit();break;}if(!addPath(name))break;
    }result.commit=oid;
   }else await walk(root,'',[],root.identity);

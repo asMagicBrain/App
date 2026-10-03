@@ -1,6 +1,8 @@
+import {installComments} from '../desktop/ui/markdown-comments.mjs';
 import MarkdownIt from 'markdown-it';
 import {localLink,renderSourcePreview} from '../desktop/ui/markdown-preview.mjs';
 const parser=new MarkdownIt({html:false,linkify:false,typographer:false,breaks:false,maxNesting:32});
+installComments(parser);
 const markup=value=>value.replace(/[&<>"']/gu,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 /** Bundled with the existing offline reader. Imported Markdown is parsed as data;
  * repository HTML, scripts and diagrams are never executed by validation. */

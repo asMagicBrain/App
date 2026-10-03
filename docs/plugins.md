@@ -8,32 +8,15 @@ The manager separates **Bundled** and **Installed** plugins. This version bundle
 
 ## Markdown editing
 
-Check document statistics or add bold formatting to selected text. These core tools stay available without installing a plugin. Formatting stays in your draft until you save.
+Check document statistics or use the formatting toolbar. These core tools stay available without installing a plugin. Formatting stays in your draft until you save.
 
-## Pro Editor
+## Built-in editor
 
-Pro Editor is separately installable. Download `asMagicBrain-Pro-Editor-0.1.0.asmbplugin` from the same [GitHub release](https://github.com/asMagicBrain/App/releases) as the app, verify it against that release's `SHA256SUMS`, install it through **Plugins**, then enable it. It uses the same Markdown editor and files.
+Formatting, autocomplete, Source/Visual/Split and reviewed local interactive views are included in asMagicBrain. See [Editor](editor.md).
 
-The package contains no executable code. Its exact verified identity activates Pro Editor code already reviewed and compiled with asMagicBrain. A changed or third-party package remains inert declarative content and cannot activate application code.
+If you previously installed Pro Editor, its archive appears under **Retained packages from earlier versions**. You can uninstall that old package without disabling editor features or removing documents and drafts. New installation of the recognized old package is unnecessary and disabled.
 
-- **Source** shows your Markdown. **Visual** displays supported equations and Mermaid diagrams in place; select **Edit source** to change one.
-- **Insert equation** and **Insert diagram** add a starting example at your selection.
-- **Split** shows the editor and a live preview with synchronized scrolling.
-- Unsupported Markdown stays available as source. Save and Git commits remain separate.
-
-Ordinary math and diagram reading works without Pro Editor.
-
-### Local interactive views
-
-With Pro Editor enabled, open a local `.html` file or `.artifact.json` package and choose **Review interactive view**. Review the listed files, then choose **Run interactive view**. Nothing runs just because you open a repository.
-
-The view runs inside the app with network, account access, popups and downloads blocked. **Stop**, **Source** and **Static fallback** keep a reading option available. **Reset** restarts the example and its controls without changing your files. Closing the view disposes it.
-
-Standalone HTML can use its own embedded code. Additional local scripts and images need a manifest listing their hashes. Changed content needs another review. One interactive view can run at a time, for up to ten minutes. WebGL depends on the computer's graphics support; source and static fallback remain available when it cannot run.
-
-Viewing state is not saved between runs. Workers, WebRTC, remote resources and physics/WASM engines are unsupported. [Offline reading exports](packages-and-export.md) keep interactive HTML as inactive source.
-
-asTeach is still being designed and is not included in the native application yet.
+asTeach is a separate plugin download for local courses, calendars, multi-page lessons and reviewed Student output. GitHub delivery uses the app’s explicit commit and Push workflow. See [asTeach](asteach.md).
 
 ## Update or remove a plugin
 

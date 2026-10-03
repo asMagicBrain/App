@@ -1,7 +1,7 @@
 import {persistentIdentity, persistentDevice, storageWorkerEnvelope} from './storage-identity.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { isIdentity } from '../domain/identity.mjs';
@@ -62,6 +62,27 @@ function runWorker(parent, command, fields, limit = FILE_LIMIT, outputLimit = 48
   if (command === 'transaction' && JSON.stringify(value) !== result.stdout) throw error('WORKER_FAILED');
   return value;
 }
+// The fixed worker owns the same durable transaction engine. Async execution
+// keeps the host event loop available; roots and every reply remain checked.
+function runWorkerAsync(parent, command, fields, limit = FILE_LIMIT, outputLimit = 48 * FILE_LIMIT) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [worker], {cwd: parent.path, shell: false,
+      env: {PATH:'/usr/bin:/bin',LANG:'C',LC_ALL:'C',...(process.versions.electron?{ELECTRON_RUN_AS_NODE:'1'}:{})}, stdio: ['pipe','pipe','pipe']});
+    const chunks=[];let total=0, failed=false;
+    const abort=code=>{if(failed)return;failed=true;clearTimeout(timer);child.kill();reject(error(code));};
+    const timer=setTimeout(()=>abort('WORKER_FAILED'),30000);
+    child.stdout.on('data',chunk=>{total+=chunk.length;if(total>outputLimit)abort('WORKER_FAILED');else chunks.push(chunk);});
+    child.stderr.on('data',chunk=>{total+=chunk.length;if(total>outputLimit)abort('WORKER_FAILED');});
+    child.on('error',()=>{clearTimeout(timer);abort('WORKER_FAILED');});
+    child.stdin.on('error',()=>abort('WORKER_FAILED'));
+    child.on('close',(status,signal)=>{clearTimeout(timer);if(failed)return;
+      const stdout=Buffer.concat(chunks).toString('utf8');let value;try{value=JSON.parse(stdout);}catch{reject(error('WORKER_FAILED'));return;}
+      if(status!==0||signal||!value.ok||JSON.stringify(value)!==stdout){reject(error(value.code??'WORKER_FAILED'));return;}resolve(value);
+    });
+    child.stdin.end(JSON.stringify(storageWorkerEnvelope({command,identity:parent.identity,...fields,limit})));
+  });
+}
+
 function wire(snapshot) {
   return { schemaVersion: snapshot.schemaVersion, requestId: snapshot.requestId, target: snapshot.target,
     expected: snapshot.expected, input: { assets: snapshot.input.assets,
@@ -98,7 +119,7 @@ export function executeFilesystemTransaction(context, request, execute) {
   }
   let parents = [];
   const api = createFilesystem(context.options, execute, value => { parents = value; }), plan = unwire(request), snapshot = inspectTransaction(plan);
-  if (snapshot.schemaVersion !== 2) throw error('INVALID_OPERATION');
+  if (![2,3].includes(snapshot.schemaVersion)) throw error('INVALID_OPERATION');
   try {
     const outcome = api.apply(plan);
     return { ok: true, phase: 'result', result: outcome,
@@ -439,8 +460,7 @@ function createFilesystem(options, localExecute = null, captureParents = null) {
       }
       if (directory(parent.path).identity !== parent.identity) throw error('DIRECTORY_CHANGED');
   }
-  function applyTask(plan) {
-    return locked(() => {
+  function* applyTaskSteps(plan) {
       let snapshot;
       try {
         snapshot = inspectTransaction(plan);
@@ -449,9 +469,9 @@ function createFilesystem(options, localExecute = null, captureParents = null) {
       } catch (failure) {
         const rejected = error(failure?.code ?? 'FAILED'); preflightFailures.add(rejected); throw rejected;
       }
-      const reply = runWorker(repository, 'transaction', { context: {
+      const reply = yield { context: {
         options: { ...options, repositoryRoot: repository.path, recoveryRoot: recovery.path },
-        repositoryIdentity: repository.identity, recoveryIdentity: recovery.identity }, request: wire(snapshot) });
+        repositoryIdentity: repository.identity, recoveryIdentity: recovery.identity }, request: wire(snapshot) };
       checkRoots();
       if (isExactDataRecord(reply, ['ok', 'phase', 'code']) && reply.ok === true && reply.phase === 'preflight'
         && typeof reply.code === 'string' && /^[A-Z][A-Z0-9_]{0,63}$/u.test(reply.code)) {
@@ -482,7 +502,12 @@ function createFilesystem(options, localExecute = null, captureParents = null) {
       }
       if (value.status !== 'manual-recovery') remember(snapshot);
       return Object.freeze(value);
-    });
+  }
+  function applyTask(plan) {return locked(()=>{const steps=applyTaskSteps(plan), first=steps.next();return steps.next(runWorker(repository,'transaction',first.value)).value;});}
+  async function applyTaskAsync(plan) {
+    if(locks.has(repository.identity))throw error('BUSY');locks.add(repository.identity);
+    try {const steps=applyTaskSteps(plan), first=steps.next();return steps.next(await runWorkerAsync(repository,'transaction',first.value)).value;}
+    finally {locks.delete(repository.identity);}
   }
   return Object.freeze({
     preflight(plan) {
@@ -507,11 +532,15 @@ function createFilesystem(options, localExecute = null, captureParents = null) {
         readOnly: !isPortableRelativePath(file.path), warnings: Object.freeze(isPortableRelativePath(file.path) ? [] : ['NON_PORTABLE_PATH']),
         get bytes() { return file.bytes === null ? null : new Uint8Array(Buffer.from(file.bytes, 'base64')); } })));
     },
+    async applyAsync(plan, hooks = {}) {
+      if(localExecute===null&&[2,3].includes(inspectTransaction(plan).schemaVersion)&&Reflect.ownKeys(hooks).length===0)return applyTaskAsync(plan);
+      return this.apply(plan,hooks);
+    },
     apply(plan, hooks = {}) {
       // Hooks are trusted in-process qualification hooks, never request fields.
-      // The ordinary v2 path uses one short-lived task. Hook-bearing execution
+      // Ordinary source and binary paths use one short-lived task. Hook-bearing execution
       // runs this SAME engine locally, retaining every existing fault boundary.
-      if (localExecute === null && inspectTransaction(plan).schemaVersion === 2 && Reflect.ownKeys(hooks).length === 0) return applyTask(plan);
+      if (localExecute === null && [2,3].includes(inspectTransaction(plan).schemaVersion) && Reflect.ownKeys(hooks).length === 0) return applyTask(plan);
       return locked(() => {
         let snapshot, current;
         try {

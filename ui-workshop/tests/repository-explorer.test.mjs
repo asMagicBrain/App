@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildExplorerTree, selectedRoots, canMoveSelection, moveSelectionProblem, externalDropDestination, directFolderDropDestination, activeDirectDropDestination, renameProblem} from '../src/repository-explorer-model.ts';
+import {relativeExplorerPath,buildExplorerTree, selectedRoots, canMoveSelection, moveSelectionProblem, externalDropDestination, directFolderDropDestination, activeDirectDropDestination, renameProblem} from '../src/repository-explorer-model.ts';
 
 test('flat entries become folders-first trees with unloaded parent folders and stable path identities', () => {
   const entries = [{path:'README.md',type:'file'},{path:'docs/z.md',type:'file'},{path:'empty',type:'directory'},{path:'docs/a.md',type:'file'},{path:'__proto__/safe.md',type:'file'}];
@@ -87,4 +87,11 @@ test('direct visual hover belongs only to the active drag and preserves the expl
   for(const dragId of [null,undefined,'','another/file.md'])assert.equal(activeDirectDropDestination(folder,dragId),null);
   assert.equal(activeDirectDropDestination(null,'source/file.md'),null);
   assert.deepEqual(folder,{dragId:'source/file.md',destination:'target'});
+});
+
+test('document-relative copy handles nested, sibling, root and Unicode paths',()=>{
+ assert.equal(relativeExplorerPath('2026-autumn/classes/Class01.md','2026-autumn'),'classes/Class01.md');
+ assert.equal(relativeExplorerPath('README.md','2026-autumn/classes'),'../../README.md');
+ assert.equal(relativeExplorerPath('2026-autumn/classes','2026-autumn/classes'),'.');
+ assert.equal(relativeExplorerPath('资料/My Notes.md',''),'资料/My Notes.md');
 });

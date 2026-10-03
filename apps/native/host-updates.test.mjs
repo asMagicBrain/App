@@ -91,3 +91,37 @@ test('read-only remote comparison preserves inspectable Git names without author
  assert.equal((await f.service.readRepositoryUpdateFile({repo:'Cloned',checkId:result.checkId,path:'100%.md'})).after,'Percent\n');assert.equal((await f.service.readRepositoryUpdateFile({repo:'Cloned',checkId:result.checkId,path:'Week1: Notes.md'})).after,'Colon\n');assert.deepEqual(inventory(f.root),before);
  await assert.rejects(call(f.service,'create',{path:'100%.md',text:'Not a local write permission'}),{code:'INVALID_PATH'});
 });
+
+test('Push review includes outgoing history, refuses dirty files and stale heads, and consumes confirmation once',async t=>{
+ let sent=0;const f=await fixture(t,{hooks:{pushTransport:async({review})=>{sent++;return {status:'pushed',head:review.localHead,branch:review.branch,sourceUrl:review.sourceUrl};}}});
+ const first=commit(f.root,{'classes/Class01.md':'# Class 01\n','remove.md':null});
+ const checked=await f.service.checkRepositoryUpdates(input());
+ const review=await f.service.reviewRepositoryPush({repo:'Cloned',checkId:checked.checkId});
+ assert.equal(review.commits[0].oid,first);assert.deepEqual(review.files,[{path:'classes/Class01.md',status:'added'},{path:'remove.md',status:'deleted'}]);
+ fs.writeFileSync(path.join(f.root,'README.md'),'Unsaved to Git');
+ await assert.rejects(f.service.pushRepository({...input(),checkId:checked.checkId,reviewId:review.reviewId},{credential:{token:'test'}}),{code:'PUSH_CLEAN_REQUIRED'});
+ git(f.root,'restore','README.md');commit(f.root,{'README.md':'New local commit\n'});
+ await assert.rejects(f.service.pushRepository({...input(),checkId:checked.checkId,reviewId:review.reviewId},{credential:{token:'test'}}),{code:'PUSH_RECHECK_REQUIRED'});
+ assert.equal(sent,0);const updated=await f.service.checkRepositoryUpdates(input()),approved=await f.service.reviewRepositoryPush({repo:'Cloned',checkId:updated.checkId});assert.equal(approved.commits.length,2);
+ const before=inventory(f.root);assert.equal((await f.service.pushRepository({...input(),checkId:updated.checkId,reviewId:approved.reviewId},{credential:{token:'test'}})).status,'pushed');assert.equal(sent,1);assert.deepEqual(inventory(f.root),before);
+ await assert.rejects(f.service.pushRepository({...input(),checkId:updated.checkId,reviewId:approved.reviewId},{credential:{token:'test'}}),{code:'PUSH_RECHECK_REQUIRED'});assert.equal(sent,1);
+});
+
+test('Push refuses diverged history and retained drafts, and does not persist confirmation through restart',async t=>{
+ const f=await fixture(t);commit(f.root,{'local.md':'Local'});let checked=await f.service.checkRepositoryUpdates(input());const opened=await call(f.service,'open',{path:'README.md'});await call(f.service,'checkpoint',{path:'README.md',baseHash:opened.sourceHash,text:'Private draft'});
+ await assert.rejects(f.service.reviewRepositoryPush({repo:'Cloned',checkId:checked.checkId}),{code:'PUSH_CLEAN_REQUIRED'});
+ const g=await fixture(t);commit(g.root,{'local.md':'Local'});checked=await g.service.checkRepositoryUpdates(input());const review=await g.service.reviewRepositoryPush({repo:'Cloned',checkId:checked.checkId});await g.restart();
+ await assert.rejects(g.service.pushRepository({...input(),checkId:checked.checkId,reviewId:review.reviewId},{credential:{token:'test'}}),{code:'PUSH_RECHECK_REQUIRED'});
+ commit(g.original,{'remote.md':'Remote'});checked=await g.service.checkRepositoryUpdates(input());await assert.rejects(g.service.reviewRepositoryPush({repo:'Cloned',checkId:checked.checkId}),{code:'PUSH_RECHECK_REQUIRED'});
+});
+
+
+test('locally created repository reviews all files for first publication to an absent branch',async t=>{
+ const f=await fixture(t,{empty:true,hooks:{pushTransport:async({review})=>({status:'pushed',head:review.localHead,branch:review.branch,sourceUrl:review.sourceUrl})}});
+ const root=path.join(f.dataRoot,'workspaces/asMagicBrain/Workspace');
+ commit(root,{'README.md':'# Student course\n[Class](classes/Class01.md)\n','classes/Class01.md':'# Class 01\n'});
+ await f.service.connectRepositoryGitHub({repo:'Workspace',url:'https://github.com/example/student',branch:'main'});
+ const checked=await f.service.checkRepositoryUpdates({repo:'Workspace',requestId:randomUUID()});assert.equal(checked.relation,'remote-branch-missing');assert.equal(checked.ahead,1);
+ const review=await f.service.reviewRepositoryPush({repo:'Workspace',checkId:checked.checkId});assert.equal(review.remoteHead,null);assert.deepEqual(review.files.map(f=>f.path),['README.md','classes/Class01.md']);assert.ok(review.files.every(f=>f.status==='added'));
+ assert.equal((await f.service.pushRepository({repo:'Workspace',requestId:randomUUID(),checkId:checked.checkId,reviewId:review.reviewId},{credential:{token:'fixture'}})).status,'pushed');
+});

@@ -33,3 +33,5 @@ If the files or Git state change during review, refresh the review before commit
 ## Read older versions
 
 Choose a branch, tag, or historical revision to read it. Return to the writable working files to edit. Local history helps you track changes, but it is not a [complete backup](data-and-recovery.md#make-a-backup).
+
+**Copy relative path** in the file explorer copies a path relative to the open document’s folder. In a folder view it uses that folder. **Copy path** continues to copy from the repository root. Spaces and Unicode names are kept as typed.

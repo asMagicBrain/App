@@ -1,7 +1,7 @@
 import {gitExecutable, gitEnvironment} from '../git-executable.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import {createHash} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {pipeline} from 'node:stream/promises';
 import {Transform} from 'node:stream';
@@ -111,8 +111,12 @@ export function createGitHubUpdates({sourceRoot,sourceBindingRoot,privateRoot,so
    if(remoteHead){
     if(!localHead){relation='local-empty';ahead=0;behind=Number(await task.string(['rev-list','--count',remoteHead]));}
     else{[ahead,behind]=(await task.string(['rev-list','--left-right','--count',`${localHead}...${remoteHead}`])).split(/\s+/).map(Number);const base=await task.run(['merge-base',localHead,remoteHead],{allow:[0,1]});relation=localHead===remoteHead?'up-to-date':base.code===1?'unrelated':!ahead?'remote-ahead':!behind?'local-ahead':'diverged';}
+   }
+   if(remoteHead||localHead){
+    if(!remoteHead){ahead=Number(await task.string(['rev-list','--count',localHead]));behind=0;}
+    const after=remoteHead??await task.string(['hash-object','-w','-t','tree','--stdin']);
     const before=localHead??await task.string(['hash-object','-w','-t','tree','--stdin']);
-    const raw=(await task.run(['diff','--raw','-z','--no-abbrev','--no-renames','--no-ext-diff','--no-textconv',before,remoteHead,'--'])).bytes;
+    const raw=(await task.run(['diff','--raw','-z','--no-abbrev','--no-renames','--no-ext-diff','--no-textconv',before,after,'--'])).bytes;
     let records;try{records=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(raw).split('\0');}catch{fail('UPDATES_UNSUPPORTED_ENTRY');}
     if(records.at(-1)==='')records.pop();if(records.length%2||records.length/2>GITHUB_UPDATE_LIMITS.files)fail('UPDATES_LIMIT_EXCEEDED');
     for(let index=0;index<records.length;index+=2){const [beforeMode,afterMode,beforeOid,afterOid,status]=records[index].slice(1).split(' '),name=records[index+1];if(!records[index].startsWith(':')||!safePath(name)||!oid(beforeOid)||!oid(afterOid)||!['A','M','D','T'].includes(status))fail('UPDATES_UNSUPPORTED_ENTRY');entries.push({path:name,status:{A:'added',M:'modified',D:'deleted',T:'type-changed'}[status],beforeMode,afterMode,beforeOid,afterOid});}
@@ -144,5 +148,39 @@ export function createGitHubUpdates({sourceRoot,sourceBindingRoot,privateRoot,so
   const promise=Promise.resolve().then(async()=>{checkDirectory(current.pin);const value=await callback(Object.freeze({result:structuredClone(current.result),gitDir:path.join(current.pin.path,'repository.git'),identity:current.pin.identity}));checkDirectory(current.pin);return value;});
   readers.add(promise);void promise.finally(()=>readers.delete(promise)).catch(()=>{});return promise;
  }
- return Object.freeze({get:({localHead,localBranch})=>{const current=readResult();return current?summary(current.result,localHead,localBranch):null;},check:checkUpdates,withSnapshot,readFile:request=>{if(active)return Promise.reject(Object.assign(new Error('UPDATES_BUSY'),{code:'UPDATES_BUSY'}));const promise=readPreview(request);readers.add(promise);void promise.finally(()=>readers.delete(promise)).catch(()=>{});return promise;}});
+ const pushReviews=new Map();
+ async function reviewPush({checkId,localHead,localBranch}){
+  return withSnapshot(checkId,async({result,gitDir})=>{
+   if(!['local-ahead','remote-branch-missing'].includes(result.relation)||result.localHead!==localHead||localBranch!==branch||!localHead||Date.now()-result.checkedAt>10*60*1000)fail('PUSH_RECHECK_REQUIRED');
+   if(result.entries.length>1000||result.ahead>1000)fail('PUSH_REVIEW_LIMIT');
+   const task=runner({gitDir});if(result.remoteHead&&(await task.run(['merge-base','--is-ancestor',result.remoteHead,result.localHead],{allow:[0,1]})).code!==0)fail('PUSH_RECHECK_REQUIRED');
+   const log=await task.string(['log','--format=%H%x00%s','--max-count=1001',result.remoteHead?`${result.remoteHead}..${result.localHead}`:result.localHead,'--']);
+   const commits=log.split('\n').filter(Boolean).map(line=>{const split=line.indexOf('\0');return {oid:line.slice(0,split),subject:line.slice(split+1)};});
+   if(commits.length!==result.ahead||commits.some(c=>!oid(c.oid)))fail('PUSH_RECHECK_REQUIRED');
+   const review={reviewId:randomUUID(),checkId,sourceUrl:url,branch,localHead,remoteHead:result.remoteHead,commits,files:result.entries.map(e=>({path:e.path,status:{added:'deleted',deleted:'added'}[e.status]??e.status})),expiresAt:Date.now()+5*60*1000};
+   pushReviews.clear();pushReviews.set(review.reviewId,review);return structuredClone(review);
+  });
+ }
+ async function push({checkId,reviewId,localHead,localBranch},{credential,signal}={}){
+  const review=pushReviews.get(reviewId);pushReviews.delete(reviewId);
+  if(!review||review.checkId!==checkId||review.expiresAt<=Date.now()||review.localHead!==localHead||localBranch!==branch)fail('PUSH_RECHECK_REQUIRED');
+  if(!credential||typeof credential.token!=='string'||!credential.token.length||credential.token.length>4096||/[\x00-\x20\x7f]/.test(credential.token))fail('INVALID_CREDENTIAL');
+  return withSnapshot(checkId,async({result,gitDir})=>{
+   if(result.localHead!==review.localHead||result.remoteHead!==review.remoteHead)fail('PUSH_RECHECK_REQUIRED');
+   const task=runner({gitDir,signal,credential});
+   if(review.remoteHead&&(await task.run(['merge-base','--is-ancestor',review.remoteHead,review.localHead],{allow:[0,1]})).code!==0)fail('PUSH_RECHECK_REQUIRED');
+   if(hooks.push)return hooks.push({gitDir,review,signal});
+   const ref=`refs/heads/${branch}`;
+   const remote=async()=>{const response=await task.run(['ls-remote','--exit-code','--heads','--',url,ref],{network:true,allow:[0,2]});return response.code===2?'':response.bytes.toString('utf8').trim();};
+   if(await remote()!==(review.remoteHead?`${review.remoteHead}\t${ref}`:''))fail('PUSH_RECHECK_REQUIRED');
+   // Ancestry was checked above. An exact lease additionally rejects ANY remote
+   // movement after review; this cannot admit a non-fast-forward overwrite.
+   let sent=false;
+   try{sent=true;await task.run(['push','--porcelain','--no-follow-tags',`--force-with-lease=${ref}:${review.remoteHead??''}`,'--',url,`${review.localHead}:${ref}`],{network:true});
+    const after=await remote();if(after!==`${review.localHead}\t${ref}`)fail('PUSH_OUTCOME_UNKNOWN');
+    return {status:'pushed',head:review.localHead,branch,sourceUrl:url};
+   }catch(error){if(sent)fail('PUSH_OUTCOME_UNKNOWN');throw error;}
+  });
+ }
+ return Object.freeze({reviewPush,push,get:({localHead,localBranch})=>{const current=readResult();return current?summary(current.result,localHead,localBranch):null;},check:checkUpdates,withSnapshot,readFile:request=>{if(active)return Promise.reject(Object.assign(new Error('UPDATES_BUSY'),{code:'UPDATES_BUSY'}));const promise=readPreview(request);readers.add(promise);void promise.finally(()=>readers.delete(promise)).catch(()=>{});return promise;}});
 }

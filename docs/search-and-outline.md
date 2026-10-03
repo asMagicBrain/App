@@ -27,6 +27,6 @@ Use the **Back** and **Forward** arrows beside the document path to return to a 
 
 ## Follow a portable reference
 
-If a collection supplies document IDs, **Copy reference** copies a reference to the saved bytes. Choose **Open reference…** to paste one. If two installed repositories share an ID, choose which copy to use. Missing or changed content is reported instead of silently substituting another version.
+If a collection supplies document IDs, **Copy reference** copies a reference to the saved bytes. Choose the document’s **… → Open reference…** to paste one. If two installed repositories share an ID, choose which copy to use. Missing or changed content is reported instead of silently substituting another version.
 
 **Evidence context** shows optional author declarations such as the observation date, build and scope. These declarations are not independent verification; a measured result remains distinct from a planned target. Ordinary files do not need metadata.

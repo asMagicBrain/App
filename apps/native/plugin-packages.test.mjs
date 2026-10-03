@@ -87,3 +87,19 @@ test('committed Pro Editor package has the exact trusted binding identity', () =
   assert.equal(result.manifest.id,'asmagicbrain.pro-editor');assert.equal(result.manifest.version,'0.1.0');assert.equal(result.manifest.publisher.id,'asmagicbrain.plugins');
   assert.equal(result.digest,'089d829a2550464662a50642c1e84504209d38affc278a4044e8587e19aa5344');assert.deepEqual(result.manifest.permissions,[]);assert.equal(result.manifest.execution.kind,'declarative');
 });
+
+test('replacing the host preserves enabled asTeach, legacy editor archives and course files', async t => {
+  const f=fixture(t),service=await f.open();
+  const teach=createPluginPackage({manifest:JSON.parse(fs.readFileSync(new URL('../../packages/asteach-plugin/manifest.json',import.meta.url),'utf8')),resources:[{path:'content/about.txt',bytes:fs.readFileSync(new URL('../../packages/asteach-plugin/about.txt',import.meta.url))}]});
+  const pro=fs.readFileSync(new URL('../../packages/pro-editor-plugin/asMagicBrain-Pro-Editor-0.1.0.asmbplugin',import.meta.url));
+  const teachIdentity=inspectPluginPackage(teach).manifest.id;
+  await service.installPluginPackage({bytes:teach,requestId:randomUUID()});
+  await service.installPluginPackage({bytes:pro,requestId:randomUUID()});
+  await service.setPluginPackageEnabled({pluginId:teachIdentity,enabled:true});
+  const filename=path.join(f.dataRoot,'workspaces/asMagicBrain/Workspace/course.md');
+  fs.writeFileSync(filename,'# Preserved course\n\nLocal course content.\n');
+  const before=(await service.listPluginPackages()).map(entry=>({id:entry.id,digest:entry.digest,enabled:entry.enabled}));
+  await f.restart();
+  assert.deepEqual((await f.service.listPluginPackages()).map(entry=>({id:entry.id,digest:entry.digest,enabled:entry.enabled})),before);
+  assert.equal(fs.readFileSync(filename,'utf8'),'# Preserved course\n\nLocal course content.\n');
+});

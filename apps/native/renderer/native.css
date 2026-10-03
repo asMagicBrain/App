@@ -1,9 +1,12 @@
 html,body,#root{width:100%;height:100%;margin:0;overflow:hidden}
 .native-startup{box-sizing:border-box;display:flex;min-height:100%;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;background:#fff;color:#1f2328;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .native-startup h1{font-size:20px;margin:0}.native-startup p{max-width:560px;margin:0}.native-startup button{font:inherit;padding:7px 16px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;cursor:pointer}
-.fw-native .fw-titlebar{-webkit-app-region:drag}
+.fw-native .fw-titlebar{-webkit-app-region:drag;app-region:drag;user-select:none}
 .fw-native .fw-titlebar button,.fw-native .fw-titlebar input,.fw-native .fw-titlebar select,.fw-native .rh-picker,.fw-native .ra-menu{-webkit-app-region:no-drag}
-.fw-native .fw-titlebar .rh-header{-webkit-app-region:no-drag}
+.fw-native .fw-titlebar .rh-header{-webkit-app-region:drag;app-region:drag}
+/* The flex spacer must have an actual hit area, including crowded course headers. */
+.fw-native .fw-titlebar>.fw-spacer{height:100%;min-width:24px;-webkit-app-region:drag;app-region:drag}
+.fw-native .fw-titlebar a,.fw-native .fw-titlebar textarea,.fw-native .fw-titlebar [role="menu"],.fw-native .fw-titlebar [role="dialog"]{-webkit-app-region:no-drag;app-region:no-drag}
 /* macOS draws the window edge and real traffic lights. Reserve their titlebar
    area without layering HTML controls or a second rounded border over them. */
 .fw-native-macos{border:0;border-radius:0}

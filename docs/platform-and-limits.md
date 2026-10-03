@@ -36,4 +36,4 @@ Removal leaves your repositories and profile in your home folder. [Back them up]
 
 ## Features still unavailable
 
-AI actions, cloud document sync, Push, merge/rebase, automatic remote updates, and multi-user collaboration are unavailable.
+AI actions, cloud document sync, merge/rebase, automatic remote updates, and multi-user collaboration are unavailable.

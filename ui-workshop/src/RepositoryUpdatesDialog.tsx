@@ -1,8 +1,8 @@
 import React, {useCallback, useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import {getNativeBridge, isNativeClosing, nativeOperation} from './native-bridge.mjs';
 import {invalidateGitHubConnection, useGitHubConnection} from './GitHubConnection';
-import {applyRepositoryUpdate, cancelRepositoryUpdate, checkRepositoryUpdates, getRepositoryApplyProgress, getRepositoryUpdateProgress, getRepositoryUpdates, readRepositoryUpdateFile, repositoryApplyUnavailable, repositoryUpdateError, repositoryUpdateSummary, repositoryUpdatesUnavailable, reviewRepositoryUpdate} from './repository-updates';
-import type {RepositoryApplyProgress, RepositoryUpdateApplied, RepositoryUpdateComparison, RepositoryUpdateFile, RepositoryUpdatePath, RepositoryUpdateProgress, RepositoryUpdateReview, RepositoryUpdates} from './native-types';
+import {reviewRepositoryPush, pushRepository, applyRepositoryUpdate, cancelRepositoryUpdate, checkRepositoryUpdates, getRepositoryApplyProgress, getRepositoryUpdateProgress, getRepositoryUpdates, readRepositoryUpdateFile, repositoryApplyUnavailable, repositoryUpdateError, repositoryUpdateSummary, repositoryUpdatesUnavailable, reviewRepositoryUpdate} from './repository-updates';
+import type {RepositoryPushReview, RepositoryApplyProgress, RepositoryUpdateApplied, RepositoryUpdateComparison, RepositoryUpdateFile, RepositoryUpdatePath, RepositoryUpdateProgress, RepositoryUpdateReview, RepositoryUpdates} from './native-types';
 import './ZipImportDialog.css';
 import './repository-updates.css';
 
@@ -65,15 +65,18 @@ type Props = {
 export function RepositoryUpdatesDialog({repository, returnFocus, onClose, beforeReview, beforeApply, onApplyingChange, onApplied, onApplyError}: Props) {
   const id = useId(), dialog = useRef<HTMLDialogElement>(null), checkButton = useRef<HTMLButtonElement>(null);
   const active = useRef(true), request = useRef<string | null>(null), submitting = useRef(false), cancelling = useRef(false);
-  const operationRef = useRef<'check' | 'review' | 'apply' | null>(null), reviewPanel = useRef<HTMLElement>(null);
-  const [info, setInfo] = useState<RepositoryUpdates | null>(null), [loading, setLoading] = useState(true), [operation, setOperation] = useState<'check' | 'review' | 'apply' | null>(null);
+  const operationRef = useRef<'check' | 'review' | 'apply' | 'push' | null>(null), reviewPanel = useRef<HTMLElement>(null);
+  const [info, setInfo] = useState<RepositoryUpdates | null>(null), [loading, setLoading] = useState(true), [operation, setOperation] = useState<'check' | 'review' | 'apply' | 'push' | null>(null);
   const [error, setError] = useState(''), [progress, setProgress] = useState(''), [cancelRequested, setCancelRequested] = useState(false);
   const [comparison, setComparison] = useState<RepositoryUpdateComparison | null>(null), [showFiles, setShowFiles] = useState(false), [useAccount, setUseAccount] = useState(false);
   const [review, setReview] = useState<RepositoryUpdateReview | null>(null), [reviewExpired, setReviewExpired] = useState(false), [applied, setApplied] = useState(false);
-  const busy = operation !== null;
+  const [pushReview,setPushReview]=useState<RepositoryPushReview|null>(null),[pushConfirmed,setPushConfirmed]=useState(false);
+  const [connectUrl,setConnectUrl]=useState(''),[connectBranch,setConnectBranch]=useState('main'),[connecting,setConnecting]=useState(false);
+  const busy = operation !== null || connecting;
   const {connection} = useGitHubConnection();
   const account = connection?.state === 'connected' ? connection.account : undefined;
 
+  useEffect(()=>{setPushReview(null);setPushConfirmed(false);},[account?.id]);
   useLayoutEffect(() => {
     const element = dialog.current!, previousFocus = returnFocus ?? document.activeElement;
     element.showModal(); checkButton.current?.focus();
@@ -81,7 +84,7 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
   }, [returnFocus]);
   useEffect(() => {
     active.current = true;
-    return () => {active.current = false; if (operationRef.current === 'check' && request.current && !isNativeClosing()) void cancelRepositoryUpdate(request.current).catch(() => {});};
+    return () => {active.current = false; if (['check','push'].includes(operationRef.current ?? '') && request.current && !isNativeClosing()) void cancelRepositoryUpdate(request.current).catch(() => {});};
   }, []);
   const inspect = useCallback(async () => {
     if (isNativeClosing()) return;
@@ -111,16 +114,17 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
   }, [operation]);
   useEffect(() => {
     setReviewExpired(false);
-    if (!review?.expiresAt) return;
-    const timer = setTimeout(() => setReviewExpired(true), Math.max(0, review.expiresAt - Date.now()));
+    const expiresAt=review?.expiresAt ?? pushReview?.expiresAt;
+    if (!expiresAt) return;
+    const timer = setTimeout(() => setReviewExpired(true), Math.max(0, expiresAt - Date.now()));
     return () => clearTimeout(timer);
-  }, [review]);
-  useEffect(() => {if (review && !busy) reviewPanel.current?.focus();}, [review, busy]);
+  }, [review,pushReview]);
+  useEffect(() => {if ((review || pushReview) && !busy) reviewPanel.current?.focus();}, [review, pushReview, busy]);
 
   const check = async () => {
     if (submitting.current || !info?.eligible || isNativeClosing()) return;
     request.current = crypto.randomUUID(); submitting.current = true; cancelling.current = false;
-    operationRef.current = 'check'; setOperation('check'); setReview(null); setError(''); setProgress(phaseLabels.connecting); setCancelRequested(false); setShowFiles(false);
+    operationRef.current = 'check'; setOperation('check'); setReview(null); setPushReview(null); setPushConfirmed(false); setError(''); setProgress(phaseLabels.connecting); setCancelRequested(false); setShowFiles(false);
     try {
       const result = await checkRepositoryUpdates({repo: repository, requestId: request.current, useAccount: Boolean(account && useAccount)});
       if (active.current) {setComparison(result); setProgress('Update check complete.');}
@@ -144,7 +148,7 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
     catch (reason) {if (active.current) {setError(repositoryUpdateError(reason)); cancelling.current = false; setCancelRequested(false);}}
     // Only the original request settles the operation; completed publication wins a late cancellation.
   };
-  const markStale = () => {setReview(null); setComparison(value => value && {...value, stale: true});};
+  const markStale = () => {setReview(null); setPushReview(null); setComparison(value => value && {...value, stale: true});};
   const canCompare = comparison && !comparison.stale && comparison.files.length > 0;
   const applyAvailable = Boolean(getNativeBridge()?.reviewRepositoryUpdate && getNativeBridge()?.applyRepositoryUpdate && beforeReview && beforeApply && onApplyingChange && onApplied);
   const canReview = Boolean(applyAvailable && !applied && info?.eligible && comparison && !comparison.stale && comparison.relation === 'remote-ahead');
@@ -162,6 +166,25 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
       submitting.current = false; operationRef.current = null; if (active.current) setOperation(null);
     }
   };
+  const canPush=Boolean(account && comparison && !comparison.stale && ['local-ahead','remote-branch-missing'].includes(comparison.relation) && beforeReview && beforeApply && getNativeBridge()?.pushRepository);
+  const preparePush=async()=>{
+    if(submitting.current||!canPush||!comparison||isNativeClosing())return;
+    submitting.current=true;setOperation('review');setError('');setPushReview(null);setPushConfirmed(false);
+    try{await nativeOperation(async()=>{await beforeReview?.();const value=await reviewRepositoryPush({repo:repository,checkId:comparison.checkId});if(active.current)setPushReview(value);});}
+    catch(reason){if(active.current)setError(repositoryUpdateError(reason));}
+    finally{submitting.current=false;if(active.current)setOperation(null);}
+  };
+  const push=async()=>{
+    if(submitting.current||!canPush||!pushReview||!pushConfirmed||isNativeClosing())return;
+    const reviewed=pushReview,requestId=crypto.randomUUID();
+    submitting.current=true;operationRef.current='push';request.current=requestId;setOperation('push');setError('');setProgress('Pushing reviewed commits to GitHub…');
+    await nativeOperation(async()=>{
+      try{await beforeApply?.();await pushRepository(repository,reviewed,requestId);if(active.current)setProgress('Commits pushed to GitHub. Check for updates to refresh the comparison.');}
+      catch(reason){if(active.current){setProgress('');setError(repositoryUpdateError(reason));}}
+      finally{submitting.current=false;operationRef.current=null;request.current=null;if(active.current){setOperation(null);setPushConfirmed(false);markStale();}invalidateGitHubConnection();}
+    });
+  };
+
   const apply = async () => {
     if (submitting.current || !canReview || !review?.canApply || !review.reviewId || !review.expiresAt || review.expiresAt <= Date.now() || !beforeApply || !onApplied || !onApplyingChange || isNativeClosing()) return;
     const reviewed = review, requestId = crypto.randomUUID(); let completed = false, hostAttempted = false;
@@ -196,8 +219,9 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
     <header><h2 id={`${id}-title`}>GitHub updates</h2><button type="button" className="zi-close" aria-label="Close GitHub updates" disabled={busy} onClick={onClose}>×</button></header>
     <p id={`${id}-description`}>Check for new GitHub commits and compare them with your local committed files.</p>
     <dl className="ru-source"><div><dt>Repository</dt><dd>{repository}</dd></div><div><dt>GitHub</dt><dd>{info?.sourceUrl ?? '—'}</dd></div><div><dt>Working branch</dt><dd>{info?.branch ?? '—'}</dd></div></dl>
+    {!loading && info?.reason==='local-only' && <form className="ru-connect" onSubmit={event=>{event.preventDefault();if(submitting.current)return;submitting.current=true;setConnecting(true);setError('');void nativeOperation(()=>getNativeBridge()!.connectRepositoryGitHub({repo:repository,url:connectUrl,branch:connectBranch})).then(value=>{if(active.current)setInfo(value);}).catch(reason=>{if(active.current)setError(repositoryUpdateError(reason));}).finally(()=>{submitting.current=false;if(active.current)setConnecting(false);});}}><h3>Connect to an existing GitHub repository</h3><label>Repository URL <input required type="url" value={connectUrl} disabled={busy} onChange={event=>setConnectUrl(event.target.value)} placeholder="https://github.com/owner/repository"/></label><label>Branch <input required value={connectBranch} disabled={busy} onChange={event=>setConnectBranch(event.target.value)}/></label><p className="zi-help">Use the same branch as your local repository. Connecting saves the destination locally. Check its history and review Push before uploading any files.</p><button disabled={busy} type="submit">Connect to GitHub…</button></form>}
     {loading && <p role="status">Reading repository connection…</p>}
-    {!loading && info && !info.eligible && <p className="zi-help">{repositoryUpdatesUnavailable(info.reason)}</p>}
+    {!loading && info && !info.eligible && <p className="zi-help">{info.reason==='local-only'?'Connect this repository to check GitHub history and review Push.':repositoryUpdatesUnavailable(info.reason)}</p>}
     <div className="ru-access">{account && <label className="gc-account"><input type="checkbox" checked={useAccount} disabled={busy} onChange={event => setUseAccount(event.target.checked)}/><span>Use GitHub account <strong>{account.username}</strong> for private repository access</span></label>}
     <p className="zi-help ru-description">Checking downloads repository history. Your saved files and retained drafts stay unchanged.</p></div>
     {error && <p role="alert" className="zi-error">{error}</p>}
@@ -209,7 +233,20 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
       {!comparison.stale && comparison.files.length === 0 && comparison.relation !== 'remote-branch-missing' && <p className="zi-help">No committed file differences.</p>}
       {comparison.truncated && <p className="ru-stale">Showing {comparison.files.length} of {comparison.totalFiles} changed paths. This is a partial comparison.</p>}
       <div className="ru-result-actions">{canCompare && <button type="button" disabled={busy} aria-expanded={showFiles} onClick={() => setShowFiles(value => !value)}>{showFiles ? 'Hide changes' : `View changes (${comparison.files.length})`}</button>}
+      {canPush && !pushReview && <button type="button" disabled={busy} onClick={()=>void preparePush()}>Review Push…</button>}
+      {['local-ahead','remote-branch-missing'].includes(comparison.relation) && !account && <p className="zi-help">Connect your GitHub account to push committed changes.</p>}
       {canReview && !review && <button type="button" disabled={busy} onClick={() => void prepareReview()}>{operation === 'review' ? 'Reviewing…' : 'Review update…'}</button>}</div>
+      {pushReview && <section ref={reviewPanel} tabIndex={-1} className="ru-apply-review" aria-label="Review Push">
+        <h3>Review Push</h3><p>Push to <strong>{pushReview.sourceUrl}</strong> · <strong>{pushReview.branch}</strong> as <strong>{account?.username}</strong>.</p>
+        <p>GitHub <code>{shortHead(pushReview.remoteHead)}</code> → local <code>{shortHead(pushReview.localHead)}</code></p>
+        <p className="zi-help">All {pushReview.commits.length} outgoing commits and their history will be uploaded, including content later edited or deleted. Review sensitive content before continuing.</p>
+        <details><summary>Outgoing commits ({pushReview.commits.length})</summary><ul>{pushReview.commits.map(c=><li key={c.oid}><code>{shortHead(c.oid)}</code> {c.subject}</li>)}</ul></details>
+        <details><summary>Changed paths ({pushReview.files.length})</summary><ul>{pushReview.files.map(f=><li key={f.path}>{f.path} · {f.status}</li>)}</ul></details>
+        {!pushReview.remoteHead && <p className="zi-help">This creates the GitHub branch and publishes every reviewed commit, including their earlier file contents.</p>}
+      {reviewExpired && <p role="status">This review expired. <button disabled={busy} onClick={()=>void preparePush()}>Review again</button></p>}
+        <label><input type="checkbox" checked={pushConfirmed} disabled={busy} onChange={e=>setPushConfirmed(e.target.checked)}/> I have reviewed the destination and outgoing history.</label>
+        <p className="zi-help">Only the reviewed branch is published. If it does not exist, Push creates it. A changed GitHub branch requires a new review.</p>
+      </section>}
       {review && <section ref={reviewPanel} tabIndex={-1} className="ru-apply-review" aria-labelledby={`${id}-review-title`}>
         <h3 id={`${id}-review-title`}>Review update</h3>
         <p>Update local <strong>{review.branch}</strong> from <code>{shortHead(review.localHead)}</code> to <code>{shortHead(review.remoteHead)}</code>.</p>
@@ -222,6 +259,6 @@ export function RepositoryUpdatesDialog({repository, returnFocus, onClose, befor
       {showFiles && canCompare && <section className="ru-files" aria-label="Read-only file changes"><p className="zi-help">Local committed content and fetched GitHub content. Saved edits and retained drafts are excluded.</p>{comparison.files.map(file => <UpdateFile key={`${comparison.checkId}:${file.path}`} repository={repository} comparison={comparison} file={file} onStale={markStale}/>)}</section>}
     </section>}
     <p className="zi-progress" role="status" aria-live="polite">{progress}</p>
-    <footer>{review ? <><button type="button" disabled={busy} onClick={() => {setReview(null); setError(''); setProgress(''); checkButton.current?.focus();}}>Back</button><button type="button" className="zi-primary" disabled={busy || !review.canApply || reviewExpired || !canReview} onClick={() => void apply()}>{operation === 'apply' ? 'Applying…' : 'Apply update'}</button></> : <>{operation === 'check' ? <button type="button" disabled={cancelRequested} onClick={() => void cancel()}>{cancelRequested ? 'Cancelling…' : 'Cancel check'}</button> : <button type="button" disabled={busy} onClick={onClose}>Close</button>}<button ref={checkButton} type="button" className="zi-primary" disabled={loading || busy || applied || !info?.eligible} onClick={() => void check()}>{operation === 'check' ? 'Checking…' : 'Check for updates'}</button></>}</footer>
+    <footer>{pushReview ? <><button type="button" disabled={busy} onClick={()=>{setPushReview(null);setPushConfirmed(false);}}>Back</button><button type="button" className="zi-primary" disabled={busy||!canPush||!pushConfirmed||reviewExpired} onClick={()=>void push()}>{operation==='push'?'Pushing…':'Push to GitHub'}</button></> : review ? <><button type="button" disabled={busy} onClick={() => {setReview(null); setError(''); setProgress(''); checkButton.current?.focus();}}>Back</button><button type="button" className="zi-primary" disabled={busy || !review.canApply || reviewExpired || !canReview} onClick={() => void apply()}>{operation === 'apply' ? 'Applying…' : 'Apply update'}</button></> : <>{operation === 'check' ? <button type="button" disabled={cancelRequested} onClick={() => void cancel()}>{cancelRequested ? 'Cancelling…' : 'Cancel check'}</button> : <button type="button" disabled={busy} onClick={onClose}>Close</button>}<button ref={checkButton} type="button" className="zi-primary" disabled={loading || busy || applied || !info?.eligible} onClick={() => void check()}>{operation === 'check' ? 'Checking…' : 'Check for updates'}</button></>}</footer>
   </dialog>;
 }

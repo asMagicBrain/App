@@ -201,3 +201,74 @@ test('directory parent replacement is detected before mkdir and source mutation'
   assert.equal(fs.existsSync(path.join(base,'new')),false);
   assert.equal(fs.readFileSync(path.join(options.sourceRoot,'old-docs/A.md'),'utf8'),'\ufeff# A\r\nText\r\n');
 });
+
+test('host compound save recovers after source write and preserves separate drafts', t => {
+ let interrupt=false;
+ const {runtime,options}=fixture(t,{at:point=>{if(interrupt&&point==='after-source-write')throw Error('interrupted');}});
+ const original=runtime.open('docs/A.md');runtime.checkpoint({path:original.path,baseHash:original.sourceHash,text:'private draft'});
+ interrupt=true;
+ assert.throws(()=>runtime.writeBatch([{path:'course.json',baseHash:null,text:'metadata'},{path:'2026-autumn/instructor.md',baseHash:null,text:'instructor'}]),/interrupted/);
+ runtime.close();const reopened=createRepositoryRuntime({...options,hooks:{}});
+ assert.equal(reopened.open('course.json').text,'metadata');assert.equal(reopened.open('2026-autumn/instructor.md').text,'instructor');assert.equal(reopened.open('docs/A.md').draft.text,'private draft');reopened.close();
+});
+test('host compound save refuses stale inputs, draft overwrite and path aliasing',t=>{
+ const {runtime,options}=fixture(t),file=runtime.open('docs/A.md');
+ assert.throws(()=>runtime.writeBatch([{path:file.path,baseHash:null,text:'bad'},{path:'other.md',baseHash:null,text:'bad'}]),{code:'CONFLICT'});
+ assert.equal(fs.existsSync(path.join(options.sourceRoot,'other.md')),false);
+ runtime.checkpoint({path:file.path,baseHash:file.sourceHash,text:'draft'});
+ assert.throws(()=>runtime.writeBatch([{path:file.path,baseHash:file.sourceHash,text:'bad'}]),{code:'DRAFT_CONFLICT'});
+ assert.throws(()=>runtime.writeBatch([{path:'B.md',baseHash:null,text:'B'},{path:'b.md',baseHash:null,text:'b'}]),{code:'CONFLICT'});
+ runtime.close();
+});
+test('compound save interrupted after intent leaves both old sources intact',t=>{
+ let stop=false;const {runtime,options}=fixture(t,{at:point=>{if(stop&&point==='after-intent')throw Error('interrupted');}});
+ const file=runtime.open('docs/A.md');stop=true;
+ assert.throws(()=>runtime.writeBatch([{path:file.path,baseHash:file.sourceHash,text:'changed'},{path:'next.md',baseHash:null,text:'new'}]),/interrupted/);runtime.close();
+ const next=createRepositoryRuntime({...options,hooks:{}});assert.equal(next.open(file.path).text,file.text);assert.equal(fs.existsSync(path.join(options.sourceRoot,'next.md')),false);next.close();
+});
+test('three-file teaching transaction is recovered together after source publication',t=>{
+ let stop=false;const {runtime,options}=fixture(t,{at:point=>{if(stop&&point==='after-source-write')throw Error('interrupted');}});stop=true;
+ assert.throws(()=>runtime.writeBatch(['course.json','term/instructor.md','term/teaching.json'].map(path=>({path,baseHash:null,text:path}))),/interrupted/);runtime.close();
+ const reopened=createRepositoryRuntime({...options,hooks:{}});for(const path of ['course.json','term/instructor.md','term/teaching.json'])assert.equal(reopened.open(path).text,path);reopened.close();
+});
+
+const trashEntry=(runtime,relative)=>runtime.manage({operation:'trash',items:[{path:relative,token:runtime.inspectEntry({path:relative}).token}]});
+const trashIds=runtime=>runtime.listTrash().map(item=>item.trashId);
+test('empty Trash removes retained trees and drafts, releases names and preserves live files',t=>{
+ const {runtime,options}=fixture(t),opened=runtime.open('docs/A.md');
+ runtime.checkpoint({path:opened.path,baseHash:opened.sourceHash,text:'retained deleted draft'});
+ const live=runtime.create({path:'keep.md',text:'keep'});runtime.checkpoint({path:live.path,baseHash:live.sourceHash,text:'keep draft'});
+ fs.writeFileSync(path.join(options.sourceRoot,'docs/asset.bin'),Buffer.alloc(1024*1024+1,7));
+ trashEntry(runtime,'docs');const ids=trashIds(runtime);
+ assert.throws(()=>runtime.emptyTrash({trashIds:[]}),{code:'CONFLICT'});
+ assert.throws(()=>runtime.emptyTrash({trashIds:[ids[0],ids[0]]}),{code:'INVALID_REQUEST'});
+ assert.equal(runtime.listTrash().length,1);
+ const result=runtime.emptyTrash({trashIds:ids});assert.equal(result.operation,'empty-trash');assert.deepEqual(result.changedPaths,[]);
+ assert.deepEqual(runtime.listTrash(),[]);assert.deepEqual(runtime.state().draftPaths,['keep.md']);
+ assert.equal(fs.existsSync(path.join(options.privateRoot,'managed-content',ids[0])),false);
+ assert.equal(runtime.open('keep.md').draft.text,'keep draft');
+ const next=runtime.create({path:'docs/A.md',text:'fresh'});assert.notEqual(next.documentId,opened.documentId);assert.equal(next.draft,null);
+ runtime.close();const reopened=createRepositoryRuntime(options);assert.deepEqual(reopened.listTrash(),[]);assert.equal(reopened.open('docs/A.md').text,'fresh');reopened.close();
+});
+test('empty Trash refuses a changed reviewed list without removing any backing',t=>{
+ const {runtime,options}=fixture(t);trashEntry(runtime,'docs');const reviewed=trashIds(runtime);
+ runtime.create({path:'later.md',text:'later'});trashEntry(runtime,'later.md');
+ assert.throws(()=>runtime.emptyTrash({trashIds:reviewed}),{code:'CONFLICT'});
+ assert.equal(runtime.listTrash().length,2);for(const id of trashIds(runtime))assert.equal(fs.existsSync(path.join(options.privateRoot,'managed-content',id)),true);
+});
+for(const phase of ['empty-trash-after-intent','management-after-cleanup-entry'])test(`empty Trash resumes after interruption at ${phase}`,t=>{
+ let armed=false;const {runtime,options}=fixture(t,{at(name){if(armed&&name===phase)throw Error('interrupted');}});
+ trashEntry(runtime,'docs');const ids=trashIds(runtime);armed=true;
+ assert.throws(()=>runtime.emptyTrash({trashIds:ids}),{code:'RECOVERY_REQUIRED'});assert.equal(runtime.state().recoveryRequired,true);assert.deepEqual(runtime.state().pending.paths,['docs']);runtime.close();
+ const recovered=createRepositoryRuntime({...options,hooks:{}});assert.equal(recovered.reconcile().operation,'empty-trash');assert.deepEqual(recovered.listTrash(),[]);assert.equal(recovered.state().recoveryRequired,false);
+ assert.equal(fs.existsSync(path.join(options.privateRoot,'managed-content',ids[0])),false);recovered.create({path:'docs/A.md',text:'new'});recovered.close();
+});
+for(const kind of ['corrupt','symlink'])test(`empty Trash rejects ${kind} backing before touching other entries`,t=>{
+ const {runtime,options}=fixture(t);trashEntry(runtime,'docs');runtime.create({path:'second.md',text:'second'});trashEntry(runtime,'second.md');const ids=trashIds(runtime),first=path.join(options.privateRoot,'managed-content',ids[0]),second=path.join(options.privateRoot,'managed-content',ids[1]);
+ if(kind==='corrupt')fs.writeFileSync(second,'modified');else{fs.unlinkSync(second);fs.symlinkSync(path.join(first,'A.md'),second);}
+ assert.throws(()=>runtime.emptyTrash({trashIds:ids}));assert.equal(fs.existsSync(path.join(first,'A.md')),true);assert.equal(runtime.listTrash().length,2);assert.equal(runtime.state().recoveryRequired,false);
+});
+test('empty Trash never deletes a file externally recreated at the old path',t=>{
+ const {runtime,options}=fixture(t);trashEntry(runtime,'docs/A.md');fs.writeFileSync(path.join(options.sourceRoot,'docs/A.md'),'external new file');
+ runtime.emptyTrash({trashIds:trashIds(runtime)});assert.equal(fs.readFileSync(path.join(options.sourceRoot,'docs/A.md'),'utf8'),'external new file');
+});

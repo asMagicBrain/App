@@ -9,11 +9,12 @@ type TeachYearSelectProps = {
   name?:string;
   required?:boolean;
   invalid?:boolean;
+  errorMessageId?:string;
   autoFocus?:boolean;
 };
 
 /** A short viewport, with every supported year still reachable by scrolling or keyboard. */
-export function TeachYearSelect({value,onChange,name,required=false,invalid=false,autoFocus=false}:TeachYearSelectProps) {
+export function TeachYearSelect({value,onChange,name,required=false,invalid=false,errorMessageId,autoFocus=false}:TeachYearSelectProps) {
   const trigger=useRef<HTMLButtonElement>(null),requiredId=useId();
   const [host,setHost]=useState<HTMLElement|null>(null),[open,setOpen]=useState(false);
   const [currentYear]=useState(()=>Math.min(2100,Math.max(1949,new Date().getFullYear())));
@@ -30,7 +31,7 @@ export function TeachYearSelect({value,onChange,name,required=false,invalid=fals
   useEffect(()=>{if(autoFocus)trigger.current?.focus({preventScroll:true});},[autoFocus]);
   return <span className="tyear-select">
     <DropdownMenu.Root modal={false} open={open} onOpenChange={setOpen}>
-      <DropdownMenu.Trigger asChild><button ref={trigger} className="tyear-trigger" type="button" name={name} value={value} aria-label="Year" aria-invalid={invalid||undefined} aria-describedby={required?requiredId:undefined}>
+      <DropdownMenu.Trigger asChild><button ref={trigger} className="tyear-trigger" type="button" name={name} value={value} aria-label="Year" aria-invalid={invalid||undefined} aria-errormessage={invalid?errorMessageId:undefined} aria-describedby={required?requiredId:undefined}>
         <span>{value||'Choose a year'}</span><svg viewBox="0 0 12 12" aria-hidden="true" fill="currentColor"><path d="m2 4 4 4 4-4Z"/></svg>
       </button></DropdownMenu.Trigger>
       {host&&<DropdownMenu.Portal container={host}><DropdownMenu.Content ref={positionYearMenu} className="tyear-menu" aria-label="Year" align="start" sideOffset={4} collisionPadding={8} loop onKeyDown={event=>event.stopPropagation()}>

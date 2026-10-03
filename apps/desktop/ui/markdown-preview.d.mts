@@ -4,3 +4,5 @@ export type PreviewImage = { id: string; relativeUrl: string; alt: string };
 export type PreviewOptions = { externalLinks?: boolean; technical?: boolean; sourceMap?: boolean; sourceLineMap?: number[] };
 export function localLink(value: string, currentPath?: string): { path: string; fragment: string } | null;
 export function renderSourcePreview(source: string, sourcePath?: string, options?: PreviewOptions): { html: string; headings: PreviewHeading[]; images: PreviewImage[]; limited: boolean };
+
+export function headingAnchor(title: string, used?: Set<string>): string;

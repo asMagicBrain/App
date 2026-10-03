@@ -25,17 +25,9 @@ sudo apt install ./asMagicBrain-VERSION-linux-amd64-preview.deb
 
 Replace `VERSION` with the downloaded version. Open **asMagicBrain Preview** from the applications menu as your normal user. The package supplies Git and the sandbox configuration; you do not need Node.js or a separate Git installation. Do not run the app with `sudo` or `--no-sandbox`.
 
-### Add Pro Editor
+### Use the editor
 
-Pro Editor is an optional plugin supplied as a separate file in the same release:
-
-1. Download `asMagicBrain-Pro-Editor-0.1.0.asmbplugin` and `SHA256SUMS`.
-2. Compare the plugin file with its checksum.
-3. Open **Plugins** in asMagicBrain and choose **Install plugin…**.
-4. Select the downloaded file, review its publisher, version and access, then install it.
-5. Enable **Pro Editor** in the installed-plugin card.
-
-The plugin is disabled until you enable it. Installation and use work offline. Keep the plugin file if you may need to reinstall this version later.
+Formatting, autocomplete, Visual and Split are included. Open a Markdown file and choose Edit. See [Editor](editor.md) for shortcuts and examples.
 
 ## Write your first note
 
@@ -57,3 +49,5 @@ Select **asMagicBrain** in the window bar to return to the repository list. Open
 Quit normally and wait for the app to exit. This lets pending work finish. Your files and retained drafts remain on your computer; connected accounts need a fresh sign-in after quit.
 
 Before installing a newer preview, [back up your data](data-and-recovery.md#make-a-backup). Application updates and Ubuntu package removal leave your data outside the app installation.
+
+On macOS, quit the app before replacing its `.app` in Applications. Update with the same channel: a Preview build uses `~/asMagicBrain`, while developer builds use their separate test workspace. Switching channels opens different data; it does not transfer courses or plugins. Installed plugins persist when updating within the same workspace. Pro Editor is included in the app; an older package may remain under **Retained packages from earlier versions** for recovery.

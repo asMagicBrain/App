@@ -96,16 +96,16 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
     const bytes=review.files.reduce((sum,file)=>sum+file.bytes.length,0);capacity(bytes);for(const file of review.files)retain(file.bytes);
     persist({...state,registration:{collectionId:review.collectionId,version:review.version,files:keyList(review.files)}});reviews.delete(review.planId);return status();
   }
-  async function reviewUpdate({archive,semantics,version}){
-    ready();if(!state.registration)failure('BASE_NOT_REGISTERED');const incoming=parsePackage(archive),base=state.registration;
+  async function reviewUpdate({archive,semantics,version,scope=null}){
+    ready();if(scope!==null&&!safePath(scope))failure('INVALID_PATH');if(!state.registration)failure('BASE_NOT_REGISTERED');const incoming=parsePackage(archive),base=state.registration;
     semantics??=incoming.metadata?.semantics;version??=incoming.metadata?.version;
     if(!['snapshot','patch'].includes(semantics)||!validLabel(version))failure('INVALID_PACKAGE');
     if(incoming.metadata&&(incoming.metadata.collectionId!==base.collectionId||incoming.metadata.semantics!==semantics||incoming.metadata.version!==version))failure('COLLECTION_MISMATCH');
     if(incoming.metadata?.base&&(incoming.metadata.base.version!==base.version||JSON.stringify([...incoming.metadata.base.files].sort((a,b)=>a.path.localeCompare(b.path)))!==JSON.stringify(base.files)))failure('BASE_MISMATCH');
-    for(const file of incoming.files)current(file.path);
+    for(const file of incoming.files){if(scope!==null&&!file.path.startsWith(scope+'/'))failure('INVALID_PATH');current(file.path);}
     const files=inventory(),draftPaths=await drafts(),currentMap=new Map(files.map(file=>[file.path,file])),baseMap=new Map(base.files.map(file=>[file.path,file.sha256])),incomingMap=new Map(incoming.files.map(file=>[file.path,file]));
     const all=[...new Set([...baseMap.keys(),...incomingMap.keys(),...currentMap.keys()])].sort(),rows=[];
-    for(const relative of all){const saved=currentMap.get(relative),candidate=incomingMap.get(relative),old=baseMap.get(relative)??null,now=saved?.hash??null,next=candidate?sha256(candidate.bytes):null,owned=baseMap.has(relative),protectedDraft=draftAffected(draftPaths,relative);
+    for(const relative of all){if(scope!==null&&!relative.startsWith(scope+'/'))continue;const saved=currentMap.get(relative),candidate=incomingMap.get(relative),old=baseMap.get(relative)??null,now=saved?.hash??null,next=candidate?sha256(candidate.bytes):null,owned=baseMap.has(relative),protectedDraft=draftAffected(draftPaths,relative);
       let action='preserve',conflict=false;
       if(candidate){if(!owned&&now!==null){action='conflict';conflict=true;}else if(now===next)action='unchanged';else if(now===old){action=now===null?'add':'update';}else if(next===old)action='preserve';else{action='conflict';conflict=true;}}
       else if(owned&&semantics==='snapshot'&&now!==null){action=now===old?'remove':'conflict';conflict=now!==old;}
@@ -115,9 +115,9 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
     const changed=rows.filter(row=>row.choices.length);if(changed.length>EXCHANGE_LIMITS.changedFiles)failure('LIMIT_EXCEEDED');
     // This is an exchange-transaction bound, never an ordinary file-management cap.
     const oversized=changed.filter(row=>(currentMap.get(row.path)?.bytes.length??0)>EXCHANGE_LIMITS.updateMemberBytes||(incomingMap.get(row.path)?.bytes.length??0)>EXCHANGE_LIMITS.updateMemberBytes).map(row=>row.path);
-    return remember({kind:'update',planId:randomUUID(),expiresAt:Date.now()+EXCHANGE_LIMITS.reviewMs,packageDigest:incoming.digest,collectionId:base.collectionId,version,semantics,rows,files:incoming.files,inventoryHash:inventoryHash(files),saved:files,drafts:draftPaths,base:structuredClone(base),warnings:oversized.map(path=>({path,code:'UPDATE_MEMBER_LIMIT',message:'This file exceeds the 4 MiB reviewed-update transaction limit; keep the current file.'}))});
+    return remember({kind:'update',scope,planId:randomUUID(),expiresAt:Date.now()+EXCHANGE_LIMITS.reviewMs,packageDigest:incoming.digest,collectionId:base.collectionId,version,semantics,rows,files:incoming.files,inventoryHash:inventoryHash(files),saved:files,drafts:draftPaths,base:structuredClone(base),warnings:oversized.map(path=>({path,code:'UPDATE_MEMBER_LIMIT',message:'This file exceeds the 4 MiB reviewed-update transaction limit; keep the current file.'}))});
   }
-  function nextRegistration(review,choiceMap){const map=new Map(review.semantics==='patch'?review.base.files.map(file=>[file.path,file.sha256]):[]);for(const file of review.files){const row=review.rows.find(row=>row.path===file.path);if(row.owned||choiceMap.get(file.path)==='use-incoming')map.set(file.path,sha256(file.bytes));}return {collectionId:review.collectionId,version:review.version,files:[...map].map(([path,sha256])=>({path,sha256})).sort((a,b)=>a.path.localeCompare(b.path))};}
+  function nextRegistration(review,choiceMap){const map=new Map(review.base.files.filter(file=>review.semantics==='patch'||review.scope!==null&&!file.path.startsWith(review.scope+'/')).map(file=>[file.path,file.sha256]));for(const file of review.files){const row=review.rows.find(row=>row.path===file.path);if(row.owned||choiceMap.get(file.path)==='use-incoming')map.set(file.path,sha256(file.bytes));}return {collectionId:review.collectionId,version:review.version,files:[...map].map(([path,sha256])=>({path,sha256})).sort((a,b)=>a.path.localeCompare(b.path))};}
   async function apply({planId,choices=[],operationId=randomUUID()}){
     // Only the trusted host may supply a broker identity. It is a durable receipt
     // correlation key, never permission to replay an old publication.
@@ -167,7 +167,7 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
           ensureParents(change.path);observed=current(change.path);if(observed.hash!==expected)failure('STALE_PLAN');
           const request={schemaVersion:3,requestId:randomUUID(),target:{kind:'source',spaceId:transportId},expected:{files:[{path:change.path,hash:expected}]},input:{files:[{path:change.path,bytes:target===null?null:blob(target)}],assets:[],directories:[]}};
           const plan=prepareFileTransaction(request);adapter.preflight(plan);hooks.at?.('exchange-before-step',{operationId:operation.operationId,index,path:change.path});
-          const result=adapter.apply(plan,{at:hooks.transactionAt});if(!['completed','no-op'].includes(result.status))failure('RECOVERY_REQUIRED');
+          const result=await adapter.applyAsync(plan,typeof hooks.transactionAt==='function'?{at:hooks.transactionAt}:{});if(!['completed','no-op'].includes(result.status))failure('RECOVERY_REQUIRED');
           if(current(change.path).hash!==target)failure('RECOVERY_REQUIRED');
         }
         hooks.at?.(operation.direction==='rollback'?'exchange-after-rollback-step':'exchange-after-step',{operationId:operation.operationId,index,path:change.path});
@@ -206,5 +206,5 @@ export function createPackageExchange({sourceRoot,sourceBindingRoot,privateRoot,
     const bytes=createPackageZip(output);return {schemaVersion:1,kind,bytes,sha256:sha256(bytes),filename:`${review.collectionId}-${review.version}-${kind}.zip`,fileCount:files.length,warnings:review.warnings};
   }
   function status(){load();return {schemaVersion:1,registration:state.registration?{collectionId:state.registration.collectionId,version:state.registration.version,ownedFiles:state.registration.files.length}:null,recoveryRequired:Boolean(state.pending)||adapter.inspectRecovery().blocked,pending:state.pending?{operationId:state.pending.operationId,direction:state.pending.direction,phase:state.pending.phase,completed:state.pending.index,total:state.pending.changes.length,paths:state.pending.changes.map(change=>change.path)}:null,operations:state.operations.map(operation=>({operationId:operation.operationId,status:operation.phase,version:operation.after.version,createdAt:operation.createdAt,paths:operation.changes.map(change=>change.path),canRollback:operation===state.operations.at(-1)&&operation.phase==='completed'})),limits:EXCHANGE_LIMITS};}
-  load();return Object.freeze({registrationReview,registerBase,reviewUpdate,apply,rollback,recover,status,reviewExport,buildExport,cancelPlan(planId){return {status:reviews.delete(planId)?'cancelled':'absent'};}});
+  load();return Object.freeze({ownedPaths(){ready();return state.registration?.files.map(file=>file.path)??[];},registrationReview,registerBase,reviewUpdate,apply,rollback,recover,status,reviewExport,buildExport,cancelPlan(planId){return {status:reviews.delete(planId)?'cancelled':'absent'};}});
 }

@@ -144,6 +144,7 @@ function MenuItem({children, icon, disabled = false, unavailable = false, checke
 }
 
 export type FileMoreActionsProps = {
+  onOpenReference?():void; onCopyReference?():void;
   sourceOptions?: boolean;
   onCopyPath(): void;
   onDownload?(): void;
@@ -155,13 +156,14 @@ export type FileMoreActionsProps = {
   onCenterChange?(center: boolean): void;
 };
 
-export function FileMoreActions({sourceOptions = true, onCopyPath, onDownload, wrap, onWrapChange, folding = true, onFoldingChange, center = false, onCenterChange}: FileMoreActionsProps) {
+export function FileMoreActions({onOpenReference,onCopyReference,sourceOptions = true, onCopyPath, onDownload, wrap, onWrapChange, folding = true, onFoldingChange, center = false, onCenterChange}: FileMoreActionsProps) {
   const menu = useFilePopover(256);
   const run = (action: () => void) => {menu.dismiss(); action();};
   return <>
     <button type="button" className="rfe-icon fva-more-trigger" aria-label="More file options" title="More file options" aria-haspopup="menu" {...menu.triggerProps}><ActionIcon name="more"/></button>
     {menu.open && menu.host && createPortal(<div role="menu" aria-label="File options" className="fva-popup fva-menu" {...menu.panelProps}>
       <div className="fva-group" role="group" aria-label="Raw file content" data-unavailable={!onDownload || undefined}><h2>Raw file content</h2><MenuItem unavailable={!onDownload} onClick={() => onDownload && run(onDownload)}>Download</MenuItem></div>
+      {onOpenReference&&<div className="fva-group" role="group" aria-label="References"><MenuItem onClick={()=>run(onOpenReference)}>Open reference…</MenuItem>{onCopyReference&&<MenuItem onClick={()=>run(onCopyReference)}>Copy reference</MenuItem>}</div>}
       <div className="fva-group" role="group" aria-label="Copy"><MenuItem onClick={() => run(onCopyPath)}>Copy path</MenuItem><MenuItem unavailable>Copy permalink</MenuItem></div>
       <div className="fva-group" role="group" aria-label="Agent" data-unavailable><h2>Agent</h2><MenuItem unavailable>Ask about this file</MenuItem></div>
       <div className="fva-group" role="group" aria-label="View options"><h2>View options</h2>

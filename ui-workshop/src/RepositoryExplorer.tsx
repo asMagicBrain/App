@@ -219,7 +219,7 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
       result.push({id: 'cut', label: 'Cut', disabled: immutable}, {id: 'copy', label: 'Copy', disabled: immutable});
     }
     if (folder) result.push({id: 'paste', label: 'Paste', disabled: immutable || !props.clipboard?.paths.length || !single && path !== null});
-    if (path !== null) result.push({id: 'move', label: 'Move to…', disabled: immutable}, {id: 'copy-path', label: paths.length > 1 ? 'Copy paths' : 'Copy path', disabled: blocked, separator: true});
+    if (path !== null) result.push({id: 'move', label: 'Move to…', disabled: immutable}, {id: 'copy-path', label: paths.length > 1 ? 'Copy paths' : 'Copy path', disabled: blocked, separator: true}, {id:'copy-relative-path',label:paths.length>1?'Copy relative paths':'Copy relative path',disabled:blocked});
     result.push({id: 'reveal', label: 'Reveal the file', disabled: blocked || !props.onReveal, separator: path === null});
     if (path !== null) result.push({id: 'trash', label: 'Move to Trash', disabled: immutable, danger: true, separator: true});
     else result.push({id: 'collapse', label: 'Collapse folders', disabled: blocked, separator: true}, {id: 'restore-trash', label: 'Restore from Trash…', disabled: immutable});

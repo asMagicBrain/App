@@ -162,3 +162,14 @@ test('invalid trusted operation identities are rejected before retained blobs or
  for(const operationId of [null,12,'','../escape','CFB7451E-95D2-4DC1-821A-080BF09A563D','cfb7451e-95d2-1dc1-821a-080bf09a563d'])await assert.rejects(f.manager.apply({planId:r.planId,choices:choose(r),operationId}),{code:'INVALID_REQUEST'});
  assert.deepEqual(fs.readdirSync(path.join(f.privateRoot,'blobs')).sort(),before);assert.equal(f.manager.status().operations.length,0);assert.equal(read(f.sourceRoot,'current.md'),baseFiles['current.md']);
 });
+
+test('term-scoped snapshot removes only owned term files and keeps other term registration',async()=>{
+ const f=fixture();fs.mkdirSync(path.join(f.sourceRoot,'term-a'));fs.mkdirSync(path.join(f.sourceRoot,'term-b'));
+ const entries=[{path:'term-a/old.md',bytes:Buffer.from('old')},{path:'term-b/home.md',bytes:Buffer.from('other')}];for(const entry of entries)fs.writeFileSync(path.join(f.sourceRoot,entry.path),entry.bytes);
+ const archive=(files,version)=>createPackageZip([...files,{path:PACKAGE_MANIFEST,bytes:Buffer.from(JSON.stringify({format:'asMagicBrain-package',schemaVersion:1,collectionId:'course',version,semantics:'snapshot',files:files.map(f=>({path:f.path,sha256:sha256(f.bytes)}))}))}]);
+ await f.manager.registerBase({archive:archive(entries,'1'),collectionId:'course',version:'1'});
+ let review=await f.manager.reviewUpdate({archive:archive([{path:'term-a/new.md',bytes:Buffer.from('new')}],'2'),scope:'term-a'});
+ assert.ok(review.rows.every(row=>row.path.startsWith('term-a/')));await f.manager.apply({planId:review.planId,choices:choose(review)});
+ assert.equal(fs.existsSync(path.join(f.sourceRoot,'term-a/old.md')),false);assert.equal(read(f.sourceRoot,'term-b/home.md'),'other');assert.equal(f.reopen().status().registration.ownedFiles,2);
+ await assert.rejects(f.manager.reviewUpdate({archive:archive(entries,'3'),scope:'term-a'}),{code:'INVALID_PATH'});
+});

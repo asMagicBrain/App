@@ -1,8 +1,47 @@
+import {installComments, visibleInlineText} from './markdown-comments.mjs';
 import MarkdownIt from 'markdown-it';
 import { installMath } from './markdown-math.mjs';
 
 const parser = new MarkdownIt({ html: false, linkify: false, typographer: false, breaks: false, maxNesting: 32 });
+// Metadata remains in saved source; it does not become a heading or prose.
+parser.block.ruler.before('hr','frontmatter',(state,startLine,endLine,silent)=>{
+  if(startLine!==0||state.src.slice(state.bMarks[0],state.eMarks[0]).trim()!=='---')return false;
+  for(let line=1;line<Math.min(endLine,256);line++)if(state.src.slice(state.bMarks[line],state.eMarks[line]).trim()==='---'){
+    const metadata=state.src.slice(state.bMarks[1],state.bMarks[line]);
+    if(!/^[A-Za-z_][\w-]*:[ \t]*(?:.*)$/m.test(metadata))return false;
+    if(!silent)state.line=line+1;return true;
+  }return false;
+});
+installComments(parser);
 installMath(parser);
+// Recognize only attribute-free breaks, and only render them inside table cells.
+// Escapes, code spans, other HTML and non-table text retain their literal meaning.
+parser.inline.ruler.before('html_inline', 'table_break_candidate', (state, silent) => {
+  const match = /^<br\s*\/?\s*>/i.exec(state.src.slice(state.pos));
+  if (!match || /[\r\n]/.test(match[0])) return false;
+  if (!silent) {const token = state.push('table_break_candidate', '', 0); token.content = match[0];}
+  state.pos += match[0].length;
+  return true;
+});
+parser.core.ruler.after('inline', 'table_cell_breaks', state => {
+  const resolve = (tokens, allowBreak) => {
+    for (const token of tokens) {
+      if (token.type === 'table_break_candidate') {
+        token.type = allowBreak ? 'hardbreak' : 'text';
+        token.tag = allowBreak ? 'br' : '';
+        if (allowBreak) token.content = '';
+      }
+      if (token.children) resolve(token.children, allowBreak && token.type !== 'image');
+    }
+  };
+  let inCell = false;
+  for (const token of state.tokens) {
+    if (token.type === 'th_open' || token.type === 'td_open') inCell = true;
+    if (token.type === 'inline') resolve(token.children ?? [], inCell);
+    if (token.type === 'th_close' || token.type === 'td_close') inCell = false;
+  }
+});
+
 const escape = value => parser.utils.escapeHtml(String(value));
 export const PREVIEW_LIMIT = 512 * 1024;
 
@@ -84,22 +123,25 @@ parser.renderer.rules.link_open = (tokens, index, _options, env) => {
 };
 parser.renderer.rules.link_close = (_tokens, _index, _options, env) => `</${env.linkTags.pop() ?? 'span'}>`;
 parser.renderer.rules.image = (tokens, index, _options, env) => {
-  const token = tokens[index], alt = token.content || token.attrGet('alt') || 'Image';
+  const token = tokens[index], alt = visibleInlineText(token.children) || 'Image';
   const relativeUrl = token.attrGet('src') ?? '', local = localLink(relativeUrl, env.sourcePath);
   const id = `local-image-${env.images.length}`;
   if (local && !local.fragment) env.images.push({ id, relativeUrl, alt });
   return `<span class="preview-image-placeholder"${local && !local.fragment ? ` data-local-image="${id}"` : ''} role="img" aria-label="${escape(alt)}">${escape(alt)} <small>${local && !local.fragment ? 'Loading local image…' : 'External or unsafe image stays inert.'}</small></span>`;
 };
-parser.renderer.rules.heading_open = (tokens, index, options, env, self) => {
-  const heading = { id: `source-heading-${env.headings.length + 1}`, level: Number(tokens[index].tag.slice(1)),
-    title: tokens[index + 1]?.content ?? '' };
-  // Keep the source-outline IDs, and expose stable document anchors separately.
-  const inline = tokens[index + 1]?.children ?? [];
-  const title = inline.filter(token => ['text', 'code_inline', 'image', 'math_inline'].includes(token.type)).map(token => token.content).join('');
+export function headingAnchor(title, used = new Set()) {
   const base = title.toLowerCase().replace(/[^\p{L}\p{N}\p{M}\s_-]/gu, '').replace(/\s/gu, '-') || 'section';
   let anchor = base, suffix = 0;
-  while (env.anchors.has(anchor)) anchor = `${base}-${++suffix}`;
-  env.anchors.add(anchor);
+  while (used.has(anchor)) anchor = `${base}-${++suffix}`;
+  used.add(anchor); return anchor;
+}
+parser.renderer.rules.heading_open = (tokens, index, options, env, self) => {
+  const heading = { id: `source-heading-${env.headings.length + 1}`, level: Number(tokens[index].tag.slice(1)),
+    title: visibleInlineText(tokens[index + 1]?.children) };
+  // Keep the source-outline IDs, and expose stable document anchors separately.
+  const inline = tokens[index + 1]?.children ?? [];
+  const title = visibleInlineText(inline);
+  const anchor = headingAnchor(title, env.anchors);
   tokens[index].attrSet('data-heading-anchor', anchor);
   env.headings.push(heading); tokens[index].attrSet('id', heading.id);
   return self.renderToken(tokens, index, options);
