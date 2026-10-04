@@ -15,8 +15,8 @@ try{
  page=await driver.launch();await page.getByRole('button',{name:'README.md',exact:true}).first().click();await page.getByRole('button',{name:'Edit this file',exact:true}).click();
  const editor=page.locator('.cm-content').first();await editor.waitFor();await until(()=>editor.evaluate(node=>!node.cmTile.root.view.state.readOnly));
  const selection=await editor.evaluate(node=>node.cmTile.root.view.state.selection.toJSON());
- await page.getByRole('button',{name:'Present',exact:true}).click();await page.locator('.document-presentation-content').press('End');
- const line=await until(async()=>{const value=await leadingLine(page);return value>100?value:false;},{label:'long list scroll settled'});
+ await page.getByRole('button',{name:'Present',exact:true}).click();await until(()=>page.locator('.document-presentation-content').evaluate(root=>root.clientHeight===screen.height),{label:'fullscreen viewport settled'});await page.locator('.document-presentation-content').press('End');
+ let previous,changed=Date.now();const line=await until(async()=>{const value=await leadingLine(page);if(value!==previous){previous=value;changed=Date.now();}return value>100&&Date.now()-changed>300?value:false;},{label:'long list scroll settled'});
  expectedLine=line;
  await page.locator('.document-presentation-content').press('Escape');await page.getByRole('dialog',{name:'Document presentation'}).waitFor({state:'detached'});await until(()=>driver.app.evaluate(({BrowserWindow})=>!BrowserWindow.getAllWindows().find(window=>!window.getParentWindow()).isFullScreen()),{label:'native exit settled'});
  await until(()=>editor.evaluate((node,line)=>{const view=node.cmTile.root.view,at=view.state.doc.line(line).from;return view.visibleRanges.some(range=>at>=range.from&&at<=range.to);},line),{label:'matching source block revealed'});

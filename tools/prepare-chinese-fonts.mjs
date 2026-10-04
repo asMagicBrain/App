@@ -31,11 +31,29 @@ export async function checkChineseFonts(){
  const license=await physicalFile(path.join(root,'MiSans-LICENSE.txt'));if(hash(license)!==provenance.licenseSha256)throw Error('Font licence differs from provenance.');
  for(const [name,pin]of Object.entries(provenance.files)){let bytes;try{bytes=await physicalFile(path.join(root,name));}catch(e){if(e.code==='ENOENT')throw Error('MiSans build inputs missing. Run npm run fonts -- --download, or --archives=/physical/directory.');throw e;}if(hash(bytes)!==pin)throw Error('MiSans build input changed: '+name);}
 }
+// Commit a range only after receiving all of it. Interrupted CDN transfers can
+// retry that range without appending duplicate or unverified bytes.
+export async function streamPinnedArchive(archive,write,{fetcher=fetch,chunkBytes=8*1024*1024}={}){
+ if(!Number.isSafeInteger(chunkBytes)||chunkBytes<1||chunkBytes>8*1024*1024||!Number.isSafeInteger(archive.bytes)||archive.bytes<1||archive.bytes>256*1024*1024)throw Error('Invalid pinned download bounds.');
+ const digest=createHash('sha256');
+ for(let start=0;start<archive.bytes;start+=chunkBytes){
+  const end=Math.min(archive.bytes-1,start+chunkBytes-1),length=end-start+1;let bytes;
+  for(let attempt=0;attempt<3;attempt++){
+   try{
+    const response=await fetcher(archive.url,{redirect:'error',headers:{Range:`bytes=${start}-${end}`},signal:AbortSignal.timeout(300000)});
+    if(response.status!==206||response.headers.get('content-range')!==`bytes ${start}-${end}/${archive.bytes}`)throw Error('Official font range response differs from requested bounds.');
+    const chunks=[];let count=0;for await(const chunk of response.body){count+=chunk.length;if(count>length)throw Error('Font range exceeds pinned size.');chunks.push(chunk);}
+    if(count!==length)throw Error('Font range was interrupted.');bytes=Buffer.concat(chunks,count);break;
+   }catch(error){if(attempt===2)throw error;}
+  }
+  digest.update(bytes);await write(bytes);
+ }
+ if(digest.digest('hex')!==archive.sha256)throw Error('Official download changed; retain partial and review new provenance.');
+}
 async function download(archive,directory){
  const filename=path.join(directory,archive.filename);try{const bytes=await physicalFile(filename);if(bytes.length===archive.bytes&&hash(bytes)===archive.sha256)return bytes;throw Error('Preserve changed font cache; select a new directory.');}catch(e){if(e.code!=='ENOENT')throw e;}
- const response=await fetch(archive.url,{redirect:'error',signal:AbortSignal.timeout(300000)});if(!response.ok)throw Error('Official font download failed: '+response.status);
- const partial=filename+'.partial-'+randomUUID();const handle=await fs.open(partial,'wx',0o600);let total=0;const digest=createHash('sha256');try{for await(const chunk of response.body){total+=chunk.length;if(total>archive.bytes)throw Error('Font download exceeds pinned size.');digest.update(chunk);await handle.writeFile(chunk);}await handle.sync();}finally{await handle.close();}
- if(total!==archive.bytes||digest.digest('hex')!==archive.sha256)throw Error('Official download changed; retain partial and review new provenance.');await fs.rename(partial,filename);return physicalFile(filename);
+ const partial=filename+'.partial-'+randomUUID();const handle=await fs.open(partial,'wx',0o600);try{await streamPinnedArchive(archive,bytes=>handle.writeFile(bytes));await handle.sync();}finally{await handle.close();}
+ await fs.rename(partial,filename);return physicalFile(filename);
 }
 export async function prepareChineseFonts({archives,downloadAllowed=false}={}){
  const directory=path.resolve(archives??path.join((await import('./development-paths.mjs')).testRoot,'downloads/misans-pinned'));
