@@ -444,6 +444,8 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     const folder=`${term.year}-${term.season}`,relative=folder+'/student.md',manager=exchangeFor(destination.name),status=manager.status();
     if(status.registration&&status.registration.collectionId!=='asteach-'+found.course.courseId)fail('TEACH_PAIR_CONFLICT');
     const inventory=await workspace.execute(destination.name,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    const canonical=folder+'/README.md';
+    if(status.registration&&manager.ownedPaths().includes(canonical)){if(!inventory.entries.some(e=>e.path===canonical&&e.type==='file'))fail('TEACH_STUDENT_PAGE_MISSING');continue;}
     const present=inventory.entries.some(e=>e.path===relative),owned=manager.ownedPaths().includes(relative);
     if(present&&status.registration){continue;}
     if(!present&&owned)fail('TEACH_STUDENT_PAGE_MISSING');
