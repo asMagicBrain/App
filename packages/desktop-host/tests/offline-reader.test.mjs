@@ -67,3 +67,12 @@ test('offline math keeps untrusted TeX and HTML inert, with explicit diagrams an
   assert.doesNotMatch(slider,/<input|<script/);assert.match(slider,/&lt;input/);assert.match(slider,/Source view/);
   assert.ok(result.warnings.some(value=>value.code==='STATIC_ARTIFACT_FALLBACK'));
 });
+
+
+test('Chinese offline reader retains source bytes, language, encoded links and local images',()=>{
+ const files=[{path:'2026-autumn/student.md',bytes:Buffer.from('---\nlang: zh-Hant\n---\n# 機器人系統\n\n[實驗](classes/系統辨識.md)\n\n![圖](assets/示意.png)\n')},{path:'2026-autumn/classes/系統辨識.md',bytes:Buffer.from('# 系統辨識\n\n數據與模型。\n')},{path:'2026-autumn/assets/示意.png',bytes:Buffer.from([137,80,78,71])}];
+ const reader=renderOffline({files}),page=reader.files.find(f=>f.path==='reader/2026-autumn/student.md.html');
+ assert.match(page.bytes.toString(),/<html lang="zh-Hant">/);
+ assert.match(page.bytes.toString(),/classes\/%E7%B3%BB%E7%B5%B1%E8%BE%A8%E8%AD%98.md.html/);
+ assert.equal(reader.warnings.length,0);assert.equal(files[1].bytes.toString(),'# 系統辨識\n\n數據與模型。\n');
+});

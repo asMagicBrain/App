@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('asMagicBrain', Object.freeze({
 
   nativeWindowControls: process.platform === 'darwin',
   responseVersion: 1,
+  getApplicationInfo: () => invoke('getApplicationInfo'),
+  getWorkspaceLocations: () => invoke('getWorkspaceLocations'),
+  reviewWorkspaceAdoption: args => invoke('reviewWorkspaceAdoption',args),
+  confirmWorkspaceAdoption: args => invoke('confirmWorkspaceAdoption',args),
   getBuildConfiguration: () => invoke('getBuildConfiguration'),
   catalog: () => invoke('catalog'),
   getReadingEvidence: args => invoke('getReadingEvidence',args),
@@ -114,6 +118,11 @@ contextBridge.exposeInMainWorld('asMagicBrain', Object.freeze({
   getAppearance: () => invoke('getAppearance'),
   setAppearance: args => invoke('setAppearance', args),
   windowAction: action => invoke('windowAction', action),
+  onWorkspaceProgress: callback => {
+    const listener = (_event,message) => {if(typeof message?.phase==='string')callback({phase:message.phase});};
+    ipcRenderer.on('asmb:workspace-progress',listener);
+    return () => ipcRenderer.removeListener('asmb:workspace-progress',listener);
+  },
   onPrepareClose: callback => {
     const listener = (_event, message) => callback(message);
     ipcRenderer.on('asmb:prepare-close', listener);

@@ -32,7 +32,8 @@
     "postinstall": "node tools/bootstrap.mjs",
     "bootstrap": "node tools/bootstrap.mjs",
     "build": "node tools/build.mjs",
-    "storybook:seed": "node ui-workshop/.storybook/seed-workspace.mjs"
+    "storybook:seed": "node ui-workshop/.storybook/seed-workspace.mjs",
+    "fonts": "node tools/prepare-chinese-fonts.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "6.20.3",

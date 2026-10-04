@@ -3,3 +3,5 @@
 .repository-media {display:flex; flex-direction:column; align-items:center; padding:24px; min-height:240px;}
 .repository-media img,.repository-media video {display:block; max-width:100%; max-height:calc(100vh - 260px); object-fit:contain;}
 .rc-document [data-heading-anchor] {scroll-margin-top:16px;}
+/* Respect Chinese punctuation in reading without choosing a new font family. */
+.rc-markdown:lang(zh),article:lang(zh){line-break:strict;word-break:normal;}

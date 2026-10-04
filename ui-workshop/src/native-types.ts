@@ -62,7 +62,7 @@ export type RepositoryUpdateFile = RepositoryUpdatePath & {
   beforeSize: number | null; afterSize: number | null; before: string | null; after: string | null;
 };
 export type ArtifactBounds = {x:number;y:number;width:number;height:number};
-export type ArtifactReview = {poster?:{path:string;mime:'image/png';data:ArrayBuffer}|null;reviewId:string;title:string;entryPath:string;digest:string;source:string;fallback:string;assets:{path:string;bytes:number;sha256:string}[]};
+export type ArtifactReview = {warnings?:string[];poster?:{path:string;mime:'image/png'|'image/jpeg';data:ArrayBuffer}|null;reviewId:string;title:string;entryPath:string;digest:string;source:string;fallback:string;assets:{path:string;bytes:number;sha256:string}[]};
 export type ArtifactRuntimeState = {state:'idle'|'review'|'declined'|'loading'|'running'|'stopped'|'failed';runId?:string|null;reason?:string;activeViews?:number;geometryPending?:boolean;bounds?:ArtifactBounds|null;ownerSize?:number[];errorCode?:string|null;lastFailure?:{code:string;at:number;runId:string|null}|null;lastStopReason?:string|null;diagnostics?:unknown[]};
 export type PortableReadingReference={schemaVersion:1;collectionId:string;documentId:string;targetId?:string;revision?:string;sourceHash?:string};
 export type ResolvedReadingReference={status:string;message:string;repo?:string;repoId?:string;path?:string;revision?:string;sourceHash?:string;target?:{from:number;to:number}|null;candidates?:{repo:string;repoId:string}[]};
@@ -156,6 +156,11 @@ export type NativeBridge = {
   listRepositoryFiles(input: {requestId: string; repo: string; ref?: string}): Promise<RepositoryFileInventory>;
   searchRepositoryText(input: {requestId: string; query: string; caseSensitive: boolean; repo: string | null; path?: string}): Promise<RepositoryTextSearch>;
   cancelRepositorySearch(input: {requestId: string}): Promise<void>;
+  onWorkspaceProgress(callback:(message:{phase:string})=>void):()=>void;
+  getWorkspaceLocations(): Promise<{dataRoot:string;defaultDataRoot:string;previousRoot:string|null;pending:string|null;candidates:{root:string;repositories:string[]}[]}>;
+  reviewWorkspaceAdoption(args:{action:'choose'|'previous'|'resume'}): Promise<WorkspaceAdoptionReview|null>;
+  confirmWorkspaceAdoption(args:{reviewId:string;approved:true}): Promise<{closing:true}>;
+  getApplicationInfo(): Promise<{version:string;buildNumber:number;channel:string;dataRoot:string;defaultDataRoot:string;adopted:boolean}>;
   getBuildConfiguration(): Promise<NativeBuildConfiguration>;
   getAppearance(): Promise<NativeAppearance>;
   setAppearance(input: NativeAppearance): Promise<NativeAppearance>;
@@ -178,3 +183,5 @@ export type NativeWireBridge = {
 declare global {
   interface Window {asMagicBrain?: NativeWireBridge}
 }
+
+export type WorkspaceAdoptionReview={reviewId:string;currentRoot:string;targetRoot:string;current:{repositories:string[];fileCount:number;bytes:number;links:number};target:{repositories:string[];fileCount:number;bytes:number;links:number};overlappingRepositories:string[]};

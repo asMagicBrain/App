@@ -99,3 +99,14 @@ node tools/check-public-docs.mjs
 ```
 
 This checks public Markdown and standalone user-doc links with the actual renderer. It complements source secret scanning; it is not a complete secret audit. Use synthetic content and author identities. Report skipped checks and simulated providers. See [architecture](architecture.md) before changing a boundary and [releases](releasing.md) before packaging.
+
+## MiSans build inputs
+
+Run `npm run fonts -- --download` before source tests or builds. This acquires
+unmodified official MiSans archives from Xiaomi and verifies archive/member
+SHA-256 hashes. For an offline build, use `npm run fonts -- --archives=/absolute/physical/cache`
+with the pinned `MiSans.zip` and `MiSans_TC.zip`. No fonts are downloaded at app runtime.
+The four acquired WOFF2 files are ignored build inputs, absent from public source
+exports. Application and offline-reader bundles retain the attribution and
+original licence; do not distribute the font binaries as standalone downloads.
+A missing or changed input fails the build rather than selecting another font.

@@ -5,6 +5,7 @@ import {TeachTeacherProfileDialog} from './TeachTeacherProfileDialog';
 import {TeachCalendarStudy, type TeachCalendarState} from './TeachCalendarStudy';
 import {type TeachTeacherProfile} from './teach-teacher-profile';
 import './teach-home-study.css';
+import {ApplicationInfoDialog} from './ApplicationInfoDialog';
 
 export type TeachRecentDocument={courseId:string;sectionId:string;sectionTitle:string};
 type Props={
@@ -34,13 +35,16 @@ function OfficeDetail({label,placeholder,value,onSave}:{label:string;placeholder
 
 export function TeachHomeStudy({nativeMode=false,onAddExisting,office,onOfficeChange,courses,teacherProfile,readOnly=false,calendarState,onCalendarChange,onSaveProfile,onOpenTerm,onCreate,onReturnToRepository}:Props) {
   const [dialog,setDialog]=useState<'profile'|'new'|'add'|null>(null);
+  const [workspaceInfo,setWorkspaceInfo]=useState(false);
   const created=(course:TeachStudyCourse)=>{setDialog(null);onCreate(course);};
   return <section className="ths-home" aria-labelledby="ths-heading" data-plugin-view="home">
     <div className="ths-content">
       <header className="ths-heading" data-teach-area="TH1"><div className="ths-title"><span className="tcs-eyebrow">asTeach</span><h1 id="ths-heading" tabIndex={-1}>Home</h1><p>Your teaching calendar and courses.</p></div><div className="ths-actions"><div className="ths-office-details" aria-label="Office details" data-teach-area="TH1.1"><OfficeDetail label="Office hours" placeholder="" value={office?.hours} onSave={value=>office&&onOfficeChange?.({...office,hours:value})}/><OfficeDetail label="Weekdays" placeholder="" value={office?.weekdays} onSave={value=>office&&onOfficeChange?.({...office,weekdays:value})}/><OfficeDetail label="Office location" placeholder="" value={office?.location} onSave={value=>office&&onOfficeChange?.({...office,location:value})}/></div><button type="button" className="pws-button" onClick={()=>setDialog('profile')}>Edit teacher details</button>{!readOnly&&<button type="button" className="pws-button" onClick={()=>onAddExisting?onAddExisting():setDialog('add')}>Add existing course</button>}<NewCourseButton onClick={()=>setDialog('new')}/></div></header>
+      {nativeMode&&courses.length===0&&<p role="status">No courses in this workspace. Installing asTeach does not migrate previous courses. <button className="pws-button" onClick={()=>setWorkspaceInfo(true)}>Locate previous courses</button></p>}
       <TeachCalendarStudy courses={courses} state={calendarState} onChange={onCalendarChange} onOpenTerm={onOpenTerm}/>
       <footer className="tcs-footer"><span>{nativeMode?'':readOnly?'Reference courses are read-only. New courses and Home settings stay in this tab.':'Storybook preview · Changes stay in this tab.'}</span><button type="button" onClick={onReturnToRepository}>Return to repository</button></footer>
     </div>
+    {workspaceInfo&&<ApplicationInfoDialog onClose={()=>setWorkspaceInfo(false)}/>}
     {dialog==='profile'&&<TeachTeacherProfileDialog profile={teacherProfile} onSave={onSaveProfile} onClose={()=>setDialog(null)}/>}
     {dialog==='new'&&<NewCourseDialog nativeMode={nativeMode} courses={courses} teacherProfile={teacherProfile} onClose={()=>setDialog(null)} onCreate={created}/>}
     {!readOnly&&dialog==='add'&&<AddCourseDialog courses={courses} onClose={()=>setDialog(null)} onCreate={created}/>}

@@ -12,7 +12,7 @@ function setup(options = {}) {
       Object.assign(wc, {getOSProcessId: () => 4321, isDestroyed: () => wc.destroyed, close: () => {wc.destroyed = true;},
         setWebRTCIPHandlingPolicy: policy => {wc.rtc = policy;}, setWindowOpenHandler: handler => {wc.popup = handler;}, loadURL: async url => {wc.url = url; await options.load?.(wc);}});
       this.webContents = wc; views.push(this); }
-    setBounds(bounds) {if (options.boundsError) throw Error("bounds failed"); this.bounds = bounds;}
+    setBounds(bounds) {if (options.boundsError) throw Error("bounds failed"); this.bounds = bounds; if(this.visible)this.viewport={width:bounds.width,height:bounds.height};}
     setVisible(value) {this.visible = value;}
   }
   const session = {fromPartition(partition, config) {const ses = new EventEmitter();
@@ -181,3 +181,5 @@ test('real hide/minimize, native geometry failure and renderer failure dispose r
   u.views[0].webContents.emit('render-process-gone'); u.host.stop({reviewId: r.reviewId});
   assert.equal(u.host.status().errorCode, 'ARTIFACT_RENDERER_EXITED'); assert.equal(u.host.status().state, 'failed'); await u.host.close();
 });
+
+test('hidden view receives a real renderer viewport after showing admitted bounds, including resize',async()=>{const t=setup(),review=await t.host.review({repo:'Test',path:'index.html'}),running=await t.host.run({reviewId:review.reviewId,approved:true,bounds});assert.equal(t.views[0].visible,false);t.host.resize({runId:running.runId,bounds,viewport:{width:1000,height:800}});assert.deepEqual(t.views[0].viewport,{width:500,height:300});t.owner.emit('resize');assert.equal(t.views[0].visible,false);assert.deepEqual(t.views[0].bounds,{x:0,y:0,width:0,height:0});t.host.resize({runId:running.runId,bounds,viewport:{width:1000,height:800}});assert.deepEqual(t.views[0].viewport,{width:500,height:300});await t.host.close();});

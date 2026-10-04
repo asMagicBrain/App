@@ -1,3 +1,4 @@
+import {documentStatistics} from '../../../apps/desktop/ui/content-language.mjs';
 import React, {useMemo} from 'react';
 import './pro-editor.css';
 
@@ -5,7 +6,8 @@ export function ProEditorControls({source, visual, onVisualChange, disabled = fa
   source: string; visual: boolean; onVisualChange(value: boolean): void; disabled?: boolean;
 }) {
   const statistics = useMemo(() => {
-    const counts: [number, string][] = [[source.trim() ? source.trim().split(/\s+/u).length : 0, 'word'], [Array.from(source).length, 'character'], [source.split('\n').length, 'line']];
+    const {words,characters,lines}=documentStatistics(source);
+    const counts: [number, string][] = [[words, 'word'], [characters, 'character'], [lines, 'line']];
     return counts.map(([count, label]) => `${count} ${label}${count === 1 ? '' : 's'}`).join(' · ');
   }, [source]);
   return <div className="pro-presentation" role="group" aria-label="Editor presentation">

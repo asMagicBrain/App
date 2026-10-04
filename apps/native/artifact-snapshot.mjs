@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {artifactImage} from './artifact-image.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {pinDirectory, checkDirectory, checkSourceSpelling, contains} from '../../packages/desktop-host/src/physical-roots.mjs';
@@ -6,7 +7,7 @@ import {pinDirectory, checkDirectory, checkSourceSpelling, contains} from '../..
 export const ARTIFACT_POLICY_VERSION = 'offline-artifact-1';
 export const ARTIFACT_LIMITS = Object.freeze({manifestBytes: 65536, fileBytes: 2 * 1024 * 1024, totalBytes: 8 * 1024 * 1024, files: 64,
   lifetimeMs: 10 * 60 * 1000, loadMs: 15000, memoryKiB: 512 * 1024, sampleMs: 2000});
-const fail = code => {throw Object.assign(new Error(code), {code});};
+const fail = (code, detail = '') => {throw Object.assign(new Error(detail ? `${code}: ${detail}` : code), {code});};
 const hash = value => createHash('sha256').update(value).digest('hex');
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const keys = (value, allowed) => record(value) && Object.keys(value).every(key => allowed.includes(key));
@@ -22,7 +23,7 @@ const physicalIdentity = value => `${value.dev}:${value.ino}:${value.mode}:${val
 /** All source bytes are copied through a checked, non-following descriptor. The caller
  * must admit the managed repository binding before supplying this pinned root. */
 function read(root, relative, limit) {
-  if (!artifactPath(relative)) fail('ARTIFACT_INVALID_PATH');
+  if (!artifactPath(relative)) fail('ARTIFACT_INVALID_PATH', 'Use a portable repository-relative path.');
   checkDirectory(root); checkSourceSpelling(root.path, relative);
   const filename = path.join(root.path, relative);
   if (!contains(root.path, filename) || fs.realpathSync(filename) !== filename) fail('ARTIFACT_PHYSICAL_CHANGE');
@@ -42,17 +43,27 @@ function read(root, relative, limit) {
 }
 
 export function validateArtifactManifest(value) {
+  if (!record(value)) fail('ARTIFACT_INVALID_MANIFEST', 'The manifest must be a JSON object.');
+  if (value.schemaVersion !== 1) fail('ARTIFACT_INVALID_MANIFEST', 'schemaVersion: expected 1.');
+  if (value.network !== 'none') fail('ARTIFACT_INVALID_MANIFEST', 'network: expected none. Network access is not supported.');
+  for (const field of ['entryPath','fallbackPath']) if (!artifactPath(value[field])) fail('ARTIFACT_INVALID_MANIFEST', `${field}: use a path relative to the manifest folder.`);
+  if (!Array.isArray(value.assets)) fail('ARTIFACT_INVALID_MANIFEST', 'assets: expected a list of saved files with path, bytes, sha256 and role.');
   if (!keys(value, ['schemaVersion', 'id', 'title', 'entryPath', 'fallbackPath', 'posterPath', 'network', 'assets']) || value.schemaVersion !== 1
     || !bounded(value.id, 80) || !/^[a-z][a-z0-9.-]*$/.test(value.id) || !bounded(value.title, 120)
     || !artifactPath(value.entryPath) || !/\.html$/i.test(value.entryPath) || !artifactPath(value.fallbackPath) || !/\.(md|txt)$/i.test(value.fallbackPath)
-    || value.entryPath === value.fallbackPath || value.posterPath !== undefined && (!artifactPath(value.posterPath) || !/\.png$/i.test(value.posterPath))
+    || value.entryPath === value.fallbackPath || value.posterPath !== undefined && (!artifactPath(value.posterPath) || !/\.(?:png|jpe?g)$/i.test(value.posterPath))
     || value.network !== 'none' || !Array.isArray(value.assets) || value.assets.length < 2 || value.assets.length > ARTIFACT_LIMITS.files) fail('ARTIFACT_INVALID_MANIFEST');
   let total = 0;
-  for (const asset of value.assets) {
+  for (const [index, asset] of value.assets.entries()) {
+    if (!record(asset) || !artifactPath(asset.path)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].path: use a portable path relative to the manifest folder.`);
+    if (typeof asset.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(asset.sha256)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].sha256: expected a lowercase SHA-256 hash.`);
+    if (!Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > ARTIFACT_LIMITS.fileBytes) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].bytes: expected 0 to ${ARTIFACT_LIMITS.fileBytes}.`);
+    if (!['entry','script','style','data','fallback'].includes(asset.role)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].role: expected entry, script, style, data or fallback; images use data.`);
     if (!keys(asset, ['path', 'sha256', 'bytes', 'role']) || !artifactPath(asset.path) || typeof asset.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(asset.sha256)
       || !Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > ARTIFACT_LIMITS.fileBytes
       || !['entry', 'script', 'style', 'data', 'fallback'].includes(asset.role) || !mimeTypes[path.extname(asset.path).toLowerCase()]) fail('ARTIFACT_INVALID_MANIFEST');
     // Only the declared entry is a document. SVG is image-only through CSP; no nested HTML realm.
+    if (/\.html$/i.test(asset.path) && asset.role !== 'entry') fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}]: additional HTML pages cannot use the data role. Each interactive page needs its own entry manifest; ordinary document links stay in the main reader.`);
     if ((/\.html$/i.test(asset.path)) !== (asset.role === 'entry') || (asset.role === 'script' && !/\.(?:m?js)$/i.test(asset.path))
       || (asset.role === 'style' && !/\.css$/i.test(asset.path))) fail('ARTIFACT_INVALID_MANIFEST');
     total += asset.bytes;
@@ -81,11 +92,18 @@ export function prepareArtifactSnapshot({root, path: relative}) {
     try {manifest = validateArtifactManifest(JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(initial.bytes)));}
     catch (error) {if (error.code) throw error; fail('ARTIFACT_INVALID_MANIFEST');}
   }
-  const assets = new Map(), physical = [[relative, initial.physical]];
+  const warnings = [], assets = new Map(), physical = [[relative, initial.physical]];
   for (const entry of manifest.assets) {
-    const result = standalone ? initial : read(root, prefix + entry.path, ARTIFACT_LIMITS.fileBytes);
-    if (result.bytes.length !== entry.bytes || hash(result.bytes) !== entry.sha256) fail('ARTIFACT_HASH_MISMATCH');
-    assets.set(entry.path, {bytes: Buffer.from(result.bytes), mime: mimeTypes[path.extname(entry.path).toLowerCase()], role: entry.role});
+    let result;
+    try {result = standalone ? initial : read(root, prefix + entry.path, ARTIFACT_LIMITS.fileBytes);}
+    catch (error) {if(error.code === 'ENOENT' || error.code === 'PARTIAL') fail('ARTIFACT_MISSING_ASSET', `${entry.path}: missing beside the manifest. Restore the file or correct its assets path.`);if(error.code === 'DENIED') fail('ARTIFACT_INVALID_FILE', `${entry.path}: linked, ambiguous or inaccessible path. Use the exact spelling of a regular local file.`);if(/^ARTIFACT_/.test(error.code ?? '')) fail(error.code, `${entry.path}: admission failed. Keep a regular local file within the manifest folder.`);throw error;}
+    if (result.bytes.length !== entry.bytes) fail('ARTIFACT_HASH_MISMATCH', `${entry.path}: manifest ${entry.bytes} bytes; saved file ${result.bytes.length} bytes. Rebuild the manifest from saved files.`);
+    const observedHash = hash(result.bytes);
+    if (observedHash !== entry.sha256) fail('ARTIFACT_HASH_MISMATCH', `${entry.path}: expected ${entry.sha256}; observed ${observedHash}. Rebuild the manifest from saved files.`);
+    const extension=path.extname(entry.path).toLowerCase(), image=/^\.(?:png|jpe?g)$/.test(extension)?artifactImage(result.bytes):null;
+    const mime=image?.mime ?? mimeTypes[extension];
+    if(image&&image.mime!==mimeTypes[extension])warnings.push(`${entry.path}: saved image format is ${image.mime}; the filename extension differs. Original bytes are preserved.`);
+    assets.set(entry.path, {bytes: Buffer.from(result.bytes), mime, role: entry.role});
     physical.push([prefix + entry.path, result.physical]);
   }
   // Recheck every input before admission, not just the last file. Replacement with
@@ -106,18 +124,18 @@ export function prepareArtifactSnapshot({root, path: relative}) {
   let poster = null;
   if (manifest.posterPath) {
     const bytes = assets.get(manifest.posterPath).bytes;
-    if (bytes.length < 24 || !bytes.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10])) || bytes.toString('ascii', 12, 16) !== 'IHDR'
-      || bytes.readUInt32BE(16) < 1 || bytes.readUInt32BE(20) < 1 || bytes.readUInt32BE(16) > 4096 || bytes.readUInt32BE(20) > 4096) fail('ARTIFACT_INVALID_POSTER');
-    poster = {path: manifest.posterPath, mime: 'image/png', data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)};
+    const image=artifactImage(bytes);
+    if (!image || image.width < 1 || image.height < 1 || image.width > 4096 || image.height > 4096) fail('ARTIFACT_INVALID_POSTER', `${manifest.posterPath}: use a valid PNG or JPEG poster up to 4096 × 4096 pixels.`);
+    poster = {path: manifest.posterPath, mime: image.mime, data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)};
   }
   return {identity, contentIdentity, manifest, assets, sourcePath: relative, entrySourcePath: prefix + manifest.entryPath,
-    source: new TextDecoder('utf-8', {fatal: true}).decode(assets.get(manifest.entryPath).bytes), fallback, poster, standalone};
+    source: new TextDecoder('utf-8', {fatal: true}).decode(assets.get(manifest.entryPath).bytes), fallback, poster, warnings, standalone};
 }
 
 export function artifactPublicReview(snapshot, reviewId) {
   return {reviewId, identity: snapshot.identity, digest: snapshot.identity, policyVersion: ARTIFACT_POLICY_VERSION, title: snapshot.manifest.title, path: snapshot.sourcePath,
     entryPath: snapshot.entrySourcePath, standalone: snapshot.standalone, assets: snapshot.contentIdentity.assets, source: snapshot.source,
-    fallback: snapshot.fallback, poster: snapshot.poster ? {...snapshot.poster, data: snapshot.poster.data.slice(0)} : null,
+    warnings: snapshot.warnings, fallback: snapshot.fallback, poster: snapshot.poster ? {...snapshot.poster, data: snapshot.poster.data.slice(0)} : null,
     permissions: {network: false, nativeBridge: false, filesystem: 'listed-assets-only', workers: false, webRTC: false},
     limits: ARTIFACT_LIMITS};
 }

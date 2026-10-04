@@ -1,0 +1,9 @@
+@font-face{font-family:'asMagicBrain MiSans';src:url('./MiSans-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE10-FE1F,U+FE30-FE4F,U+FF00-FFEF,U+20000-323AF;}
+@font-face{font-family:'asMagicBrain MiSans';src:url('./MiSans-Semibold.woff2') format('woff2');font-weight:600 900;font-style:normal;font-display:swap;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE10-FE1F,U+FE30-FE4F,U+FF00-FFEF,U+20000-323AF;}
+@font-face{font-family:'asMagicBrain MiSans TC';src:url('./MiSansTC-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE10-FE1F,U+FE30-FE4F,U+FF00-FFEF,U+20000-323AF;}
+@font-face{font-family:'asMagicBrain MiSans TC';src:url('./MiSansTC-Semibold.woff2') format('woff2');font-weight:600 900;font-style:normal;font-display:swap;unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FE10-FE1F,U+FE30-FE4F,U+FF00-FFEF,U+20000-323AF;}
+/* Preserve Latin UI and monospace fonts; Chinese glyphs use the selected family. */
+.fw-window.fw-window,.ws-root.ws-root{font-family:'asMagicBrain MiSans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.fw-window .rfe-source .cm-editor,.fw-window .teach-source .cm-editor,.ws-root .ws-source .cm-scroller,.fw-window pre,.fw-window code{font-family:'asMagicBrain MiSans',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.fw-window :lang(zh-Hant),.fw-window :lang(zh-TW),.fw-window :lang(zh-HK),.ws-root :lang(zh-Hant){font-family:'asMagicBrain MiSans TC','asMagicBrain MiSans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.fw-window .rfe-source:lang(zh-Hant) .cm-editor,.fw-window :lang(zh-Hant) pre,.fw-window :lang(zh-Hant) code{font-family:'asMagicBrain MiSans TC','asMagicBrain MiSans',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}

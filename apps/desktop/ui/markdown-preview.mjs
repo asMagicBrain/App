@@ -1,3 +1,4 @@
+import {contentLanguage} from './content-language.mjs';
 import {installComments, visibleInlineText} from './markdown-comments.mjs';
 import MarkdownIt from 'markdown-it';
 import { installMath } from './markdown-math.mjs';
@@ -151,8 +152,8 @@ parser.renderer.rules.heading_open = (tokens, index, options, env, self) => {
  * markup; links require a user click and remote images remain inert. */
 export function renderSourcePreview(source, sourcePath = '', options = {}) {
   if (typeof source !== 'string') throw Error('Preview requires source text.');
-  if (source.length > PREVIEW_LIMIT) return { html: '', headings: [], images: [], limited: true };
+  if (source.length > PREVIEW_LIMIT) return { html: '', headings: [], images: [], language: contentLanguage(source), limited: true };
   const environment = { sourcePath, technical: options.technical === true, externalLinks: options.externalLinks === true, sourceMap: options.sourceMap === true, sourceLineMap: options.sourceLineMap, linkTags: [], headings: [], images: [], anchors: new Set() };
   const html = parser.render(source, environment);
-  return { html, headings: environment.headings, images: environment.images, limited: false };
+  return { html, headings: environment.headings, images: environment.images, language: contentLanguage(source), limited: false };
 }

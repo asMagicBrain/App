@@ -79,3 +79,24 @@ test('resolver admits only exact origin, method and listed path with copied resp
   for (const url of ['asmb-artifact://other/main.mjs', 'https://one/main.mjs', 'file:///main.mjs', origin + '/unknown.js', origin + '/main.mjs?q=1', origin + '/%2e/main.mjs']) assert.equal(artifactAssetResponse(snapshot, url, origin), null);
   assert.equal(artifactAssetResponse(snapshot, origin + '/main.mjs', origin, 'POST'), null);
 });
+
+
+test('nested admission diagnostics identify missing assets, saved hash differences and schema fields',()=>{
+ const f=fixture();const nested=path.join(f.dir,'studio/ui-guide');fs.mkdirSync(nested,{recursive:true});
+ for(const name of ['module.artifact.json',...Object.keys(f.files)])fs.copyFileSync(path.join(f.dir,name),path.join(nested,name));
+ const load=()=>prepareArtifactSnapshot({root:pinDirectory(f.dir),path:'studio/ui-guide/module.artifact.json'});
+ assert.equal(load().entrySourcePath,'studio/ui-guide/index.html');
+ fs.renameSync(path.join(nested,'main.mjs'),path.join(nested,'retained.mjs'));
+ assert.throws(load,error=>error.code==='ARTIFACT_MISSING_ASSET'&&error.message.includes('main.mjs')&&!error.message.includes(f.dir));
+ fs.renameSync(path.join(nested,'retained.mjs'),path.join(nested,'main.mjs'));fs.writeFileSync(path.join(nested,'main.mjs'),'changed();');
+ assert.throws(load,error=>error.code==='ARTIFACT_HASH_MISMATCH'&&error.message.includes('main.mjs')&&!error.message.includes(f.dir));
+ assert.throws(()=>validateArtifactManifest({...f.manifest,network:'online'}),error=>error.code==='ARTIFACT_INVALID_MANIFEST'&&error.message.includes('network:'));
+ assert.throws(()=>validateArtifactManifest({...f.manifest,assets:f.manifest.assets.map((asset,index)=>index?asset:{...asset,role:'poster'})}),error=>error.code==='ARTIFACT_INVALID_MANIFEST'&&error.message.includes('role:'));
+});
+
+test('mislabelled JPEG poster preserves hashes and serves its detected image MIME',()=>{
+ const f=fixture(),jpeg=Buffer.from([255,216,255,224,0,4,0,0,255,192,0,11,8,0,20,0,30,1,1,17,0,255,217]);
+ fs.writeFileSync(path.join(f.dir,'poster.png'),jpeg);f.manifest.posterPath='poster.png';f.manifest.assets.push({path:'poster.png',bytes:jpeg.length,sha256:digest(jpeg),role:'data'});fs.writeFileSync(path.join(f.dir,'module.artifact.json'),JSON.stringify(f.manifest));
+ const snapshot=f.load();assert.equal(snapshot.poster.mime,'image/jpeg');assert.equal(snapshot.assets.get('poster.png').mime,'image/jpeg');assert.deepEqual(snapshot.assets.get('poster.png').bytes,jpeg);assert.match(snapshot.warnings[0],/filename extension differs/);
+ const origin='asmb-artifact://12345678-1234-1234-1234-123456789012';assert.equal(artifactAssetResponse(snapshot,origin+'/poster.png',origin).mime,'image/jpeg');
+});

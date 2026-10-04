@@ -132,6 +132,7 @@ export function dependencyNotices(root,manifestRoots=[root,path.join(root,'ui-wo
    notices.push({name:linux.name,version:linux.version,filename:'PROVENANCE-linux-x64.json',location:'bundled-search',source:provenance,sourceUrl:linux.sourceUrl});
   }
  }
+ notices.push({name:'MiSans',version:'official-20261004',filename:'MiSans-LICENSE.txt',location:'bundled-chinese-font',source:path.join(root,'apps/desktop/ui/fonts/MiSans-LICENSE.txt'),sourceUrl:'https://hyperos.mi.com/font/en/download/'});
  if(missing.length)throw Error(`Missing distributable license for ${missing.join(', ')}`);
  return notices;
 }

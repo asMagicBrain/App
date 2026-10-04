@@ -74,7 +74,8 @@ export function probeStorageVolume(dataRoot) {
   return value;
 }
 
-function admit(stat, relative, root) {
+function admit(stat, relative, root, preserveWorkspaceLinks = false) {
+  if (preserveWorkspaceLinks && relative.startsWith('workspaces/') && stat.isSymbolicLink() && stat.dev === root.stat.dev && stat.uid === root.stat.uid && stat.size <= 4096n) return;
   if (stat.dev !== root.stat.dev || stat.uid !== root.stat.uid || stat.isSymbolicLink()
     || (!stat.isDirectory() && !stat.isFile()) || (stat.mode & 0o7000n) !== 0n
     || (stat.isFile() && (stat.nlink !== 1n || stat.size > BigInt(Number.MAX_SAFE_INTEGER)))) fail();
@@ -83,14 +84,14 @@ function admit(stat, relative, root) {
   }
   if ((relative === 'state' || relative.startsWith('state/')) && (stat.mode & 0o022n) !== 0n) fail();
 }
-function inventory(root, excludeLock = true) {
+function inventory(root, excludeLock = true, preserveWorkspaceLinks = false) {
   const rows = [];
   function walk(directory, relative, depth) {
     if (depth > 128 || rows.length >= 200000) fail();
     check(root);
     const stat = fs.lstatSync(directory, { bigint: true });
-    admit(stat, relative, root);
-    rows.push({ path: relative, type: stat.isDirectory() ? 'directory' : 'file', stat, stamp: stamp(stat) });
+    admit(stat, relative, root, preserveWorkspaceLinks);
+    rows.push({ path: relative, type: stat.isSymbolicLink() ? 'link' : stat.isDirectory() ? 'directory' : 'file', stat, stamp: stamp(stat), ...(stat.isSymbolicLink() ? {target:fs.readlinkSync(directory)} : {}) });
     if (stat.isDirectory()) {
       const before = stamp(stat), names = fs.readdirSync(directory).sort();
       for (const name of names) {
@@ -149,14 +150,14 @@ function streamFile(filename, expected, onChunk) {
 }
 function metadata(row) {
   return { path: row.path, type: row.type, mode: Number(row.stat.mode & 0o777n), uid: Number(row.stat.uid),
-    gid: Number(row.stat.gid),
+    gid: Number(row.stat.gid), ...(row.type === 'link' ? {target:row.target} : {}),
     device: row.stat.dev.toString(), inode: row.stat.ino.toString(), size: row.stat.size.toString(),
     mtimeNs: row.stat.mtimeNs.toString(), ctimeNs: row.stat.ctimeNs.toString() };
 }
 
 /** Caller holds the managed profile lock. Read only the source, retain every
  * partial destination, and publish a receipt only after independent rereads. */
-export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
+export function backupStorageProfile({ dataRoot, backupRoot, preserveWorkspaceLinks = false } = {}) {
   let backupPath;
   try {
     const source = pin(dataRoot); privateDirectory(source);
@@ -176,7 +177,7 @@ export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
     const destination = pin(backupPath), copyRoot = path.join(backupPath, 'managed-data');
     fs.mkdirSync(copyRoot, { mode: 0o700 });
     const targetDirectories = new Map([['', pin(copyRoot)]]);
-    const rows = inventory(source), byPath = new Map(rows.map(row => [row.path, row])), manifest = [];
+    const rows = inventory(source, true, preserveWorkspaceLinks), byPath = new Map(rows.map(row => [row.path, row])), manifest = [];
     for (const row of rows) {
       const target = row.path ? path.join(copyRoot, row.path) : copyRoot;
       check(destination);
@@ -188,6 +189,12 @@ export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
       if (row.type === 'directory') {
         fs.mkdirSync(target, { mode: 0o700 }); check(targetParent);
         targetDirectories.set(row.path, pin(target)); manifest.push(metadata(row));
+      } else if (row.type === 'link') {
+        // Preserve lexical link bytes; never stat, read or execute the target.
+        if (fs.readlinkSync(path.join(source.path,row.path)) !== row.target) fail();
+        fs.symlinkSync(row.target,target); check(targetParent);
+        if (fs.readlinkSync(target) !== row.target) fail();
+        manifest.push(metadata(row));
       } else {
         const output = fs.openSync(target, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
         let hashed;
@@ -211,7 +218,7 @@ export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
     }
     // A second complete inventory and source hash pass detects changes even to
     // files copied early in the run. Reads never fsync or rewrite source files.
-    const after = inventory(source);
+    const after = inventory(source, true, preserveWorkspaceLinks);
     if (after.length !== rows.length || JSON.stringify(after.excludedLock) !== JSON.stringify(rows.excludedLock)
       || after.some((row, index) => row.path !== rows[index].path || row.stamp !== rows[index].stamp)) fail();
     const manifestByPath = new Map(manifest.map(row => [row.path, row]));
@@ -220,7 +227,7 @@ export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
       const actual = streamFile(path.join(source.path, row.path), row), recorded = manifestByPath.get(row.path);
       if (actual.sha256 !== recorded.sha256 || actual.size !== recorded.size) fail();
     }
-    const final = inventory(source);
+    const final = inventory(source, true, preserveWorkspaceLinks);
     if (final.length !== rows.length || JSON.stringify(final.excludedLock) !== JSON.stringify(rows.excludedLock)
       || final.some((row, index) => row.path !== rows[index].path || row.stamp !== rows[index].stamp)) fail();
     for (const row of rows.filter(value => value.type === 'directory').reverse()) {
@@ -228,13 +235,14 @@ export function backupStorageProfile({ dataRoot, backupRoot } = {}) {
       const target = row.path ? path.join(copyRoot, row.path) : copyRoot;
       fs.chmodSync(target, Number(row.stat.mode & 0o777n)); syncDirectory(target);
     }
-    const copiedRoot = pin(copyRoot), copiedRows = inventory(copiedRoot, false);
+    const copiedRoot = pin(copyRoot), copiedRows = inventory(copiedRoot, false, preserveWorkspaceLinks);
     if (copiedRows.length !== rows.length) fail();
     const copiedByPath = new Map(copiedRows.map(row => [row.path, row]));
     for (const copied of copiedRows) {
       const expected = manifestByPath.get(copied.path);
       if (!expected || copied.type !== expected.type || Number(copied.stat.mode & 0o777n) !== expected.mode
         || Number(copied.stat.uid) !== expected.uid) fail();
+      if (copied.type === 'link' && copied.target !== expected.target) fail();
       if (copied.type === 'file') {
         parentCheck(copiedRoot, copied.path, copiedByPath);
         const actual = streamFile(path.join(copyRoot, copied.path), copied);

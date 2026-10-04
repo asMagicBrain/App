@@ -3,6 +3,8 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {authorFieldError, type CommitAuthorMode, type CommitPreferences, type CommitPreferencesInput} from './commit-preferences';
 import type {ApplicationAccountState} from './native-types';
 import './account-controls.css';
+import {ApplicationInfoDialog} from './ApplicationInfoDialog';
+import {getNativeBridge} from './native-bridge.mjs';
 
 /** Display data only. Preview accounts never supply commit-author preferences. */
 export type AccountDisplay = {username: string; displayName?: string; email?: string | null; preview?: boolean};
@@ -79,6 +81,7 @@ export function AccountControls({preferences, loading, error, onReload, onSave, 
   const trigger = useRef<HTMLButtonElement>(null);
   const [host, setHost] = useState<HTMLElement | null>(null);
   const [menuOpen, setMenuOpen] = useState(initialMenuOpen && !initialSettingsOpen && settingsRequest === 0);
+  const [aboutOpen,setAboutOpen]=useState(false);
   const [settingsOpen, setSettingsOpen] = useState(initialSettingsOpen || settingsRequest > 0);
   const lastRequest = useRef(settingsRequest);
   const handingOffFocus = useRef(false);
@@ -128,6 +131,7 @@ export function AccountControls({preferences, loading, error, onReload, onSave, 
           </DropdownMenu.Group>}
           <DropdownMenu.Group>
             <MenuItem icon="settings" onSelect={openSettings}>Settings</MenuItem>
+            {getNativeBridge()&&<MenuItem icon="status" onSelect={()=>{setMenuOpen(false);setAboutOpen(true);}}>About asMagicBrain</MenuItem>}
             {onAutomation&&<MenuItem icon="agent" onSelect={()=>{setMenuOpen(false);onAutomation();}}>Local automation</MenuItem>}
             <MenuItem icon="agent" unavailable>Ask agent settings</MenuItem>
             <MenuItem icon="flask" unavailable>Feature preview</MenuItem>
@@ -142,6 +146,7 @@ export function AccountControls({preferences, loading, error, onReload, onSave, 
         </DropdownMenu.Content>
       </DropdownMenu.Portal>}
     </DropdownMenu.Root>
+    {aboutOpen&&<ApplicationInfoDialog onClose={()=>setAboutOpen(false)}/>}
     {settingsOpen && <CommitSettingsDialog preferences={preferences} loading={loading} error={error} onReload={onReload} onSave={onSave} onClose={closeSettings} returnFocus={trigger} connectedIdentity={connectedIdentity}/>}
   </>;
 }
