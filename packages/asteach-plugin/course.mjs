@@ -1,3 +1,4 @@
+import {validateAudiences,newAudienceStructure} from './audiences.mjs';
 import {isPortableRelativePath,portablePathKey} from '../source-foundation/src/domain/path-policy.mjs';
 export const COURSE_FILE='asteach-course.json';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -14,7 +15,8 @@ export function validateCourse(value){
  if(!Array.isArray(value.terms)||!value.terms.length||value.terms.length>128)fail('INVALID_TERM');
  const ids=new Set(),paths=new Set();
  for(const term of value.terms){
-  if(!exact(term,['year','season','source']))fail('INVALID_TERM');const id=termId(term.year,term.season);if(ids.has(id))fail('DUPLICATE_TERM');ids.add(id);
+  if(!exact(term,['year','season','source'])&&!exact(term,['year','season','source','audiences']))fail('INVALID_TERM');const id=termId(term.year,term.season);if(ids.has(id))fail('DUPLICATE_TERM');ids.add(id);
+  if(Object.hasOwn(term,'audiences')){validateAudiences(term.audiences,term);if(term.source?.kind!=='document'||term.source.paths?.[0]!==term.audiences.instructors.root+'/README.md')fail('INVALID_SOURCE');}
   const source=term.source;
   if(!exact(source,['kind','paths'])||!['document','legacy'].includes(source.kind)||!Array.isArray(source.paths)||!source.paths.length||source.paths.length>64||source.kind==='document'&&source.paths.length!==1)fail('INVALID_SOURCE');
   for(const p of source.paths){if(typeof p!=='string'||!isPortableRelativePath(p)||!p.toLowerCase().endsWith('.md')||p.split('/').some(s=>s.startsWith('.')))fail('INVALID_SOURCE');const key=portablePathKey(p);if(paths.has(key))fail('DUPLICATE_SOURCE');paths.add(key);}
@@ -23,7 +25,7 @@ export function validateCourse(value){
 }
 export function parseCourse(text){if(typeof text!=='string'||Buffer.byteLength(text)>65536)fail('INVALID_COURSE');let value;try{value=JSON.parse(text);}catch{fail('INVALID_COURSE');}return validateCourse(value);}
 export function serializeCourse(value){const text=JSON.stringify(validateCourse(value),null,2)+'\n';if(Buffer.byteLength(text)>65536)fail('INVALID_COURSE');return text;}
-export function newTerm(year,season){return {year,season,source:{kind:'document',paths:[`${termId(year,season)}/instructor.md`]}};}
+export function newTerm(year,season,audiences=false){const term={year,season,source:{kind:'document',paths:[`${termId(year,season)}/instructor.md`]}};if(audiences){term.audiences=newAudienceStructure(term);term.source.paths=[`${termId(year,season)}/instructors/README.md`];}return term;}
 export function initialDocument(course,teacher){
  const headings=['Course Description','Teaching Goals','Learning Outcomes','Content Summary','Assumed Knowledge','Co-Requisite Courses','Course Instructor & Teaching Team','Grading Policy','Academic Integrity','University Calendar','Recommended Textbook(s)','Teaching Schedule','Important Deadlines'];
  const plain=value=>String(value).replace(/[\\`*_{}\[\]()#+.!<>|~=&-]/g,'\\$&').replace(/\r?\n/g,'  \n  ');

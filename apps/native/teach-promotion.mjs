@@ -1,21 +1,28 @@
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {readPublicationFile} from './teach-publication.mjs';
+import {readPublicationFile,buildAudiencePublication} from './teach-publication.mjs';
 import {safePath} from '../../packages/desktop-host/src/package-exchange/archive.mjs';
 import {exportExcludedReason} from '../../packages/desktop-host/src/package-exchange/export-policy.mjs';
 import {studentReferences,studentNavigation} from './dist-host/offline-reader.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 export const PROMOTION_LIMITS=Object.freeze({files:128,fileBytes:4*1024*1024,totalBytes:32*1024*1024});
-const admitted=p=>/\.(?:md|markdown|png|jpe?g|gif|webp|pdf|txt|csv|py|xml|obj|mtl|json|toml|yaml|yml|stl|safetensors)$/i.test(p)||/^(?:LICENSE|NOTICE|COPYING)(?:\.[A-Za-z0-9]+)?$/.test(path.posix.basename(p));
+const admitted=p=>/\.(?:md|markdown|png|jpe?g|gif|webp|pdf|txt|csv|py|xml|obj|mtl|json|toml|yaml|yml|stl|safetensors|onnx|npy|npz)$/i.test(p)||/^(?:LICENSE|NOTICE|COPYING)(?:\.[A-Za-z0-9]+)?$/.test(path.posix.basename(p));
 const privatePath=p=>p.split('/').some(s=>s.startsWith('.')||/^(?:private|teacher|solutions?|credentials?)(?:\.|$)/i.test(s))||exportExcludedReason(p);
 // Explicit manifest: no implicit code discovery, downloads, imports or execution.
-export function buildRolePromotion({root,folder,paths,toRole}){
+export function buildRolePromotion({root,folder,paths,toRole,sourceAudienceRoot=null}){
+ if(sourceAudienceRoot&&toRole!=='instructors'&&(toRole==='students'||paths?.every(p=>p.startsWith(sourceAudienceRoot+'/')))){
+  if(!Array.isArray(paths)||paths.some(p=>!p.startsWith(sourceAudienceRoot+'/')))fail('PROMOTION_PRIVATE_FILE');
+  const output=buildAudiencePublication({root,folder,studentPath:sourceAudienceRoot+'/README.md',convertGitBook:false});
+  const sourceFiles=output.files.filter(f=>!f.generated).map(f=>f.sourcePath);
+  if(paths.length!==sourceFiles.length||sourceFiles.some(p=>!paths.includes(p)))fail('PUBLICATION_PACKAGE_INCOMPLETE');
+  return output;
+ }
  if(!Array.isArray(paths)||!paths.length||paths.length>PROMOTION_LIMITS.files||new Set(paths).size!==paths.length)fail('INVALID_REQUEST');
  const selected=new Set(paths),files=[],warnings=new Set(['Review code dependencies and licenses. Publishing does not run or validate repository code.']);let total=0;
  for(const relative of paths){
-  if(typeof relative!=='string'||!safePath(relative)||!relative.startsWith(folder+'/')||privatePath(relative)||!admitted(relative)||toRole==='students'&&/(^|\/)(?:instructor(?:-template)?)(?:\.|\/)/i.test(relative))fail('PROMOTION_PRIVATE_FILE');
+  if(typeof relative!=='string'||!safePath(relative)||!relative.startsWith(folder+'/')||privatePath(relative)||!admitted(relative)||toRole==='students'&&/(^|\/)(?:instructors?(?:-template)?)(?:\.|\/)/i.test(relative))fail('PROMOTION_PRIVATE_FILE');
   const bytes=readPublicationFile(root,relative);total+=bytes.length;if(bytes.length>PROMOTION_LIMITS.fileBytes||total>PROMOTION_LIMITS.totalBytes)fail('PROMOTION_LIMIT');
-  const binary=/\.(png|jpe?g|gif|webp|pdf|stl|safetensors)$/i.test(relative);let text;
+  const binary=/\.(png|jpe?g|gif|webp|pdf|stl|safetensors|onnx|npy|npz)$/i.test(relative);let text;
   if(!binary){try{text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('PROMOTION_ENCODING');}
    if(/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b|\bAKIA[0-9A-Z]{16}\b/.test(text))fail('PROMOTION_SECRET');
    const dependencies=[];
