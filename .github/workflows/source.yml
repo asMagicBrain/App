@@ -60,6 +60,8 @@ jobs:
           package-manager-cache: false
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
+      - name: Acquire pinned MiSans build inputs from Xiaomi
+        run: npm run fonts -- --download
       - name: Run source tests
         run: npm test
       - name: Check public documentation

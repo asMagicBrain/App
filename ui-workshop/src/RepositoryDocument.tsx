@@ -16,7 +16,7 @@ function scrollToFragment(root: HTMLElement | null, fragment: string) {
 
 type DocumentProps = {
   repository: string; revision: string; sourcePath: string;
-  rendered: {html: string; images: PreviewImage[]}; fragment?: string;
+  rendered: {html: string; images: PreviewImage[]; language?: string}; fragment?: string;
   onNavigate(path: string, fragment: string): void;
 };
 
@@ -54,7 +54,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
     return () => {controller.abort(); for (const url of urls) URL.revokeObjectURL(url);};
   }, [repository, revision, sourcePath, rendered]);
   useEffect(() => {scrollToFragment(root.current, fragment);}, [fragment, rendered]);
-  return <article ref={root} onClick={event => {
+  return <article lang={rendered.language} ref={root} onClick={event => {
     const anchor = (event.target as HTMLElement).closest('[data-local-link]');
     if (!anchor) return;
     event.preventDefault();

@@ -1,10 +1,12 @@
+import '../../apps/desktop/ui/fonts/cjk-fonts.css';
+import {documentStatistics} from '../../apps/desktop/ui/content-language.mjs';
 import {useNativeTeach} from './NativeTeachWorkspace';
 import {LocalAutomationDialog} from './LocalAutomationDialog';
 import {PackageExchangeDialog} from './PackageExchangeDialog';
 import type {ReadingHistoryAdapter,ReadingHistoryTicket} from './reading-navigation.mjs';
 import {assertResolvedRepository} from './reading-reference.mjs';
 import {isDocumentationRepository} from './repository-capabilities.mjs';
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { FrameIcon, type FrameIconName } from '../../apps/desktop/ui/shared/editor-frame';
 import './focused-writing.css';
 import { RepositoryHeader } from './RepositoryHeader';
@@ -222,6 +224,7 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
   const open=(id:number)=>leaveEditor(()=>{setShowDraft(true);setClosed(items=>items.filter(value=>value!==id));setActive(id);});
   const [active,setActive]=useState(1),[sidebar,setSidebar]=useState(initialSidebar),[reading,setReading]=useState(false),[search,setSearch]=useState(false),[query,setQuery]=useState(''),[menu,setMenu]=useState(false);
   const doc=documents.find(item=>item.id===active);
+  const docStatistics=useMemo(()=>documentStatistics(doc?.text??''),[doc?.text]);
   const selectedReadOnly=isDocumentationRepository(catalog?.repositories.find(item=>item.name===repository));
   const create=()=>{if(selectedReadOnly)return;leaveEditor(()=>{study?.onExit();setWorkspaceView(null);if(repositoryCode){setRenamedLocation(null);setShowDraft(false);setCreateRepositoryFile(true);setCodeEpoch(value=>value+1);beforeLeave.current=null;editorDirty.current=false;return;}setShowDraft(true);const id=next.current++;setDocuments(items=>[...items,{id,title:`Untitled ${id}`,text:''}]);setActive(id);});};
   const close=(id:number)=>{setClosed(items=>[...items,id]);if(active===id)setActive(documents.find(item=>item.id!==id&&!closed.includes(item.id))?.id??0);};
@@ -307,7 +310,7 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
         <div className="rt-code-panel">
         {repositoryCode&&!showDraft?(nativeWindow.native&&!catalog?<p role="status">{catalogError||'Loading repositories…'}</p>:<RepositoryCodePage studentActions={teach.studentActions} filesRevision={teach.filesRevision} documentPanel={teach.documentPanel} onDismissDocumentPanel={teach.dismissPanel} teachSplit={Boolean(teach.study&&!teach.study.active)} readingHistory={readingHistory.current} repositoryIdentity={catalog?.repositories.find(entry=>entry.name===repository)?.stableId} historyReturn={historyReturn} referenceReturn={referenceReturn} onHistoryNavigate={navigateHistory} onResolvedReference={navigateReference} loadEvidenceContext={getNativeBridge()?.getReadingEvidence?loadEvidenceContext:undefined} readOnly={selectedReadOnly} key={`${repository}-${codeEpoch}`} repository={repository} initialEdit={initialEdit&&codeEpoch===0} initialCreate={createRepositoryFile} initialFile={renamedLocation&&!renamedLocation.directory?renamedLocation.path:undefined} initialDirectory={renamedLocation?.directory?renamedLocation.path:filesRequested?'':codeEpoch===0&&repository===initialRepository?initialDirectory:undefined} fileSidebarOpen={fileSidebarOpen} onFileSidebarOpenChange={setFileSidebarOpen} onFileViewChange={setFileViewActive} onRenameRepository={nativeWindow.native?renameRepository:undefined} onDirtyChange={reportEditorDirty} registerBeforeLeave={registerBeforeLeave} navigationRequest={navigationRequest} onNavigationHandled={navigationConsumed} onOutlineChange={reportOutline} onDocumentContextChange={reportContext} onSearch={getNativeBridge()?.searchRepositoryText?openSearch:undefined}/>):doc?<div className="fw-writing" key={doc.id}>{reading?<><h1>{doc.title||'Untitled'}</h1><div className="fw-reading">{doc.text}</div></>:<><input className="fw-heading" aria-label="Document title" value={doc.title} placeholder="Untitled" onChange={event=>update('title',event.target.value)}/><textarea className="fw-editor" aria-label="Document text" spellCheck placeholder="" value={doc.text} onChange={event=>update('text',event.target.value)}/></>}</div>:<div className="fw-empty"><button onClick={create}>New document</button></div>}
         </div>
-        {(!repositoryCode||showDraft)&&<footer className="fw-status"><span>{reading?'Reading':'Editing'}</span><span>{doc?.text.trim()?doc.text.trim().split(/\s+/u).length:0} words</span><span>{Array.from(doc?.text??'').length} characters</span></footer>}
+        {(!repositoryCode||showDraft)&&<footer className="fw-status"><span>{reading?'Reading':'Editing'}</span><span>{docStatistics.words} words</span><span>{docStatistics.characters} characters</span></footer>}
         </div>
       </main>
       {outlineOpen&&!study?.active&&<IntegratedDocumentOutline mainWindow={windowRoot} outline={visibleOutline} width={outlineWidth}

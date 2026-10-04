@@ -3,6 +3,7 @@ const rootFiles=new Set(['.gitignore','.gitattributes','.gitleaks.toml','AGENTS.
 const directories=new Set(['.github','apps','contributing','docs','packages','tools','ui-workshop']);
 const denied=/(?:^|\/)(?:\.git|node_modules|dist|dist-host|releases|private|internal|backup|evidence|test-output)(?:\/|$)|\.(?:pem|p12|pfx|key)$/i;
 export function isPublicSourcePath(value){
+ if(typeof value==='string'&&/^apps\/desktop\/ui\/fonts\/MiSans.*\.woff2$/.test(value))return false;
  if(typeof value!=='string'||/[\\\x00-\x1f\x7f]/.test(value)||denied.test(value))return false;
  const parts=value.split('/');if(parts.some(p=>!p||p==='.'||p==='..'))return false;
  if(parts.length===1)return rootFiles.has(value);

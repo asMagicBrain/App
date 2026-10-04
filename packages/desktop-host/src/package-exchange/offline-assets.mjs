@@ -1,3 +1,4 @@
+import {chineseFontAssets} from '../../../../apps/desktop/ui/fonts/assets.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createRequire} from 'node:module';
@@ -7,7 +8,7 @@ export const KATEX_READER_CSS='reader-assets/katex/katex.min.css';
 
 /** Build/source-test input only. The native build embeds these exact bytes;
  * its compiled renderer never discovers packages or reads runtime assets. */
-export function loadOfflineAssets({katexRoot=path.dirname(require.resolve('katex/package.json'))}={}){
+export function loadOfflineAssets({includeChinese=false,katexRoot=path.dirname(require.resolve('katex/package.json'))}={}){
   const css=fs.readFileSync(path.join(katexRoot,'dist/katex.min.css'));
   const text=css.toString('utf8'),references=[...text.matchAll(/url\(([^)]+)\)/g)].map(match=>match[1].replace(/^['"]|['"]$/g,''));
   if(!references.length||/@import\b/i.test(text)||references.some(value=>!/^fonts\/KaTeX_[A-Za-z0-9-]+\.(?:woff2?|ttf)$/.test(value)))throw Error('Unexpected offline KaTeX asset reference');
@@ -27,5 +28,6 @@ export function loadOfflineAssets({katexRoot=path.dirname(require.resolve('katex
   const fontNotice=fs.readFileSync(new URL('./offline-font-license.txt',import.meta.url),'utf8');
   if(!fontNotice.includes('SIL OPEN FONT LICENSE Version 1.1'))throw Error('Missing offline font license');
   notices.push(fontNotice);
-  return {assets,notices:notices.join('\n\n')};
+  if(includeChinese){const cjk=chineseFontAssets();assets.push(...cjk.assets);notices.push('MiSans Fonts used in this offline reader — Xiaomi Inc.\n'+cjk.license);return {assets,notices:notices.join('\n\n'),chineseCss:cjk.css};}
+  return {assets,notices:notices.join('\n\n'),chineseCss:''};
 }

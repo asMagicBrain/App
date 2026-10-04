@@ -55,3 +55,4 @@
 .fw-window .ac-settings :focus-visible{outline:2px solid var(--fw-accent,#0969da);outline-offset:2px}
 @media(max-width:480px){.ac-settings{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);padding:20px}.ac-settings footer button{flex:1}.ac-menu{width:min(276px,calc(100vw - 24px))}}
 @media(pointer:coarse){.ac-menu-item{min-height:44px}.fw-window .ac-settings button{min-height:44px}.fw-window .ac-settings .ac-close{width:44px;height:44px;min-height:44px}}
+.workspace-info{max-height:calc(100vh - 48px);overflow:auto}.workspace-path{overflow-wrap:anywhere}.workspace-actions{display:flex;gap:8px;flex-wrap:wrap}.workspace-info dd{margin:4px 0 12px}.workspace-info input[type=checkbox]{width:auto;min-height:0;margin-right:8px}

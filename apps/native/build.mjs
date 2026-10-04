@@ -5,6 +5,7 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 const appRoot = path.resolve(here, '../..');
 if (process.argv.slice(2).some(argument => argument !== '--source-only')) throw Error('Use build.mjs [--source-only].');
 const sourceOnly = process.argv.includes('--source-only');
+await (await import('../../tools/prepare-chinese-fonts.mjs')).checkChineseFonts();
 await import('./build-account-config.mjs');
 // Host dependency closure is compiled separately; renderer never receives Auth
 // SDK code, credentials or tenant configuration. The package manifest hashes it.

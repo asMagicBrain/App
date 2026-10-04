@@ -24,3 +24,7 @@ Choose a new ZIP filename outside the managed workspace. Existing files are neve
 Package updates currently support 256 changed paths and 4 MiB per changed file. Unchanged assets may be larger. These limits do not restrict ordinary file and folder management.
 
 [Back to guide](README.md)
+
+### Selecting nonconflicting updates
+
+The package review shows counts for safe additions/updates, conflicts, protected drafts and removals. Select nonconflicting updates fills undecided safe additions/updates and keeps protected drafts. It retains your individual choices. Conflicts and removals require individual review; selecting changes does not apply them until you confirm the reviewed update.

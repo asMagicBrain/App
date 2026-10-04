@@ -20,6 +20,7 @@ test('session-account packaging rejects encrypted, unknown, ambiguous and incomp
 function fixture(t){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'package-support-'));
  t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ write(root,'apps/desktop/ui/fonts/MiSans-LICENSE.txt',fs.readFileSync(path.join(appRoot,'apps/desktop/ui/fonts/MiSans-LICENSE.txt')));
  return root;
 }
 function write(root,relative,bytes){const filename=path.join(root,relative);fs.mkdirSync(path.dirname(filename),{recursive:true});fs.writeFileSync(filename,bytes);return filename;}
@@ -101,9 +102,9 @@ test('license collection includes both application roots, subpath-only packages 
  dependency(root,'ui-workshop/node_modules/beta','beta',{dependencies:{shared:'1.2.3'}});
  dependency(root,'ui-workshop/node_modules/shared','shared');
  const notices=dependencyNotices(root);
- assert.deepEqual(notices.map(item=>item.name).sort(),['alpha','beta','shared','shared']);
+ assert.deepEqual(notices.map(item=>item.name).sort(),['MiSans','alpha','beta','shared','shared']);
  assert.equal(new Set(notices.filter(item=>item.name==='shared').map(item=>item.location)).size,2);
- assert.ok(notices.every(item=>item.filename==='LICENSE-MIT'));
+ assert.ok(notices.every(item=>item.filename==='LICENSE-MIT'||item.name==='MiSans'));
 });
 
 test('missing license requires an exact version notice with matching recorded bytes',t=>{
@@ -122,7 +123,7 @@ test('Linux search packaging retains verified musl and Rust notices and refuses 
  const directory='apps/native/licenses',source=path.join(appRoot,directory);
  for(const file of ['ripgrep-provenance.json','ripgrep-15.0.0-third-party.txt','ripgrep-linux-x64-provenance.json','rust-1.88.0-library-COPYRIGHT.html','musl-1.2.3-COPYRIGHT.txt'])write(root,`${directory}/${file}`,fs.readFileSync(path.join(source,file)));
  const collect=()=>dependencyNotices(root,undefined,{platform:'linux',arch:'x64'});
- assert.deepEqual(collect().map(item=>item.filename),['THIRD-PARTY-NOTICES.txt','PROVENANCE.json','rust-1.88.0-library-COPYRIGHT.html','musl-1.2.3-COPYRIGHT.txt','PROVENANCE-linux-x64.json']);
+ assert.deepEqual(collect().map(item=>item.filename),['THIRD-PARTY-NOTICES.txt','PROVENANCE.json','rust-1.88.0-library-COPYRIGHT.html','musl-1.2.3-COPYRIGHT.txt','PROVENANCE-linux-x64.json','MiSans-LICENSE.txt']);
  const provenance=JSON.parse(fs.readFileSync(path.join(source,'ripgrep-linux-x64-provenance.json')));
  json(root,`${directory}/ripgrep-linux-x64-provenance.json`,{...provenance,notices:provenance.notices.slice(0,1)});assert.throws(collect,/Invalid Linux/);
  json(root,`${directory}/ripgrep-linux-x64-provenance.json`,{...provenance,binarySha256:'0'.repeat(64)});assert.throws(collect,/Invalid Linux/);

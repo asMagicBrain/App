@@ -53,3 +53,11 @@ Select text and press **⌘ /** on Mac or **Ctrl /** on Linux to toggle a commen
 Comments are hidden in Preview, Split preview and offline reading pages. Source and Visual editing keep them available to edit. Commented headings do not appear in the outline. Syntax inside code examples stays visible.
 
 Close each comment with `-->`; an unfinished comment beginning a line hides the remaining block from Preview. Comments remain in saved Markdown and exported source files, so they are not private when you share those files.
+
+## Interactive admission diagnostics
+
+Review checks the saved manifest and its listed files before Run. Errors identify missing relative paths, byte-size/hash differences and unsupported manifest fields. PNG and JPEG posters are supported up to 4096 × 4096 pixels; the image format is inspected from saved bytes and a filename mismatch is reported without rewriting files. Each interactive manifest has one HTML entry. Additional HTML pages need separate entry manifests; listing HTML as data does not authorize another page or nested frame. Network access remains blocked.
+
+Use Account menu → About asMagicBrain to see the application version, build, channel and active workspace location. Enabling asTeach does not migrate another profile’s courses.
+
+Interactive views are positioned only after the host accepts the current viewport. Resizing never exposes stale child bounds. If admission succeeds but the view cannot be positioned, the host stops it and preserves the source; enlarge the window and review again.

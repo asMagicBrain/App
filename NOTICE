@@ -35,3 +35,9 @@ notices, rather than this summary, identify the complete binary dependency
 closure. Preserve all such notices when redistributing.
 
 No trademark permission or endorsement by dependency authors is implied.
+
+Chinese typography uses unmodified MiSans and MiSans TC by Xiaomi Inc.,
+under the MiSans Fonts Intellectual Property License Agreement. These fonts
+are not MIT licensed. See apps/desktop/ui/fonts/MiSans-LICENSE.txt and
+https://hyperos.mi.com/font/download. Public source excludes font binaries;
+builds acquire them from Xiaomi using pinned archive and member hashes.

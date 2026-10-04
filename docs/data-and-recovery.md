@@ -45,3 +45,31 @@ The updated app remembers the drive's stable volume identity. A replaced folder,
 Keep your data folder unchanged. Note the error message, app version, and the action that led to it, then [report the problem](https://github.com/asMagicBrain/App/issues) with a small example that contains no private data.
 
 Normal quit lets pending writes finish. Force-quitting, power loss, failing storage, or concurrent edits from another app can need recovery. Work from a verified backup copy when investigating; automatic repair is not guaranteed.
+
+## Locate courses after an application update
+
+Open **Account → About asMagicBrain** to see the actual version, build, channel and absolute active workspace location. Development and Preview can use different folders. Installing asTeach enables the plugin in the active workspace; it does not move earlier courses. An empty asTeach Home offers **Locate previous courses**.
+
+Choose **Locate previous courses** and select the complete managed-data folder containing both `workspaces` and `state`. Review the selected folder, file counts, repositories and names present in both locations. Select **Back up and switch** only after reviewing them. The app preserves pending drafts, closes its host, verifies backups of both managed folders and validates the selected private stores. Reopen to use the selected folder **in place**. The current folder is retained. No files are merged, no credentials are copied and nothing is published to GitHub.
+
+This retains saved files, untracked files, Git history/remotes, drafts, Trash, installed plugins, course calendars, teacher defaults, paired repository identities and other private journals with their original physical folder identities. Accounts require sign-in again. Local automation is disabled until authorized again. The existing Electron profile remains separate; its cache and account data are not migrated.
+
+Names shared by both folders are separate copies, not merged conflicts. Edit only the active copy. To return, open About and select **Review return to previous workspace**. Returning also requires review and verified backups of both folders; it does not undo edits made while using either folder.
+
+An interrupted switch retains originals and partial or verified backups. If selection was not published, the previous folder remains active. Reopen and choose **Resume workspace review** for a fresh review and backups. If selection was already published, startup validates that folder and completes the journal. A missing drive, changed folder identity or damaged record is rejected rather than silently opening a different workspace.
+
+Backups are kept in `asMagicBrain-recovery-backups` beside each managed folder, with a hash-verified receipt. They retain recovery evidence, including lexical workspace symlinks without reading their targets. They are **not** directly usable rebound profiles: copying a backup changes physical identities. Keep both original folders and ask for recovery help if restoration is needed.
+
+### Upgrade compatibility
+
+| Existing data | Supported behavior |
+| --- | --- |
+| Earlier Preview using the same managed folder | Open in place; validate ownership, volume identity and existing private journals. |
+| Earlier Development using a different complete managed folder | Explicit reviewed adoption in place; retain the original channel record and physical identities. |
+| Both folders have courses, including identical names | Choose one complete workspace. No merging or automatic overwrite. |
+| Folder on a local external drive | Adopt after ownership and volume checks; reconnect the same drive for later launches. |
+| Development candidate | Adoption is restricted to its designated Test folder. It cannot adopt normal-use data. |
+| Repository ZIP or saved repository folder without private state | Import saved content; this is not a workspace migration and cannot restore private drafts or bindings. |
+| Copied/replaced managed root or unsupported newer private schema | Fail closed; keep originals and investigate. No blind identity rebinding. |
+
+Review and backups allow up to 200,000 entries and 128 directory levels. They do not force large repositories through ZIP import. Hard links, special files, unsafe ownership, linked managed roots and links in private state are refused. Backup time and required free space depend on the complete folder size. The application remains closed to editing while it verifies backups; wait for the native result dialog.

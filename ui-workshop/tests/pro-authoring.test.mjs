@@ -26,3 +26,12 @@ test('formatting retains mixed source line endings and BOM through the shared se
 });
 
 test('link command selects an existing destination without nesting',()=>{const v=view('[hello](other.md)',2,2);formatCommand('link')(v);assert.equal(v.state.doc.toString(),'[hello](other.md)');assert.equal(v.state.sliceDoc(v.state.selection.main.from,v.state.selection.main.to),'other.md');});
+
+
+test('Chinese formatting, undo and encoded completion use the same source engine',()=>{
+ const v=view('機器人系统');formatCommand('bold')(v);assert.equal(v.state.doc.toString(),'**機器人系统**');undo(v);assert.equal(v.state.doc.toString(),'機器人系统');
+ const links=completionSource(()=>['classes/系统辨识.md'],()=> 'instructor.md');
+ const doc='[实验](';const result=links(new CompletionContext(EditorState.create({doc,extensions:[markdown()]}),doc.length,true));
+ assert.equal(decodeURIComponent(result.options[0].label),'classes/系统辨识.md');
+ const composing=view('机器人');composing.compositionStarted=true;assert.equal(formatCommand('bold')(composing),false);assert.equal(composing.state.doc.toString(),'机器人');
+});

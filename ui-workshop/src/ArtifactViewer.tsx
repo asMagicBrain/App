@@ -4,6 +4,10 @@ import type {ArtifactReview, ArtifactRuntimeState} from './native-types';
 import './artifact-viewer.css';
 
 const artifactMessages: Record<string,string> = {
+  ARTIFACT_MISSING_ASSET: 'A declared file is missing.',
+  ARTIFACT_UNAVAILABLE: 'The repository is not ready for interactive admission. Check its registration and recovery status.',
+  ARTIFACT_INVALID_FILE: 'Use a regular local file, not a link.',
+  ARTIFACT_INVALID_POSTER: 'The poster must be a valid PNG or JPEG within the supported dimensions.',
   ARTIFACT_REVIEW_STALE: 'These files changed after review. Close this view and review them again.',
   ARTIFACT_REVIEW_REQUIRED: 'Review the current files before running this view.',
   ARTIFACT_HASH_MISMATCH: 'A file differs from its manifest. Update the manifest before reviewing it again.',
@@ -17,7 +21,9 @@ const artifactMessages: Record<string,string> = {
 };
 function artifactError(reason: unknown) {
   const error=reason as {code?:string;message?:string};
-  return artifactMessages[error.code??''] ?? (error.code ? 'This view could not run. Your files remain unchanged; its source is still available.' : error.message??'The view could not run.');
+  const message=artifactMessages[error.code??''] ?? 'This view could not run. Your files remain unchanged; its source is still available.';
+  const detail=error.message && error.message !== error.code && error.message !== message ? ` ${error.message}` : '';
+  return error.code ? `${message} [${error.code}]${detail}` : error.message ?? message;
 }
 
 /** Host-owned review UI. Repository HTML never enters this renderer's DOM. */
@@ -104,7 +110,8 @@ export function ArtifactViewer({repository, path, disabled = false}: {repository
     <dialog ref={dialog} className="artifact-dialog" aria-labelledby="artifact-title" onCancel={event=>{event.preventDefault();close();}}>
       <header><div><h2 id="artifact-title">{review?.title??'Interactive view'}</h2><p>{path}</p></div><button aria-label="Close interactive view" onClick={close}>Close</button></header>
       {error&&<p className="artifact-error" role="alert">{error}</p>}
-      {!review?<p role="status">{busy?'Checking local files…':'The view could not be reviewed. Its source remains available.'}</p>:<>
+      {!review?<p role="status">{busy?'Checking local files…':'Review stopped. Close this dialog to inspect the source and correct the reported problem.'}</p>:<>
+        {review.warnings?.map((warning,index)=><p key={index} className="artifact-error">{warning}</p>)}
         <div className="artifact-actions"><span role="status">{running?'Running locally':runtime?.state==='failed'?'Stopped after a runtime error':source?'Source':runtime?.state==='stopped'?'Stopped':'Ready for review'}</span>
           {running?<><button disabled={busy} onClick={()=>void stop()}>Stop</button><button disabled={busy} onClick={()=>void start(true)}>Reset</button></>:<button disabled={busy} onClick={()=>void start()}>{busy?'Starting…':'Run interactive view'}</button>}
           <button disabled={busy} onClick={()=>void stop(true)}>Source</button><button disabled={busy} onClick={()=>void stop(false)}>Static fallback</button></div>

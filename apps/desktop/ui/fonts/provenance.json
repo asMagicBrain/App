@@ -1,0 +1,36 @@
+{
+  "family": "MiSans / MiSans TC",
+  "sources": [
+    "https://hyperos.mi.com/font-download/MiSans.zip",
+    "https://hyperos.mi.com/font-download/MiSans_TC.zip"
+  ],
+  "files": {
+    "MiSans-Regular.woff2": "d704c1a932c0bd7e8a071d276cd81c0ed0c9fecfa26ac234f4bed0559fe1cb2d",
+    "MiSans-Semibold.woff2": "78227c6ec59566785c65ac0b5312328bfa2f879918f3d7403725785615a9a8f6",
+    "MiSansTC-Regular.woff2": "7df335b49494a43eb7e95f31cb8d205df372ea7100a1afe2c4a486539b5efa75",
+    "MiSansTC-Semibold.woff2": "90166bf0e77795f70e9bed01631759faae94aac442425e5ae484b7ea78e4e4cf"
+  },
+  "licenseSha256": "c9c4a7bf9fe44cfea19d2079cb259edf6e08f688440729933fb4f62de39dec9e",
+  "archives": [
+    {
+      "url": "https://hyperos.mi.com/font-download/MiSans.zip",
+      "filename": "MiSans.zip",
+      "sha256": "b6aa1fc827035922612df8edf36e5609bca1c5441e25cd57572204569b7b81d9",
+      "bytes": 227880072,
+      "members": {
+        "MiSans-Regular.woff2": "MiSans/woff2/MiSans-Regular.woff2",
+        "MiSans-Semibold.woff2": "MiSans/woff2/MiSans-Semibold.woff2"
+      }
+    },
+    {
+      "url": "https://hyperos.mi.com/font-download/MiSans_TC.zip",
+      "filename": "MiSans_TC.zip",
+      "sha256": "417831f033601f1738fefb2ce9158586d0143385a9dd0c4cfa985bcc16c7443b",
+      "bytes": 114017249,
+      "members": {
+        "MiSansTC-Regular.woff2": "MiSans TC/woff2/MisansTC-Regular.woff2",
+        "MiSansTC-Semibold.woff2": "MiSans TC/woff2/MisansTC-Semibold.woff2"
+      }
+    }
+  ]
+}

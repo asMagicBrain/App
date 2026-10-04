@@ -5,6 +5,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {randomUUID} from 'node:crypto';
+import {Worker} from 'node:worker_threads';
+import {selectedWorkspace,reviewWorkspaceAdoption,adoptionStatus,resumeWorkspaceAdoption,discoverWorkspaces,confirmWorkspaceOpened} from './workspace-adoption.mjs';
 import {createArtifactHost, ARTIFACT_SCHEME} from './artifact-host.mjs';
 import {saveExportDestination} from './export-destination.mjs';
 import {createNativeService} from './host-service.mjs';
@@ -31,7 +33,7 @@ const cliIndex=process.argv.indexOf('--automation-cli');
 if(cliIndex>=0)process.exit(await runCli(process.argv.slice(cliIndex+1)));
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-let packageMetadata, buildConfig, testRoot, profilePaths, dataRoot, profileRoot, temporaryRoot, linuxTemporaryDirectory, startupFailure;
+let nativeBundledDocs, defaultDataRoot, workspaceSelection, workspaceReview, pendingWorkspaceSwitch, packageMetadata, buildConfig, testRoot, profilePaths, dataRoot, profileRoot, temporaryRoot, linuxTemporaryDirectory, startupFailure;
 const pageURL = 'app://asmagicbrain/index.html';
 protocol.registerSchemesAsPrivileged([{scheme: 'app', privileges: {standard: true, secure: true, supportFetchAPI: true}}, ARTIFACT_SCHEME]);
 
@@ -49,6 +51,9 @@ try {
   assertGitRuntime({packaged: app.isPackaged});
   admitNativeProfile({args: process.argv, testRoot, channel: buildConfig.channel, paths: profilePaths});
   ({dataRoot, profileRoot, temporaryRoot} = profilePaths);
+  defaultDataRoot=dataRoot;
+  workspaceSelection=selectedWorkspace({profileRoot,defaultRoot:dataRoot,allowedRoot:buildConfig.channel==='development'?testRoot:undefined});
+  if(workspaceSelection)dataRoot=workspaceSelection.active.path;
   ensurePhysicalDirectory(path.dirname(dataRoot));
   ensurePhysicalDirectory(profileRoot);
   if (process.platform === 'linux') {
@@ -97,7 +102,7 @@ function requestClose() {
 async function closeFailed(message) {
   const old = pendingClose;
   if (!old) return;
-  clearTimeout(old.timer); pendingClose = null;
+  clearTimeout(old.timer); pendingClose = null; pendingWorkspaceSwitch = null;
   service.resumeSearch(); applicationAuth.resume(); githubAccount.resume(); cloneCoordinator.resume(); updateCoordinator.resume(); applyCoordinator.resume();
   if (window && !window.isDestroyed()) {
     window.webContents.send('asmb:prepare-close', {requestId: old.requestId, cancelled: true, error: message});
@@ -117,6 +122,34 @@ ipcMain.handle('asmb:native', async (event, input) => {
     if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['method', 'args'].includes(key)) || typeof input.method !== 'string') throw Error('Invalid native request.');
     if (terminalFailure) throw Error('Local storage needs recovery. The preview is held; reopen only after resolving the reported issue.');
     if (pendingClose?.phase === 'draining') throw Error('The window is closing.');
+    if (input.method === 'getApplicationInfo') {
+      if (input.args !== undefined) throw Error('Application information takes no arguments.');
+      const release = packageMetadata ?? JSON.parse(fs.readFileSync(new URL('./release.json',import.meta.url),'utf8'));
+      return {ok:true,value:{version:release.version,buildNumber:release.buildNumber,channel:buildConfig.channel,dataRoot,defaultDataRoot,adopted:Boolean(workspaceSelection)}};
+    }
+    if(input.method==='getWorkspaceLocations'){
+      if(input.args!==undefined)throw Error('Workspace locations take no arguments.');
+      const status=adoptionStatus({profileRoot});
+      return {ok:true,value:{dataRoot,defaultDataRoot,previousRoot:status.selection?.previous.path??null,pending:status.journal?.status!=='complete'?status.journal?.phase??null:null,candidates:discoverWorkspaces({currentRoot:dataRoot,home:app.getPath('home'),testRoot})}};
+    }
+    if(input.method==='reviewWorkspaceAdoption'){
+      if(pendingClose||pickerPending)throw Error('The application is busy.');
+      if(!input.args||!['choose','previous','resume'].includes(input.args.action)||Object.keys(input.args).length!==1)throw Error('Choose a workspace review action.');
+      const options={currentRoot:dataRoot,profileRoot,defaultRoot:defaultDataRoot,bundledDocs:nativeBundledDocs,allowedRoot:buildConfig.channel==='development'?testRoot:undefined};
+      if(input.args.action==='resume')workspaceReview=resumeWorkspaceAdoption(options);
+      else{
+        let targetRoot;
+        if(input.args.action==='previous')targetRoot=adoptionStatus({profileRoot}).selection?.previous.path;
+        else{pickerPending=true;try{const result=await dialog.showOpenDialog(window,{title:'Locate previous courses',message:'Choose the complete asMagicBrain data folder containing workspaces and state. This only prepares a review.',buttonLabel:'Review workspace',properties:['openDirectory','noResolveAliases']});if(result.canceled)return {ok:true,value:null};targetRoot=result.filePaths[0];}finally{pickerPending=false;}}
+        if(!targetRoot)throw Error('No previous workspace is available.');
+        workspaceReview=reviewWorkspaceAdoption({...options,targetRoot});
+      }
+      return {ok:true,value:{...workspaceReview,bundledDocs:undefined}};
+    }
+    if(input.method==='confirmWorkspaceAdoption'){
+      if(pendingClose||!workspaceReview||input.args?.reviewId!==workspaceReview.reviewId||input.args.approved!==true||Object.keys(input.args).length!==2)throw Error('Review and confirm the workspace switch first.');
+      pendingWorkspaceSwitch=workspaceReview;workspaceReview=null;requestClose();return {ok:true,value:{closing:true}};
+    }
     if (input.method === 'getBuildConfiguration') {
       if (input.args !== undefined) throw Error('Build configuration takes no arguments.');
       return {ok: true, value: buildConfig};
@@ -220,6 +253,15 @@ ipcMain.on('asmb:close-ready', async (event, result) => {
   try {
     await service.drain();
     try {await Promise.all([cloneCoordinator.drain(), updateCoordinator.drain(), applyCoordinator.drain()]); await artifactHost?.close(); await applicationAuth.close(); await githubAuth.close(); await Promise.all([cloneCoordinator.close(), updateCoordinator.close(), applyCoordinator.close()]); await stopAutomation(); await service.close();} catch (error) {terminalFailure = error.message; throw error;}
+    if(pendingWorkspaceSwitch){
+      clearTimeout(pendingClose.timer);
+      const review=pendingWorkspaceSwitch;pendingWorkspaceSwitch=null;
+      try{await new Promise((resolve,reject)=>{const worker=new Worker(new URL('./workspace-adoption-worker.mjs',import.meta.url),{workerData:review});let settled=false;
+        worker.on('message',message=>{if(message.phase)window.webContents.send('asmb:workspace-progress',{phase:message.phase});if(message.complete){settled=true;message.error?reject(Object.assign(Error(message.error.message),{code:message.error.code})):resolve(message.result);}});
+        worker.on('error',reject);worker.on('exit',code=>{if(!settled)reject(Error('Workspace switch stopped before completion. Reopen to review or resume it.'));});});
+        await dialog.showMessageBox(window,{type:'info',title:'Workspace switch ready',message:'Backups were verified and the selected workspace is ready.',detail:'Reopen asMagicBrain to use it. The previous folder remains in place; About → Locate previous courses lets you return. Accounts require sign-in again. Local automation is disabled until you authorize it.',buttons:['Quit and reopen later']});
+      }catch(error){await dialog.showMessageBox(window,{type:'error',title:'Workspace switch incomplete',message:'The workspace switch could not finish.',detail:error.message+' Reopen asMagicBrain and use About → Resume workspace review. Originals and any completed backups are retained.',buttons:['Quit']});}
+    }
     clearTimeout(pendingClose.timer); pendingClose = null; allowQuit = true;
     window.destroy(); app.quit();
   } catch (error) {if (terminalFailure) {clearTimeout(pendingClose.timer); pendingClose = null; await holdForRecovery(terminalFailure);} else await closeFailed(error.message);}
@@ -260,7 +302,7 @@ try {
   if (startupFailure) throw startupFailure;
   if (!app.requestSingleInstanceLock()) {allowQuit = true; app.quit();} else {
     app.on('second-instance', () => {if (window && !window.isDestroyed()) {window.restore(); window.focus();}});
-    const bundledDocs = loadBundledDocs(path.resolve(here, '../..'), {packaged: app.isPackaged, metadata: packageMetadata});
+    const bundledDocs = loadBundledDocs(path.resolve(here, '../..'), {packaged: app.isPackaged, metadata: packageMetadata});nativeBundledDocs=bundledDocs;
     await app.whenReady();
     storageAdmission = await prepareNativeStorage({dataRoot, confirmRecovery: async () => {
       const choice = await dialog.showMessageBox({type: 'question', title: 'Restore workspace access',
@@ -270,6 +312,7 @@ try {
       return choice.response === 1;
     }});
     service = await createNativeService({dataRoot,bundledDocs,getGitHubCredential:()=>githubAuth.getCredential(),githubFetch:(...args)=>globalThis.fetch(...args),storageIdentity:storageAdmission.context,profileLock:storageAdmission.profileLock,revealInFileManager:filename=>shell.showItemInFolder(filename)});
+    confirmWorkspaceOpened({profileRoot,dataRoot});
     externalTickets=createExternalFileTickets({prepare:paths=>service.prepareExternalFiles(paths),importFiles:(request,options)=>service.importExternalFiles(request,options)});
     // Account credentials live only in this main process. Existing encrypted
     // account files are deliberately neither opened nor changed by this policy.
@@ -284,7 +327,7 @@ try {
     session.defaultSession.setPermissionRequestHandler((wc, permission, callback) => callback(permission === 'clipboard-sanitized-write' && wc === window?.webContents && isApplicationPage(wc.getURL())));
     session.defaultSession.setPermissionCheckHandler((wc, permission) => permission === 'clipboard-sanitized-write' && wc === window?.webContents && isApplicationPage(wc.getURL()));
     const dist = path.join(here, 'dist');
-    const types = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2'};
+    const types = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf'};
     protocol.handle('app', async request => {
       try {
         const url = new URL(request.url);

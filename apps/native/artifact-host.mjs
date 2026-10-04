@@ -85,7 +85,7 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
   function suspendGeometry(event) {
     if (!active) return;
     const id = active.id;
-    try {active.view.setVisible(false);} catch {failed('ARTIFACT_GEOMETRY_FAILED'); return;}
+    try {active.view.setVisible(false); active.view.setBounds({x:0,y:0,width:0,height:0});} catch {failed('ARTIFACT_GEOMETRY_FAILED'); return;}
     active.geometryPending = true;
     if (state === 'running' && !active.geometryTimer) active.geometryTimer = setTimeout(() => {if (active?.id === id && active.geometryPending) failed('ARTIFACT_GEOMETRY_TIMEOUT');}, geometryTimeoutMs);
     record(event, {ownerSize: size(), bounds: active.bounds}); emit();
@@ -169,7 +169,7 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
       view.setVisible(false); owner.contentView.addChildView(view);
       // Snapshot/proxy setup is asynchronous. Keep the initial child hidden until
       // fresh renderer geometry is confirmed, even if the window resized meanwhile.
-      view.setBounds(clipArtifactBounds(bounds, size())); suspendGeometry('initial-geometry'); emit();
+      clipArtifactBounds(bounds, size()); suspendGeometry('initial-geometry'); emit();
       await wc.loadURL(url);
       if (closed || operation !== epoch || active?.id !== id) fail('ARTIFACT_CANCELLED');
       clearTimeout(loadTimer); state = 'running'; suspendGeometry('initial-geometry-ready'); emit(); return current();
@@ -206,7 +206,10 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
         clipArtifactBounds(request.bounds, [20000, 20000]);
         if (!viewportMatches(request.viewport)) {suspendGeometry('stale-viewport'); return current();}
         bounds = clipArtifactBounds(request.bounds, size());
-        active.view.setBounds(bounds); active.bounds = bounds; active.view.setVisible(true);
+        // Some Electron/macOS versions do not resize an invisible WebContentsView.
+        // Show the zero-sized child, then apply the admitted geometry so its
+        // renderer receives a real viewport without exposing stale bounds.
+        active.view.setVisible(true); active.view.setBounds(bounds); active.bounds = bounds;
         clearTimeout(active.geometryTimer); active.geometryTimer = null; active.geometryPending = false;
         record('geometry-applied', {bounds, ownerSize: size()}); return current();
       } catch (error) {failed(safeError(error) === 'ARTIFACT_FAILED' ? 'ARTIFACT_GEOMETRY_FAILED' : safeError(error)); throw error;}

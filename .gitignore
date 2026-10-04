@@ -8,3 +8,6 @@ apps/native/dist-host/
 apps/native/.cache/
 .tooling/
 releases/
+
+# Acquired unmodified from Xiaomi; binaries belong in applications, not source exports.
+apps/desktop/ui/fonts/MiSans*.woff2
