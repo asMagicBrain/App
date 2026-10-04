@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import {parseSync} from '../../ui-workshop/node_modules/oxc-parser/src-js/index.js';
 import {resolveBuildConfiguration} from './build-channel.mjs';
 import {startupFailureMessage} from './startup.mjs';
+import {createStartupTiming} from './startup-timing.mjs';
 import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-packages/format.mjs';
 
 const mainURL = new URL('./main.mjs', import.meta.url);
@@ -93,7 +94,7 @@ async function harness({drain, channel = 'development', startupError, temporaryE
     setTimeout: () => {const timer = {unref() {}}; timers.add(timer); return timer;}, clearTimeout: timer => timers.delete(timer),
     resolveNativeStartup: options => {if (startupError) throw startupError; return {configuration: resolveBuildConfiguration(options), testRoot: '/fixture/asMagicBrain-Test', paths: {dataRoot: '/fixture/data', profileRoot: '/fixture/profile', temporaryRoot: '/fixture/tmp'}};},
     prepareNativeStorage: async () => ({context: null, profileLock: {release() {}}}),
-    startupFailureMessage, ensurePhysicalDirectory: value => value,
+    startupFailureMessage, createStartupTiming, ensurePhysicalDirectory: value => value,
     selectedWorkspace: () => null,
     adoptionStatus: () => ({selection: null, journal: null}),
     discoverWorkspaces: () => [],
