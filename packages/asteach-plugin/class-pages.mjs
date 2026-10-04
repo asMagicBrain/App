@@ -1,4 +1,4 @@
-import {audienceStructure} from './audiences.mjs';
+import {audienceStructure,audienceHome} from './audiences.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {teachingScheduleBundle} from './schedule.mjs';
@@ -61,7 +61,7 @@ async function generateClassPackages({repo,term,calendar,noClassDays,read,writeB
  const paths=planned.flatMap(p=>[p.lesson,p.delivery,p.technical,p.lesson.replace(/lesson\.md$/,'package-manifest.json')]);
  const stored=await read(repo,manifestPath);let previous=null;if(stored){try{previous=JSON.parse(stored.text);}catch{fail('CLASS_PAGES_RECORD_INVALID');}if(previous.schemaVersion!==2||!['creating','ready'].includes(previous.phase)||!Array.isArray(previous.paths)||JSON.stringify(previous.paths)!==JSON.stringify(paths)||previous.signature!==signature)fail('CLASS_PAGES_SCHEDULE_CHANGED');}
  await checkCreatePaths(repo,[manifestPath,...paths]);
- let markdown=bundle.markdown;for(const p of planned){const link=path.posix.relative(path.posix.dirname(term.source.paths[0]),p.lesson).split('/').map(encodeURIComponent).join('/');markdown=markdown.replaceAll(`](${p.name})`, `](${link})`);}
+ let markdown=bundle.markdown;for(const p of planned){const link=path.posix.relative(path.posix.dirname(audienceHome(audiences,'instructors')),p.lesson).split('/').map(encodeURIComponent).join('/');markdown=markdown.replaceAll(`](${p.name})`, `](${link})`);}
  const existing=[];for(const p of paths)existing.push(await read(repo,p));
  if(previous?.phase==='ready'&&existing.some(Boolean)){if(existing.some(v=>!v))fail('CLASS_PAGES_INCOMPLETE');return {markdown,created:0,reused:planned.length,structureVersion:2};}
  if(!previous&&existing.some(Boolean))fail('CLASS_PAGES_COLLISION');

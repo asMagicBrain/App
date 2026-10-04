@@ -32,6 +32,7 @@ test('audience packages preserve independent lesson/delivery edits and reject pa
  const f=fixture();const audiences={structureVersion:2,instructors:{root:'2026-autumn/instructors',home:'README.md'},students:{root:'2026-autumn/students',home:'README.md'}};
  const input={...f.input,audiences,term:{...f.input.term,source:{paths:['2026-autumn/instructors/README.md']}}};
  const result=await generateClassPages(input);assert.match(result.markdown,/\.\.\/students\/classes\/class01\/lesson.md/);assert.equal(result.created,42);
+ const legacyView=await generateClassPages({...input,term:{...input.term,source:{paths:['2026-autumn/instructor.md']}}});assert.match(legacyView.markdown,/\.\.\/students\/classes\/class01\/lesson.md/);assert.equal(legacyView.created,0);
  const lesson='2026-autumn/students/classes/class01/lesson.md',delivery='2026-autumn/instructors/classes/class01/delivery.md';f.files.set(lesson,'Student edited');f.files.set(delivery,'Private delivery');const writes=f.calls.length;
  assert.equal((await generateClassPages(input)).created,0);assert.equal(f.calls.length,writes);assert.equal(f.files.get(lesson),'Student edited');assert.equal(f.files.get(delivery),'Private delivery');
  f.files.delete(lesson);await assert.rejects(generateClassPages(input),{code:'CLASS_PAGES_INCOMPLETE'});assert.equal(f.files.get(delivery),'Private delivery');
