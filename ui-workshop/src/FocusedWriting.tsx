@@ -229,7 +229,7 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
   const create=()=>{if(selectedReadOnly)return;leaveEditor(()=>{study?.onExit();setWorkspaceView(null);if(repositoryCode){setRenamedLocation(null);setShowDraft(false);setCreateRepositoryFile(true);setCodeEpoch(value=>value+1);beforeLeave.current=null;editorDirty.current=false;return;}setShowDraft(true);const id=next.current++;setDocuments(items=>[...items,{id,title:`Untitled ${id}`,text:''}]);setActive(id);});};
   const close=(id:number)=>{setClosed(items=>[...items,id]);if(active===id)setActive(documents.find(item=>item.id!==id&&!closed.includes(item.id))?.id??0);};
   const update=(key:'title'|'text',value:string)=>setDocuments(items=>items.map(item=>item.id===active?{...item,[key]:value}:item));
-  useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(study?.active||event.defaultPrevented||event.isComposing||document.querySelector('dialog[open]'))return;const modified=event.metaKey||event.ctrlKey;if(!event.altKey&&modified&&event.key.toLowerCase()==='p'){event.preventDefault();openSearch({mode:'files',repo:repository,ref:currentContext.current.ref,finder:true});}else if(isTypingTarget(event.target))return;else if(!modified&&!event.altKey&&event.key==='/'){event.preventDefault();openSearch({mode:'content',repo:null});}else if(!modified&&!event.altKey&&event.key.toLowerCase()==='t'&&!workspaceView){event.preventDefault();openSearch({mode:'files',repo:repository,ref:currentContext.current.ref,finder:true});}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);},[repository,workspaceView,study?.active]);
+  useEffect(()=>{const onKey=(event:KeyboardEvent)=>{if(study?.active||event.defaultPrevented||event.isComposing||document.querySelector('dialog[open],.document-presentation'))return;const modified=event.metaKey||event.ctrlKey;if(!event.altKey&&modified&&event.key.toLowerCase()==='p'){event.preventDefault();openSearch({mode:'files',repo:repository,ref:currentContext.current.ref,finder:true});}else if(isTypingTarget(event.target))return;else if(!modified&&!event.altKey&&event.key==='/'){event.preventDefault();openSearch({mode:'content',repo:null});}else if(!modified&&!event.altKey&&event.key.toLowerCase()==='t'&&!workspaceView){event.preventDefault();openSearch({mode:'files',repo:repository,ref:currentContext.current.ref,finder:true});}};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);},[repository,workspaceView,study?.active]);
   const visibleOutline=workspaceView?null:outlineState;
   const [outlineOpen,setOutlineOpen]=useState(false);
   const [outlineWidth,setOutlineWidth]=useState(240);
@@ -243,7 +243,7 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
   const focusOpenedOutline=()=>{
     if(!outlineOpen||!outlineKeyboardOpen.current)return;
     outlineKeyboardOpen.current=false;
-    if(document.querySelector('dialog[open]')||nativeWindow.closing)return;
+    if(document.querySelector('dialog[open],.document-presentation')||nativeWindow.closing)return;
     const panel=windowRoot.current?.querySelector('.ido-panel');
     const target=panel?.querySelector<HTMLElement>('.do-entry[aria-current="location"]:not(:disabled)')??panel?.querySelector<HTMLElement>('.do-entry:not(:disabled)')??panel?.querySelector<HTMLElement>('[aria-label="Close document outline"]');
     target?.focus({preventScroll:true});

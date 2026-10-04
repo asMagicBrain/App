@@ -1,4 +1,5 @@
 import {TeachPipelineStudy} from './TeachPipelineStudy';
+import {PresentationStudy} from './PresentationStudy';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { FocusedWriting } from './FocusedWriting';
 import { OutlineCompanionStudy } from './OutlineCompanionStudy';
@@ -10,6 +11,7 @@ const meta={title:'asMagicBrain/Repository workspace',component:FocusedWriting,p
 export default meta;
 type Story=StoryObj<typeof meta>;
 export const Workspace:Story={name:'Workspace'};
+export const PresentationReview:Story={name:'Presentation — Document and Sections review',render:()=> <PresentationStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Built-in presentation view with synthetic Student/course content. Native fullscreen, draft/undo and editor-position restoration require separate native qualification.'}}}};
 export const FilesOpen:Story={name:'Workspace with files',args:{initialSidebar:true}};
 export const ApplicationHome:Story={name:'Application home',args:{initialWorkspaceView:'home',initialTheme:'light-default'}};
 export const OwnerHome:Story={name:'Local organization',args:{initialWorkspaceView:'organization',initialTheme:'light-default'}};

@@ -27,7 +27,7 @@ Replace `VERSION` with the downloaded version. Open **asMagicBrain Preview** fro
 
 ### Use the editor
 
-Formatting, autocomplete, Visual and Split are included. Open a Markdown file and choose Edit. See [Editor](editor.md) for shortcuts and examples.
+Formatting, autocomplete, Visual and Split are included. Open a Markdown file and choose Edit. See [Editor](editor.md) for shortcuts and examples. Choose **Present** to teach from the same Markdown page; [Presentation](presentation.md) explains navigation, text sizing and returning to your place.
 
 ## Write your first note
 

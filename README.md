@@ -13,6 +13,7 @@ Preview packages are available for Apple silicon Macs and Ubuntu 24.04 x64. Chec
 ## Work locally
 
 - Read Markdown, equations and Mermaid diagrams offline, with an outline and reading history.
+- Teach or read a Markdown page in [Presentation](docs/presentation.md), with fullscreen and adjustable text size.
 - Use the built-in [editor](docs/editor.md) for formatting, completion, visual math and diagrams, split preview, and reviewed local interactive views.
 - Keep unsaved drafts while navigating and after a normal restart.
 - Organize files and repositories, import ZIP archives, and search saved content.
