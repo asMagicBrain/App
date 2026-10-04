@@ -44,7 +44,7 @@ export async function streamPinnedArchive(archive,write,{fetcher=fetch,chunkByte
     if(response.status!==206||response.headers.get('content-range')!==`bytes ${start}-${end}/${archive.bytes}`)throw Error('Official font range response differs from requested bounds.');
     const chunks=[];let count=0;for await(const chunk of response.body){count+=chunk.length;if(count>length)throw Error('Font range exceeds pinned size.');chunks.push(chunk);}
     if(count!==length)throw Error('Font range was interrupted.');bytes=Buffer.concat(chunks,count);break;
-   }catch(error){if(attempt===2)throw error;}
+   }catch(error){if(attempt===2)throw error;await new Promise(resolve=>setTimeout(resolve,1000*2**attempt));}
   }
   digest.update(bytes);await write(bytes);
  }
