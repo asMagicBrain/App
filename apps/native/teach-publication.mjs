@@ -33,7 +33,7 @@ export function buildStudentPublication({root,term,studentPath,forbidden,selecte
   let bytes;try{bytes=relative===studentPath&&studentText!==undefined?Buffer.from(studentText):readPublicationFile(root,relative);}catch(error){if(['ENOENT','PARTIAL','NOT_FOUND'].includes(error.code))fail('PUBLICATION_MISSING_LINK');throw error;}
   total+=bytes.length;if(total>32*1024*1024)fail('LIMIT_EXCEEDED');files.push({path:relative,bytes,hash:hash(bytes)});
   if(!/\.(?:md|markdown)$/i.test(relative))continue;
-  let source;try{source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('PUBLICATION_ENCODING');}
+  let source;try{source=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{fail('PUBLICATION_ENCODING');}
   if(convertGitBook){const result=convertGitBookMarkdown(source);normalized.set(relative,result);if(result.text!==source){conversions.push({path:relative,changes:result.changes,original:source.slice(0,16000)});source=result.text;}source=rewriteGitBookAnchors(source,relative,normalized,homeAliases);fileBytes(source);}
   function fileBytes(text){const file=files[files.length-1];file.bytes=Buffer.from(text);file.hash=hash(file.bytes);}
   const refs=studentReferences(source,relative);
@@ -87,7 +87,7 @@ export function buildAudiencePublication({root,folder,studentPath,studentText,co
    let bytes=target===studentPath&&studentText!==undefined?Buffer.from(studentText):readPublicationFile(root,target);
    total+=bytes.length;if(total>128*1024*1024)fail('LIMIT_EXCEEDED');
    if(/\.(?:md|markdown)$/i.test(target)){
-    let source;try{source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('PUBLICATION_ENCODING');}
+    let source;try{source=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{fail('PUBLICATION_ENCODING');}
     if(convertGitBook){const result=convertGitBookMarkdown(source);if(result.text!==source)conversions.push({path:target,changes:result.changes,original:source.slice(0,16000)});source=result.text;}
     const refs=studentReferences(source,target);if(refs.invalid||refs.htmlLinks)fail('PUBLICATION_PATH');
     if(refs.paths.some(p=>!p.startsWith(prefix)||denied.test(p)))fail('PUBLICATION_PRIVATE_LINK');

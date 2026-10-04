@@ -70,6 +70,8 @@ jobs:
         run: npm run typecheck
       - name: Build source targets
         run: npm run build
+      - name: Check audience publication policy
+        run: node --test apps/native/teach-audiences.test.mjs
       - name: Resolve failure evidence directory
         if: failure()
         run: echo "ASMB_FAILURE_RUNS=$(node -p 'require("node:path").resolve(process.env.ASMB_TEST_ROOT, "runs")')" >> "$GITHUB_ENV"
