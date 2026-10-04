@@ -272,3 +272,11 @@ test('empty Trash never deletes a file externally recreated at the old path',t=>
  const {runtime,options}=fixture(t);trashEntry(runtime,'docs/A.md');fs.writeFileSync(path.join(options.sourceRoot,'docs/A.md'),'external new file');
  runtime.emptyTrash({trashIds:trashIds(runtime)});assert.equal(fs.readFileSync(path.join(options.sourceRoot,'docs/A.md'),'utf8'),'external new file');
 });
+
+test('bounded discovery explicitly reports truncation without altering retained files',t=>{
+ const {runtime,options}=fixture(t);
+ const dir=path.join(options.sourceRoot,'runtime');fs.mkdirSync(dir);
+ for(let group=0;group<101;group++){const folder=path.join(dir,`group${group}`);fs.mkdirSync(folder);for(let i=0;i<100;i++)fs.writeFileSync(path.join(folder,`entry${i}.txt`),'inert');}
+ const found=runtime.discover();assert.equal(found.complete,false);assert.equal(found.truncated,true);
+ assert.ok(found.entries.length<=10000);const scoped=runtime.discover('docs');assert.equal(scoped.complete,true);assert.equal(scoped.truncated,false);assert.deepEqual(scoped.entries.map(e=>e.path),['docs/A.md']);assert.throws(()=>runtime.discover('../outside'));assert.equal(fs.readdirSync(dir).length,101);assert.equal(fs.readFileSync(path.join(dir,'group100/entry99.txt'),'utf8'),'inert');
+});
