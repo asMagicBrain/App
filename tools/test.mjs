@@ -10,7 +10,7 @@ const temporary = path.join(run, 'tmp');
 fs.mkdirSync(temporary, {mode: 0o700});
 const files = ['tools', 'ui-workshop/tests', 'ui-workshop/.storybook', 'packages/desktop-host/tests', 'packages/source-foundation/tests', 'packages/asteach-plugin']
   .flatMap(directory => fs.readdirSync(path.join(appRoot, directory)).filter(name => name.endsWith('.test.mjs')).sort().map(name => path.join(directory, name)))
-  .concat(['apps/native/account-build-config.test.mjs', 'apps/native/application-auth.test.mjs']);
+  .concat(['apps/native/account-build-config.test.mjs', 'apps/native/application-auth.test.mjs', 'apps/native/teach-discovery.test.mjs']);
 const result = spawnSync(process.execPath, ['--test', ...files], {
   cwd: appRoot, env: {...process.env, TMPDIR: temporary, TMP: temporary, TEMP: temporary},
   encoding: 'utf8', maxBuffer: 32 * 1024 * 1024,

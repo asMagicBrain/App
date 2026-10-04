@@ -10,7 +10,7 @@ import {buildRolePromotion,PROMOTION_LIMITS} from './teach-promotion.mjs';
 import {createRepositoryConnections,validConnectionBranch} from './repository-connections.mjs';
 import {createTeachPairs} from './teach-pairs.mjs';
 import {internalTeachPath,teachMetadataPaths} from '../../packages/asteach-plugin/metadata.mjs';
-import {courseKey} from '../../packages/asteach-plugin/course.mjs';
+import {courseKey,parseCourse} from '../../packages/asteach-plugin/course.mjs';
 import {createPackageZip} from '../../packages/desktop-host/src/package-exchange/archive.mjs';
 import {readPublicationFile,createTeachPublication} from './teach-publication.mjs';
 import {isTrustedTeachPackage} from '../../packages/asteach-plugin/binding.mjs';
@@ -348,15 +348,28 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     finally{if(owned){checkDirectory(pin);const live=exists(filename);if(live&&identity(live)===owned){fs.unlinkSync(filename);syncDirectory(pin);}}}
    };
   const teachPairs=createTeachPairs(createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-pairs'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-pairs:1').digest('hex')}));
-  async function teachPath(name,relative){const found=await workspace.execute(name,'discover',{});if(found.truncated)fail('LIMIT_EXCEEDED');return found.entries.some(e=>e.path==='.asteach/course.json')?internalTeachPath(relative):relative;}
-  async function hiddenTeachPaths(name){const found=await workspace.execute(name,'discover',{});return new Set(teachMetadataPaths(found.entries));}
+  async function probeTeachFile(name,relative){
+   try{const entry=await workspace.execute(name,'inspectEntry',{path:relative});if(entry.type!=='file')fail('CONFLICT');return true;}
+   catch(error){if(!['NOT_FOUND','ENOENT','PARTIAL'].includes(error.code))throw error;return false;}
+  }
+  async function teachPath(name,relative){
+   // A bounded whole-tree inventory cannot prove a known file is absent.
+   return await probeTeachFile(name,'.asteach/course.json')?internalTeachPath(relative):relative;
+  }
+  async function hiddenTeachPaths(name,entries){
+   const mapped=await teachPath(name,'asteach-course.json');
+   if(mapped!== 'asteach-course.json'&&!entries)return new Set(['.asteach']);
+   if(mapped!== 'asteach-course.json')return new Set(entries.filter(e=>e.path==='.asteach'||e.path.startsWith('.asteach/')).map(e=>e.path));
+   let legacy=false;try{legacy=(await workspace.execute(name,'inspectEntry',{path:'asteach-course.json'})).type==='file';}catch(error){if(!['NOT_FOUND','ENOENT','PARTIAL'].includes(error.code))throw error;}
+   if(!entries&&legacy){const file=await workspace.execute(name,'open',{path:'asteach-course.json'}),course=parseCourse(file.text);return new Set(['asteach-course.json',...course.terms.flatMap(term=>['teaching','class-pages','class-packages'].map(kind=>`${term.year}-${term.season}/${kind}.json`))]);}
+   return new Set(legacy?teachMetadataPaths([{path:'asteach-course.json'},...(entries??[])]):[]);
+  }
   const teach=createTeachService({
-   defaults:teachDefaults,
-   discover:async name=>{const found=await workspace.execute(name,'discover',{});if(found.truncated)fail('LIMIT_EXCEEDED');return found.entries;},
+   defaults:teachDefaults,probe:probeTeachFile,
    checkCreatePaths:async(name,paths)=>{const trash=await workspace.execute(name,'listTrash',{});if(trash.some(entry=>paths.some(target=>{const reserved=portablePathKey(entry.path),key=portablePathKey(target);return key===reserved||key.startsWith(reserved+'/');})))fail('TRASH_PATH_RESERVED');},
    repositories:readingRepositories,
    prepare:async name=>{repo(name);assertWritable(name);await managementReady(name);},
-   read:async(name,relative)=>{relative=await teachPath(name,relative);const found=await workspace.execute(name,'discover',{});if(found.truncated)fail('LIMIT_EXCEEDED');const matches=found.entries.filter(e=>portablePathKey(e.path)===portablePathKey(relative));if(!matches.length)return null;if(matches.length!==1||matches[0].path!==relative||matches[0].type!=='file')fail('CONFLICT');const file=await workspace.execute(name,'open',{path:relative});if(file.readOnly||file.draft)fail('DRAFT_CONFLICT');return file;},
+   read:async(name,relative)=>{relative=await teachPath(name,relative);let file;try{file=await workspace.execute(name,'open',{path:relative});}catch(error){if(['NOT_FOUND','ENOENT','PARTIAL'].includes(error.code))return null;throw error;}if(file.readOnly||file.draft)fail('DRAFT_CONFLICT');return file;},
    writeBatch:async(name,files)=>workspace.writeBatch(name,await Promise.all(files.map(async file=>({...file,path:await teachPath(name,file.path)})))),
    importCourse:importTeachCourse,ensurePair:ensureTeachPair
   });
@@ -402,7 +415,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    compare:async(name,output,ctx)=>{
     const manager=exchangeFor(name),status=manager.status();if(status.registration&&status.registration.collectionId!==ctx.collectionId)fail('PUBLICATION_COLLECTION_CONFLICT');
     if(status.registration)return {kind:'update',...await manager.reviewUpdate({archive:publicationArchive(output,ctx),semantics:'patch',version:'1',scope:output.folder})};
-    const inventory=await workspace.execute(name,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    const inventory=await workspace.execute(name,'discover',{});if(!inventory.complete)fail('LIMIT_EXCEEDED');
     const registration=await manager.emptyRegistrationReview({collectionId:ctx.collectionId,version:'1'});
     return {kind:'first',planId:registration.planId,rows:output.files.map(f=>({path:f.path,action:inventory.entries.some(e=>e.path===f.path||f.path.startsWith(e.path+'/')&&e.type==='file')?'conflict':'add',conflict:inventory.entries.some(e=>e.path===f.path||f.path.startsWith(e.path+'/')&&e.type==='file')})),warnings:[]};
    },
@@ -443,10 +456,9 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    for(const term of found.course.terms){
     const folder=`${term.year}-${term.season}`,relative=folder+'/student.md',manager=exchangeFor(destination.name),status=manager.status();
     if(status.registration&&status.registration.collectionId!=='asteach-'+found.course.courseId)fail('TEACH_PAIR_CONFLICT');
-    const inventory=await workspace.execute(destination.name,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
     const canonical=folder+'/README.md';
-    if(status.registration&&manager.ownedPaths().includes(canonical)){if(!inventory.entries.some(e=>e.path===canonical&&e.type==='file'))fail('TEACH_STUDENT_PAGE_MISSING');continue;}
-    const present=inventory.entries.some(e=>e.path===relative),owned=manager.ownedPaths().includes(relative);
+    if(status.registration&&manager.ownedPaths().includes(canonical)){if(!await probeTeachFile(destination.name,canonical))fail('TEACH_STUDENT_PAGE_MISSING');continue;}
+    const present=await probeTeachFile(destination.name,relative),owned=manager.ownedPaths().includes(relative);
     if(present&&status.registration){continue;}
     if(!present&&owned)fail('TEACH_STUDENT_PAGE_MISSING');
     const text='# '+found.course.code+'\n\nReview Instructor content to prepare this Student course.\n',bytes=Buffer.from(text),output={folder,files:[{path:relative,bytes,hash:createHash('sha256').update(bytes).digest('hex')}]},ctx={collectionId:'asteach-'+found.course.courseId};
@@ -479,7 +491,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     for(const entry of readingRepositories()){
      if(entry.name===sourceName)continue;
      try{assertWritable(entry.name);const {source}=await managementReady(entry.name);
-      const found=await workspace.execute(entry.name,'discover',{});if(found.truncated||found.entries.some(e=>['ASTEACH-COURSE.JSON','.ASTEACH/COURSE.JSON'].includes(portablePathKey(e.path))))continue;
+      const found=await workspace.execute(entry.name,'discover',{});if(!found.complete||found.entries.some(e=>['ASTEACH-COURSE.JSON','.ASTEACH/COURSE.JSON'].includes(portablePathKey(e.path))))continue;
       const provenance=updateManagerFor(entry.name)?.provenance;
       result.push({name:entry.name,identity:source.identity,sourceUrl:provenance?.sourceUrl??null,branch:provenance?.branch??null});
      }catch{continue;}
@@ -500,7 +512,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     }
     assertWritable(name);await managementReady(name);
     const found=await workspace.execute(name,'discover',{}),runtime=await workspace.execute(name,'runtimeStatus',{}),reserved=[...found.entries.map(e=>e.path),...runtime.draftPaths,...runtime.recoveredDrafts.map(e=>e.path),...workspace.bootstrap(name).newDrafts.map(e=>e.path)];
-    if(found.truncated)fail('LIMIT_EXCEEDED');if(reserved.some(p=>portablePathKey(p)===portablePathKey(output.folder)||portablePathKey(p).startsWith(portablePathKey(output.folder)+'/')))fail('PUBLICATION_DESTINATION_EXISTS');
+    if(!found.complete)fail('LIMIT_EXCEEDED');if(reserved.some(p=>portablePathKey(p)===portablePathKey(output.folder)||portablePathKey(p).startsWith(portablePathKey(output.folder)+'/')))fail('PUBLICATION_DESTINATION_EXISTS');
     const stage=privateDirectory(path.join(privateRoot.path,'.asmb-teach-publication'),true),session=privateDirectory(path.join(stage.path,randomUUID()),true);
     for(const file of output.files){const full=path.join(session.path,file.path);fs.mkdirSync(path.dirname(full),{recursive:true,mode:0o700});writeExclusive(full,file.bytes);}
     const sources=inspectExternalSources([path.join(session.path,output.folder)]);
@@ -514,14 +526,16 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   async function courseFiles(value){
    const records=await teach({operation:'list'}),record=records.find(r=>r.repo===value.repo),term=record?.course.terms.find(t=>t.year===value.year&&t.season===value.season);
    if(!term)fail('INVALID_TERM');const folder=`${term.year}-${term.season}`;
-   await managementReady(value.repo);const source=await workspace.execute(value.repo,'discover',{});if(source.truncated)fail('LIMIT_EXCEEDED');
+   await managementReady(value.repo);const roots=record.audiences[folder];
+   const inventories=roots?await Promise.all(['instructors','students'].map(a=>workspace.execute(value.repo,'discoverScope',{path:roots[a].root}))):[await workspace.execute(value.repo,'discover',{})];
+   if(inventories.some(found=>!found.complete))fail('LIMIT_EXCEEDED');const source={entries:inventories.flatMap(found=>found.entries)};
    const students=[];
    for(const entry of readingRepositories()){
     if(entry.name===value.repo)continue;
     const binding=recordBindings(entry.name);
     if(!binding||!exists(path.join(privateRoot.path,binding.stateKey,'package-exchange')))continue;
     const status=exchangeFor(entry.name).status();if(status.registration?.collectionId!=='asteach-'+record.course.courseId)continue;
-    await managementReady(entry.name);const files=await workspace.execute(entry.name,'discover',{});if(files.truncated)fail('LIMIT_EXCEEDED');
+    await managementReady(entry.name);const files=await workspace.execute(entry.name,'discover',{});if(!files.complete)fail('LIMIT_EXCEEDED');
     students.push({repo:entry.name,publishedPaths:exchangeFor(entry.name).ownedPaths(),entries:files.entries.filter(e=>e.path.startsWith(folder+'/'))});
    }
    return {folder,audiences:record.audiences[folder],instructor:record.audiences[folder]?record.audiences[folder].instructors.root+'/README.md':term.source.paths[0],entries:source.entries.filter(e=>e.path.startsWith(folder+'/')||e.path.startsWith('shared/')),students};
@@ -574,7 +588,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(exact(value,['operation','planId'])&&value.operation==='cancelRepositoryGraph')return graph.cancel(value.planId);
    if(exact(value,['operation','repo','year','season','fromRole','toRole'])&&value.operation==='pipelineFiles')return (async()=>{
     const settings=await graph.settings(value.repo),destination=settings.roles.find(r=>r.role===value.toRole)?.name;
-    const ctx=await pipelineContext({...value,destination}),inventory=await workspace.execute(ctx.sourceRepo,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    const ctx=await pipelineContext({...value,destination}),inventory=await workspace.execute(ctx.sourceRepo,ctx.sourceAudienceRoot?'discoverScope':'discover',ctx.sourceAudienceRoot?{path:ctx.sourceAudienceRoot}:{});if(!inventory.complete)fail('LIMIT_EXCEEDED');
     return {source:ctx.sourceRepo,destination,folder:ctx.folder,candidateRoot:ctx.sourceAudienceRoot,limits:ctx.sourceAudienceRoot?{files:4096,fileBytes:8*1024*1024,totalBytes:128*1024*1024}:PROMOTION_LIMITS,sourceCommit:ctx.sourceCommit,entries:inventory.entries.filter(e=>e.type==='file'&&e.path.startsWith(ctx.sourceAudienceRoot&&value.toRole==='students'?ctx.sourceAudienceRoot+'/':ctx.folder+'/'))};
    })();
    if(exact(value,['operation','repo','year','season','fromRole','toRole','destination','paths'])&&value.operation==='reviewPromotion'){const {operation,...input}=value;return promotion.review(input);}
@@ -621,7 +635,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     if(record.repositoryBindings.length!==previousBindings){workspace.close();openWorkspace();}
     return {organization:'asMagicBrain',defaultRepository:record.workspaceName,repositories:readingRepositories(),limits:ZIP_IMPORT_LIMITS};
    }),
-   read:request=>{let value;try{value=copyRequest(request);if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['repo','path','ref'].includes(key)))fail('INVALID_REQUEST');repo(value.repo);if(value.path===undefined)value.path='';if(value.ref===undefined)value.ref='';if(!readerPath(value.path)||typeof value.ref!=='string'||!value.ref.isWellFormed()||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_PATH');}catch(error){return Promise.reject(error);}return queue(async()=>{assertApplyReady(value.repo);await workspace.execute(value.repo,'gitInspect',{});const result=await readLocalRepository(value.repo,value.path,organization.path,value.ref,{builtinRepositories:builtins()});if(result.entries){const hidden=await hiddenTeachPaths(value.repo);return {...result,entries:result.entries.filter(e=>!hidden.has(e.path??(value.path?value.path+'/'+e.name:e.name)))};}return result;});},
+   read:request=>{let value;try{value=copyRequest(request);if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['repo','path','ref'].includes(key)))fail('INVALID_REQUEST');repo(value.repo);if(value.path===undefined)value.path='';if(value.ref===undefined)value.ref='';if(!readerPath(value.path)||typeof value.ref!=='string'||!value.ref.isWellFormed()||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_PATH');}catch(error){return Promise.reject(error);}return queue(async()=>{assertApplyReady(value.repo);await workspace.execute(value.repo,'gitInspect',{});const result=await readLocalRepository(value.repo,value.path,organization.path,value.ref,{builtinRepositories:builtins()});if(result.entries){const hidden=await hiddenTeachPaths(value.repo,result.entries.map(e=>({...e,path:e.path??(value.path?value.path+'/'+e.name:e.name)})));return {...result,entries:result.entries.filter(e=>!hidden.has(e.path??(value.path?value.path+'/'+e.name:e.name)))};}return result;});},
    readAsset:request=>{let value;try{value=copyRequest(request);if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['repo','path','ref'].includes(key)))fail('INVALID_REQUEST');repo(value.repo);if(value.ref===undefined)value.ref='';if(!value.path||!readerPath(value.path)||typeof value.ref!=='string'||!value.ref.isWellFormed()||value.ref.length>1024||/[\x00-\x1f\x7f]/.test(value.ref))fail('INVALID_PATH');}catch(error){return Promise.reject(error);}return queue(async()=>{assertApplyReady(value.repo);await workspace.execute(value.repo,'gitInspect',{});return readLocalRepositoryAsset(value.repo,value.path,organization.path,value.ref,{builtinRepositories:builtins()});});},
    revealItem:request=>{
     let value;try{
@@ -699,11 +713,11 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    readRepositoryUpdateFile:request=>{let value;try{value=copyRequest(request);if(!exact(value,['repo','checkId','path'])||!validCreationId(value.checkId)||!updatePath(value.path))fail('INVALID_REQUEST');repo(value.repo);}catch(error){return Promise.reject(updateError(error));}return queue(async()=>{const context=await updatesContext(value.repo);if(!context.manager||!context.status.eligible)fail('UPDATES_UNAVAILABLE');if(context.status.lastCheck?.stale)fail('UPDATES_STALE');return context.manager.readFile({checkId:value.checkId,path:value.path});}).catch(error=>{throw updateError(error);});},
    request:request=>{let value;try{value=copyRequest(request);if(value&&typeof value==='object'&&!Array.isArray(value)&&value.args===undefined)value.args={};if(!exact(value,['repo','operation','args'])||typeof value.operation!=='string')fail('INVALID_REQUEST');repo(value.repo);}catch(error){return Promise.reject(error);}return queue(async()=>{
     assertApplyReady(value.repo);
-    if(isDocumentation(value.repo)&&!['open','discover','inspectEntry','listTrash','runtimeStatus','getCommitPreferences','gitInspect','gitStatus','gitReview'].includes(value.operation))assertWritable(value.repo);
+    if(isDocumentation(value.repo)&&!['open','discover','discoverScope','inspectEntry','listTrash','runtimeStatus','getCommitPreferences','gitInspect','gitStatus','gitReview'].includes(value.operation))assertWritable(value.repo);
     const moves=value.operation==='rename'?[{from:value.args.path,to:value.args.newPath}]:value.operation==='manage'&&value.args.operation==='move'?(value.args.items??[]).map(item=>({from:item.path,to:item.newPath})):[];
     const redirects=moves.length?await reading.prepareRename(value.repo,moves):[];
     let result;if(['inspectEntry','manage','restore','emptyTrash','reconcile'].includes(value.operation)){workspace.close();try{result=await runWorkspaceWorker(value);}finally{openWorkspace();}}else result=await workspace.execute(value.repo,value.operation,value.args);
-    if(value.operation==='discover'){const hidden=teachMetadataPaths(result.entries);result={...result,entries:result.entries.filter(e=>!hidden.includes(e.path))};}
+    if(['discover','discoverScope'].includes(value.operation)){const hidden=await hiddenTeachPaths(value.repo,result.entries);result={...result,entries:result.entries.filter(e=>!hidden.has(e.path))};}
     if(moves.length)reading.renamed(value.repo,moves,redirects);
     return isDocumentation(value.repo)&&value.operation==='open'?{...result,readOnly:true}:result;
    });},
@@ -820,7 +834,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    close:()=>{if(closePromise)return closePromise;closing=true;githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
   });
   const automationRoot=privateDirectory(path.join(privateRoot.path,'.asmb-automation'),true);
-  const automation=createAutomationDispatch({api,applyPackage:(input,operationId)=>{const value=packageRequest(input,['planId','choices']);if(!validCreationId(operationId))fail('INVALID_REQUEST');return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices,operationId})));},validate:input=>queue(async()=>{const value=copyRequest(input);if(!exact(value,['repoId']))fail('INVALID_REQUEST');const entry=readingRepositories().find(entry=>entry.stableId===value.repoId);if(!entry)fail('UNKNOWN_REPOSITORY');assertApplyReady(entry.name);const found=await workspace.execute(entry.name,'discover',{}),paths=found.entries.filter(entry=>entry.type==='file').map(entry=>entry.path),files=[];for(const path of paths.slice(0,256)){let text;try{const snapshot=await readLocalRepository(entry.name,path,organization.path,'',{builtinRepositories:builtins()});if(typeof snapshot.content==='string'&&Buffer.byteLength(snapshot.content)<=65536)text=snapshot.content;}catch{}files.push({path,size:found.entries.find(entry=>entry.path===path)?.byteLength,...(text!==undefined?{text}:{})});}const result=validateAutomationFiles({files,inventoryPaths:paths,analyzeReferences});if(paths.length>256||found.truncated){result.truncated=true;result.status='truncated';}return result;}),write:automationWrite,importArchive:automationImport,importStatus:value=>queue(()=>importer.findCompletedImport(value)),store:createPrivateStore({privateRoot:automationRoot.path,bindingHash:createHash('sha256').update(bindingHash+':automation:1').digest('hex')})});
+  const automation=createAutomationDispatch({api,applyPackage:(input,operationId)=>{const value=packageRequest(input,['planId','choices']);if(!validCreationId(operationId))fail('INVALID_REQUEST');return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices,operationId})));},validate:input=>queue(async()=>{const value=copyRequest(input);if(!exact(value,['repoId']))fail('INVALID_REQUEST');const entry=readingRepositories().find(entry=>entry.stableId===value.repoId);if(!entry)fail('UNKNOWN_REPOSITORY');assertApplyReady(entry.name);const found=await workspace.execute(entry.name,'discover',{}),paths=found.entries.filter(entry=>entry.type==='file').map(entry=>entry.path),files=[];for(const path of paths.slice(0,256)){let text;try{const snapshot=await readLocalRepository(entry.name,path,organization.path,'',{builtinRepositories:builtins()});if(typeof snapshot.content==='string'&&Buffer.byteLength(snapshot.content)<=65536)text=snapshot.content;}catch{}files.push({path,size:found.entries.find(entry=>entry.path===path)?.byteLength,...(text!==undefined?{text}:{})});}const result=validateAutomationFiles({files,inventoryPaths:paths,analyzeReferences});if(paths.length>256||!found.complete){result.truncated=true;result.status='truncated';}return result;}),write:automationWrite,importArchive:automationImport,importStatus:value=>queue(()=>importer.findCompletedImport(value)),store:createPrivateStore({privateRoot:automationRoot.path,bindingHash:createHash('sha256').update(bindingHash+':automation:1').digest('hex')})});
   let publicClosing=false;const publicMethods={...api,automationRequest:input=>automation.request(copyRequest(input)),setAutomationGrants:input=>automation.setGrants(copyRequest(input)),getAutomationStatus:()=>automation.uiStatus(),approveAutomation:input=>automation.approve(copyRequest(input)),cancelAutomation:input=>automation.cancel(copyRequest(input))};
   return Object.freeze({...Object.fromEntries(Object.entries(publicMethods).map(([name,method])=>[name,(...args)=>publicClosing?Promise.reject(Object.assign(Error(name==='prepareArtifactSnapshot'?'ARTIFACT_UNAVAILABLE':'SERVICE_CLOSED'),{code:name==='prepareArtifactSnapshot'?'ARTIFACT_UNAVAILABLE':'SERVICE_CLOSED'})):method(...args)])),drain:async()=>{await automation.drain();await api.drain();},close:async()=>{publicClosing=true;await automation.close();await api.close();}});
  }catch(error){try{workspace?.close();}finally{try{release();}catch{}}throw error;}

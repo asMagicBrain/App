@@ -11,7 +11,7 @@ import {isPortableRelativePath} from '../../source-foundation/src/domain/path-po
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===keys.length&&keys.every(k=>Object.hasOwn(v,k));
-const fields={open:['path'],discover:[],checkpoint:['path','baseHash','text'],save:['path','baseHash','text'],create:['path','text'],rename:['path','newPath','baseHash'],discard:['path'],createFolder:['path'],inspectEntry:['path'],manage:['operation','items'],listTrash:[],emptyTrash:['trashIds'],restore:['trashId'],reconcile:[],runtimeStatus:[],checkpointNew:['draftId','path','text'],discardNew:['draftId'],getCommitPreferences:[],setCommitPreferences:['expectedRevision','mode','asmagicbrain','github'],gitInspect:[],gitInitialize:['branch'],gitStatus:[],gitReview:['paths'],gitCommit:['expectedHead','expectedIndexHash','files','message','author']};
+const fields={open:['path'],discover:[],discoverScope:['path'],checkpoint:['path','baseHash','text'],save:['path','baseHash','text'],create:['path','text'],rename:['path','newPath','baseHash'],discard:['path'],createFolder:['path'],inspectEntry:['path'],manage:['operation','items'],listTrash:[],emptyTrash:['trashIds'],restore:['trashId'],reconcile:[],runtimeStatus:[],checkpointNew:['draftId','path','text'],discardNew:['draftId'],getCommitPreferences:[],setCommitPreferences:['expectedRevision','mode','asmagicbrain','github'],gitInspect:[],gitInitialize:['branch'],gitStatus:[],gitReview:['paths'],gitCommit:['expectedHead','expectedIndexHash','files','message','author']};
 const text=(v,max)=>typeof v==='string'&&v.isWellFormed()&&!v.includes('\0')&&Buffer.byteLength(v)<=max;
 function draftValid(v){return exact(v,['draftId','path','text'])&&typeof v.draftId==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(v.draftId)&&text(v.path,4096)&&!/[\x00-\x1f]/.test(v.path)&&text(v.text,1024*1024);}
 
@@ -78,6 +78,7 @@ export function createWorkspaceService({base,privateBase,builtinRepositories,rep
   }
   if(operation==='open'||operation==='discard')return s.runtime[operation](args.path);
   if(operation==='discover')return s.runtime.discover();
+  if(operation==='discoverScope'){if(typeof args.path!=='string'||!args.path)fail('INVALID_PATH');return s.runtime.discover(args.path);}
   if(operation==='listTrash'||operation==='reconcile')return s.runtime[operation]();
   if(operation==='runtimeStatus')return s.runtime.state();
   return s.runtime[operation](args);

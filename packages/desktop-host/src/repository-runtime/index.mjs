@@ -201,8 +201,8 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
       readOnly: item.readOnly || bytes.encoding !== 'utf-8' || bytes.text?.includes('\u0000'), draft: draft ? { text: draft.text, baseHash: draft.baseHash } : null,
       conflict: Boolean(draft && draft.baseHash !== item.hash), recoveryRequired: Boolean(state.pending) };
   }
-  function discover() {
-    load(); const entries = [], issues = []; let truncated = false;
+  function discover(root = '') {
+    load(); if(typeof root!=='string')fail('INVALID_PATH');if(root){safePath(root);checkSourceSpelling(source.path,root);} const entries = [], issues = []; let truncated = false;
     function walk(relative = '', depth = 0) {
       if (depth > 32) { truncated = true; return; }
       check(); const absolute = relative ? path.join(source.path, relative) : source.path;
@@ -225,7 +225,7 @@ export function createRepositoryRuntime({ sourceRoot, privateRoot, localOwnerId,
       } finally { directory.closeSync(); }
       checkDirectory(pinned);
     }
-    walk(); return { entries: entries.sort((a,b) => a.path.localeCompare(b.path)), issues, complete: !truncated && !issues.length };
+    walk(root); return { entries: entries.sort((a,b) => a.path.localeCompare(b.path)), issues, truncated, complete: !truncated && !issues.length };
   }
   function checkpoint({ path: relative, baseHash, text }) {
     load(); writable(); sourceText(text); if (!digest(baseHash)) fail('INVALID_BASE');

@@ -167,3 +167,9 @@ In team settings, choose milestone and sequence, then **Verify submission**. Rev
 Receipt status uses GitHub server-observed verification time against the configured deadline. GitHub publication time is also recorded, but mutable tags/publication dates do not prove when the current content was first submitted. This conservative policy can mark a receipt late when the instructor verifies it after the deadline. It is not automatic student-side timestamping. Missing releases, access failure, malformed manifests and hash mismatch do not produce completed receipts. Reproducibility is a separate review; byte verification does not prove that code runs.
 
 Publish a new sequence to resubmit. Later commits, changed deadlines and moved tags cannot change retained receipts. Reusing a receipted tag for different content is refused. Grades and private marking stay outside project history. GitBook continues to consume only approved Student course material, separately from project submission snapshots.
+
+## Large course workspaces
+
+From v0.2.23, canonical Instructor and Student-candidate homes are detected directly, even when a retained runtime environment makes the repository-wide inventory incomplete. The explorer loads folders as you expand them; unopened environments do not have to be scanned before you can edit a course page. **Refresh files** reloads opened folders and saved documents while preserving drafts.
+
+Structured course/package selections inspect their audience root. Files elsewhere in the repository remain in place. An incomplete inventory, unsafe path or unsupported dependency inside a delivery root stops the review; it does not silently produce a partial package. Existing legacy Student homes and installed asTeach packages are retained during an application update.
