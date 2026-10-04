@@ -33,7 +33,7 @@ export async function checkChineseFonts(){
 }
 // Commit a range only after receiving all of it. Interrupted CDN transfers can
 // retry that range without appending duplicate or unverified bytes.
-export async function streamPinnedArchive(archive,write,{fetcher=fetch,chunkBytes=8*1024*1024}={}){
+export async function streamPinnedArchive(archive,write,{fetcher=fetch,chunkBytes=2*1024*1024}={}){
  if(!Number.isSafeInteger(chunkBytes)||chunkBytes<1||chunkBytes>8*1024*1024||!Number.isSafeInteger(archive.bytes)||archive.bytes<1||archive.bytes>256*1024*1024)throw Error('Invalid pinned download bounds.');
  const digest=createHash('sha256');
  for(let start=0;start<archive.bytes;start+=chunkBytes){
