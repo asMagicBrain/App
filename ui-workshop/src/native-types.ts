@@ -164,7 +164,7 @@ export type NativeBridge = {
   getBuildConfiguration(): Promise<NativeBuildConfiguration>;
   getAppearance(): Promise<NativeAppearance>;
   setAppearance(input: NativeAppearance): Promise<NativeAppearance>;
-  windowAction(action: 'close' | 'minimize' | 'maximize'): Promise<void>;
+  windowAction(action: 'close' | 'minimize' | 'maximize' | 'presentation-enter' | 'presentation-exit'): Promise<void>;
   onPrepareClose(callback: (input: {requestId: string; cancelled?: boolean; error?: string}) => void): () => void;
   closeReady(input: {requestId: string; ok: boolean; error?: string}): void;
 };

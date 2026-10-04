@@ -1,3 +1,4 @@
+import {audienceStructure,audienceHome} from './audiences.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {teachingScheduleBundle} from './schedule.mjs';
@@ -5,7 +6,8 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 // Called only within the native host queue, using physically guarded repository I/O.
-export async function generateClassPages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths=async()=>{}}){
+export async function generateClassPages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths=async()=>{},audiences=null}){
+ if(audiences||term.audiences)return generateClassPackages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths,audiences:audiences??audienceStructure(term)});
  const directory=`${term.year}-${term.season}`,manifestPath=`${directory}/class-pages.json`;
  let pageDirectory=`${directory}/classes`,stored=await read(repo,manifestPath),manifest;
  if(stored){
@@ -49,4 +51,22 @@ export async function generateClassPages({repo,term,calendar,noClassDays,read,wr
  if(chunk.length){await writeBatch(repo,chunk);created+=chunk.length;}
  await writeBatch(repo,[{path:manifestPath,baseHash:stored.sourceHash,text:JSON.stringify({...manifest,phase:'ready'},null,2)+'\n'}]);
  return {markdown:bundle.markdown,created,reused};
+}
+
+async function generateClassPackages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths,audiences}){
+ const directory=`${term.year}-${term.season}`,manifestPath=`${directory}/class-packages.json`;
+ const bundle=teachingScheduleBundle(calendar,noClassDays,''),signature=hash(JSON.stringify(bundle.pages.map(({text,...value})=>value)));
+ if(!bundle.pages.length||bundle.pages.length>255)fail('CLASS_PAGES_LIMIT');
+ const planned=bundle.pages.map(page=>{const number=page.name.match(/Class(\d+)\.md/)[1],classId='class'+number;return {...page,classId,lesson:`${audiences.students.root}/classes/${classId}/lesson.md`,delivery:`${audiences.instructors.root}/classes/${classId}/delivery.md`,technical:`${audiences.instructors.root}/classes/${classId}/technical.md`};});
+ const paths=planned.flatMap(p=>[p.lesson,p.delivery,p.technical,p.lesson.replace(/lesson\.md$/,'package-manifest.json')]);
+ const stored=await read(repo,manifestPath);let previous=null;if(stored){try{previous=JSON.parse(stored.text);}catch{fail('CLASS_PAGES_RECORD_INVALID');}if(previous.schemaVersion!==2||!['creating','ready'].includes(previous.phase)||!Array.isArray(previous.paths)||JSON.stringify(previous.paths)!==JSON.stringify(paths)||previous.signature!==signature)fail('CLASS_PAGES_SCHEDULE_CHANGED');}
+ await checkCreatePaths(repo,[manifestPath,...paths]);
+ let markdown=bundle.markdown;for(const p of planned){const link=path.posix.relative(path.posix.dirname(audienceHome(audiences,'instructors')),p.lesson).split('/').map(encodeURIComponent).join('/');markdown=markdown.replaceAll(`](${p.name})`, `](${link})`);}
+ const existing=[];for(const p of paths)existing.push(await read(repo,p));
+ if(previous?.phase==='ready'&&existing.some(Boolean)){if(existing.some(v=>!v))fail('CLASS_PAGES_INCOMPLETE');return {markdown,created:0,reused:planned.length,structureVersion:2};}
+ if(!previous&&existing.some(Boolean))fail('CLASS_PAGES_COLLISION');
+ if(!previous||!existing.some(Boolean)){await writeBatch(repo,[{path:manifestPath,baseHash:stored?.sourceHash??null,text:JSON.stringify({schemaVersion:2,phase:'creating',signature,paths},null,2)+'\n'}]);}
+ for(const p of planned){const inventory={schemaVersion:1,classId:p.classId,lesson:'lesson.md',files:['lesson.md']};const files=[{path:p.lesson,text:p.text},{path:p.delivery,text:`# ${p.classId} — Instructor delivery\n\n[Student lesson](${path.posix.relative(path.posix.dirname(p.delivery),p.lesson)})\n\n## Delivery notes\n\n## Questions and expected answers\n`},{path:p.technical,text:`# ${p.classId} — Technical preparation\n\n## Preparation and verification\n`},{path:p.lesson.replace(/lesson\.md$/,'package-manifest.json'),text:JSON.stringify(inventory,null,2)+'\n'}];const missing=[];for(const file of files)if(!await read(repo,file.path))missing.push({...file,baseHash:null});if(missing.length)await writeBatch(repo,missing);}
+ const current=await read(repo,manifestPath);await writeBatch(repo,[{path:manifestPath,baseHash:current.sourceHash,text:JSON.stringify({schemaVersion:2,phase:'ready',signature,paths},null,2)+'\n'}]);
+ return {markdown,created:planned.length,reused:0,structureVersion:2};
 }

@@ -27,6 +27,11 @@ import {createApplyCoordinator} from './apply-coordinator.mjs';
 import {githubApp} from './github-config.mjs';
 import {createGitHubAccountCoordinator, githubAccountMethods} from './github-account-coordinator.mjs';
 import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-packages/format.mjs';
+import {createStartupTiming} from './startup-timing.mjs';
+
+let presentationFullscreen = null;
+const startupMark = createStartupTiming({enabled: process.argv.includes('--startup-timing')});
+startupMark('main-entered');
 
 // Explicit CLI mode connects to the running host before any profile/window setup.
 const cliIndex=process.argv.indexOf('--automation-cli');
@@ -171,6 +176,8 @@ ipcMain.handle('asmb:native', async (event, input) => {
       if (input.args === 'close') requestClose();
       else if (input.args === 'minimize') window.minimize();
       else if (input.args === 'maximize') window.isMaximized() ? window.unmaximize() : window.maximize();
+      else if(input.args==='presentation-enter'){artifactHost?.stop();if(presentationFullscreen===null)presentationFullscreen=window.isFullScreen();window.setFullScreen(true);}
+      else if(input.args==='presentation-exit'){if(presentationFullscreen!==null){window.setFullScreen(presentationFullscreen);presentationFullscreen=null;}}
       else throw Error('Unknown window action.');
       return {ok: true};
     }
@@ -302,8 +309,11 @@ try {
   if (startupFailure) throw startupFailure;
   if (!app.requestSingleInstanceLock()) {allowQuit = true; app.quit();} else {
     app.on('second-instance', () => {if (window && !window.isDestroyed()) {window.restore(); window.focus();}});
+    startupMark('profile-admitted');
     const bundledDocs = loadBundledDocs(path.resolve(here, '../..'), {packaged: app.isPackaged, metadata: packageMetadata});nativeBundledDocs=bundledDocs;
+    startupMark('bundled-docs-validated');
     await app.whenReady();
+    startupMark('electron-ready');
     storageAdmission = await prepareNativeStorage({dataRoot, confirmRecovery: async () => {
       const choice = await dialog.showMessageBox({type: 'question', title: 'Restore workspace access',
         message: 'Your computer identifies this drive differently.',
@@ -311,7 +321,9 @@ try {
         buttons: ['Quit', 'Back Up and Restore Access'], defaultId: 0, cancelId: 0, noLink: true});
       return choice.response === 1;
     }});
+    startupMark('storage-admitted');
     service = await createNativeService({dataRoot,bundledDocs,getGitHubCredential:()=>githubAuth.getCredential(),githubFetch:(...args)=>globalThis.fetch(...args),storageIdentity:storageAdmission.context,profileLock:storageAdmission.profileLock,revealInFileManager:filename=>shell.showItemInFolder(filename)});
+    startupMark('host-service-ready');
     confirmWorkspaceOpened({profileRoot,dataRoot});
     externalTickets=createExternalFileTickets({prepare:paths=>service.prepareExternalFiles(paths),importFiles:(request,options)=>service.importExternalFiles(request,options)});
     // Account credentials live only in this main process. Existing encrypted
@@ -363,9 +375,10 @@ try {
     window.on('show', restoreNativeButtons);
     window.on('leave-full-screen', restoreNativeButtons);
     window.on('restore', restoreNativeButtons);
-    window.once('ready-to-show', () => {window.show();restoreNativeButtons();});
+    window.once('ready-to-show', () => {window.show();restoreNativeButtons();startupMark('window-visible');});
     window.webContents.on('render-process-gone', (_event, details) => {console.error('Native renderer exited:', details.reason); void recoverRenderer(details.reason);});
     await window.loadURL(pageURL);
+    startupMark('renderer-loaded');
   }
 } catch (error) {
   if (error.code === 'STORAGE_RECOVERY_CANCELLED') {allowQuit = true; app.exit(0); return;}

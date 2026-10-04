@@ -1,6 +1,6 @@
 # asTeach
 
-asTeach is an optional plugin for preparing courses locally. Download the matching `.asmbplugin` from [GitHub Releases](https://github.com/asMagicBrain/App/releases), then install it in asMagicBrain v0.2.19 or later. It is not preinstalled.
+asTeach is an optional plugin for preparing courses locally. Download the matching `.asmbplugin` from [GitHub Releases](https://github.com/asMagicBrain/App/releases), then install it in a compatible asMagicBrain version; audience-root authoring requires v0.2.22 or later. It is not preinstalled.
 
 1. Open **Manage plugins → Install plugin…** and select the asTeach `.asmbplugin` file.
 2. Enable asTeach, then open its graduation-cap button in the left rail.
@@ -16,7 +16,7 @@ Use **Choose course page → Course calendar** to set Week 1 Monday, the number 
 Set the course dates, choose **Save** beside the total number of weeks, and add class sessions. The buttons on the right copy a table to paste into the Instructor page’s **Teaching Schedule** section:
 
 - **One-Page Course** copies the schedule with editable `ClassContent` placeholders.
-- **Multi-Page Course** creates `Class01.md`, `Class02.md`, and so on in the term’s `classes/` folder, then copies a schedule linking to those pages. Open each link to write its lesson.
+- **Multi-Page Course** creates nested Student lessons and separate Instructor delivery/technical documents for new audience-structured terms. Older course sets retain their original `classes/ClassNN.md` paths. It then copies a schedule linking to the lessons. Open each link to write its lesson.
 
 Dates use two digits for the day, such as `Nov 03`. Copy feedback appears at the right of the calendar guidance row. Both include every course week, weekday/time/room columns and blank Notes cells. No-class dates keep their class numbers and show `No Class.` followed by the saved description.
 
@@ -42,6 +42,32 @@ New courses create both repositories immediately. Existing courses reuse a regis
 
 Course settings are managed by asTeach and hidden from the explorer and search. Ordinary JSON documents remain visible. Keep the complete repositories and application state together when backing up.
 
+## Audience roots and complete class packages
+
+New terms use two content roots inside the private Instructor repository:
+
+```text
+2026-autumn/
+  instructors/README.md
+  instructors/classes/class06/delivery.md
+  instructors/classes/class06/technical.md
+  students/README.md
+  students/classes/class06/lesson.md
+  students/classes/class06/package-manifest.json
+  students/classes/class06/media/
+  students/classes/class06/code/
+```
+
+Choose **Instructors**, **Student candidates**, or **Released Students** in the course page menu. Candidates stay editable in the private repository; Released Students opens the paired repository. All use the normal explorer. The document path identifies the actual saved file. Browse source/code as text or use **Reveal in Finder** for unsupported assets; opening source does not execute it. **Refresh files** reloads external changes to saved documents and refreshes the tree while preserving drafts.
+
+Existing courses with both audience `README.md` files are detected without moving files, changing IDs/calendar/bindings, or replacing legacy aliases. No opening/refresh action generates classes. **Course calendar → New class package** creates a selected class number without replacing existing files or changing the calendar. Media/code folders are created when files are added, not as empty placeholders.
+
+From **Student candidates → Review Student package**, review the complete candidate root before saving to the paired repository. **Prepare Student ZIP…** provides the same reviewed file plan. The output strips `students/`: `2026-autumn/students/classes/class06/lesson.md` becomes `2026-autumn/classes/class06/lesson.md`. Class-relative paths stay intact. GitBook uses the released term’s `README.md`, `SUMMARY.md` and generated `.gitbook.yaml`.
+
+The complete review lists source, destination and hashes. It admits bounded Markdown, code/config, SVG, model/policy and media assets (8 MiB per file, 128 MiB total, 4096 files). Unsupported files, private-root links, symlinks, environments/caches, missing dependencies and stale package hashes block delivery; nothing is silently omitted. Large assets need explicit versioned external release links/checksums and an access review. Class manifests can list relative files or map them to SHA-256 hashes. Editing a hashed file requires updating its declared hash before delivery. Source code and figure scripts are packaged as data; a successful copy does not establish that they run or that figures meet a publication standard.
+
+Independent released-file edits and drafts block replacement through the existing package comparison/recovery workflow. Local preparation never commits, pushes, grants access or runs imported code. Course settings can promote the complete candidate package to Assistants/Students with an explicit file selection; selected private support is a separate Assistant-only review. Team/project workflows remain optional.
+
 ## Review Instructor changes
 
 1. Save your Instructor and Student edits.
@@ -52,7 +78,7 @@ Course settings are managed by asTeach and hidden from the explorer and search. 
 
 Empty standard sections are omitted; custom sections can be selected. Linked Markdown pages require explicit selection; linked assets are included automatically. Comments and attachments may contain private information, so review them too.
 
-No new Student document is written in the Instructor repository. Existing legacy files are retained. Independent Student edits and drafts are preserved through conflict review. Other terms and unrelated destination files stay unchanged.
+For legacy courses, no new Student document is written in the Instructor repository. Audience-structured courses instead keep editable candidates in their explicit `students/` root. Existing legacy files are retained. Independent Student edits and drafts are preserved through conflict review. Other terms and unrelated destination files stay unchanged.
 
 Keep selected pages inside the term folder. Linked files in `shared/assets/` are copied into the Student term’s `assets/shared/` folder and output links are adjusted. Other cross-term links are refused. Authoring files remain unchanged.
 

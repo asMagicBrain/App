@@ -352,6 +352,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   async function hiddenTeachPaths(name){const found=await workspace.execute(name,'discover',{});return new Set(teachMetadataPaths(found.entries));}
   const teach=createTeachService({
    defaults:teachDefaults,
+   discover:async name=>{const found=await workspace.execute(name,'discover',{});if(found.truncated)fail('LIMIT_EXCEEDED');return found.entries;},
    checkCreatePaths:async(name,paths)=>{const trash=await workspace.execute(name,'listTrash',{});if(trash.some(entry=>paths.some(target=>{const reserved=portablePathKey(entry.path),key=portablePathKey(target);return key===reserved||key.startsWith(reserved+'/');})))fail('TRASH_PATH_RESERVED');},
    repositories:readingRepositories,
    prepare:async name=>{repo(name);assertWritable(name);await managementReady(name);},
@@ -394,7 +395,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(input.destination!==destination.name)fail('TEACH_GRAPH_BINDING');
    promotionReceipts.ready();const ready=await managementReady(source.name);await managementReady(destination.name);const gitStatus=await workspace.execute(source.name,'gitStatus',{});
    const runtime=await workspace.execute(source.name,'runtimeStatus',{});if(runtime.draftPaths.length||runtime.recoveredDrafts.length||workspace.bootstrap(source.name).newDrafts.length)fail('DRAFT_CONFLICT');
-   return {root:ready.source,identity:ready.source.identity,recordHash:JSON.stringify({course:found.hash,graph:roles,head:ready.git.head}),sourceCommit:gitStatus.files?.some(f=>input.paths?.includes(f.path))?null:ready.git.head??null,sourceId:source.stableId,destinationId:destination.stableId,sourceRepo:source.name,sourceRole:input.fromRole,toRole:input.toRole,destinationRepo:destination.name,folder,paths:input.paths,courseId:found.course.courseId,collectionId:'asteach-'+found.course.courseId,semantics:'patch'};
+   return {sourceAudienceRoot:input.fromRole==='instructors'?found.audiences[folder]?.students.root??null:null,root:ready.source,identity:ready.source.identity,recordHash:JSON.stringify({course:found.hash,graph:roles,head:ready.git.head}),sourceCommit:gitStatus.files?.some(f=>input.paths?.includes(f.path))?null:ready.git.head??null,sourceId:source.stableId,destinationId:destination.stableId,sourceRepo:source.name,sourceRole:input.fromRole,toRole:input.toRole,destinationRepo:destination.name,folder,paths:input.paths,courseId:found.course.courseId,collectionId:'asteach-'+found.course.courseId,semantics:'patch'};
   }
   const promotion=createTeachPublication({build:buildRolePromotion,context:pipelineContext,
    destinations:async()=>readingRepositories().map(e=>({name:e.name,identity:pinDirectory(path.join(organization.path,e.name)).identity})),
@@ -443,6 +444,8 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     const folder=`${term.year}-${term.season}`,relative=folder+'/student.md',manager=exchangeFor(destination.name),status=manager.status();
     if(status.registration&&status.registration.collectionId!=='asteach-'+found.course.courseId)fail('TEACH_PAIR_CONFLICT');
     const inventory=await workspace.execute(destination.name,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
+    const canonical=folder+'/README.md';
+    if(status.registration&&manager.ownedPaths().includes(canonical)){if(!inventory.entries.some(e=>e.path===canonical&&e.type==='file'))fail('TEACH_STUDENT_PAGE_MISSING');continue;}
     const present=inventory.entries.some(e=>e.path===relative),owned=manager.ownedPaths().includes(relative);
     if(present&&status.registration){continue;}
     if(!present&&owned)fail('TEACH_STUDENT_PAGE_MISSING');
@@ -493,7 +496,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     if(comparison?.kind==='update'){
      if(comparison.rows.some(row=>row.conflict||row.protectedDraft)||comparison.warnings.length)fail('PUBLICATION_UPDATE_CONFLICT');
      const result=await packageMutation(name,manager=>manager.apply({planId:comparison.planId,choices:comparison.rows.filter(row=>row.choices.length).map(row=>({path:row.path,choice:'use-incoming'}))}));
-     return {repository:name,path:output.folder+'/student.md',files:output.files.length,status:result.status};
+     return {repository:name,path:output.homePath??output.folder+'/student.md',files:output.files.length,status:result.status};
     }
     assertWritable(name);await managementReady(name);
     const found=await workspace.execute(name,'discover',{}),runtime=await workspace.execute(name,'runtimeStatus',{}),reserved=[...found.entries.map(e=>e.path),...runtime.draftPaths,...runtime.recoveredDrafts.map(e=>e.path),...workspace.bootstrap(name).newDrafts.map(e=>e.path)];
@@ -504,7 +507,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     const result=await workspace.importExternal(name,{sources,destination:'',strictNames:true});
     await packageMutation(name,manager=>manager.registerBase({archive:publicationArchive(output,ctx),collectionId:ctx.collectionId,version:'1'}));
     checkDirectory(session);fs.rmSync(session.path,{recursive:true});syncDirectory(stage);
-    return {repository:name,path:output.folder+'/student.md',files:output.files.length,status:result.status};
+    return {repository:name,path:output.homePath??output.folder+'/student.md',files:output.files.length,status:result.status};
    }
   });
   const requireTeach=()=>{if(!pluginPackages.list().some(entry=>isTrustedTeachPackage(entry)&&entry.enabled))fail('PLUGIN_DISABLED');};
@@ -521,7 +524,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     await managementReady(entry.name);const files=await workspace.execute(entry.name,'discover',{});if(files.truncated)fail('LIMIT_EXCEEDED');
     students.push({repo:entry.name,publishedPaths:exchangeFor(entry.name).ownedPaths(),entries:files.entries.filter(e=>e.path.startsWith(folder+'/'))});
    }
-   return {folder,instructor:term.source.paths[0],entries:source.entries.filter(e=>e.path.startsWith(folder+'/')||e.path.startsWith('shared/')),students};
+   return {folder,audiences:record.audiences[folder],instructor:record.audiences[folder]?record.audiences[folder].instructors.root+'/README.md':term.source.paths[0],entries:source.entries.filter(e=>e.path.startsWith(folder+'/')||e.path.startsWith('shared/')),students};
   }
   const recordBindings=name=>record.repositoryBindings.find(b=>b.name===name);
   const teachDispatch=request=>{
@@ -572,7 +575,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(exact(value,['operation','repo','year','season','fromRole','toRole'])&&value.operation==='pipelineFiles')return (async()=>{
     const settings=await graph.settings(value.repo),destination=settings.roles.find(r=>r.role===value.toRole)?.name;
     const ctx=await pipelineContext({...value,destination}),inventory=await workspace.execute(ctx.sourceRepo,'discover',{});if(inventory.truncated)fail('LIMIT_EXCEEDED');
-    return {source:ctx.sourceRepo,destination,folder:ctx.folder,limits:PROMOTION_LIMITS,sourceCommit:ctx.sourceCommit,entries:inventory.entries.filter(e=>e.type==='file'&&e.path.startsWith(ctx.folder+'/'))};
+    return {source:ctx.sourceRepo,destination,folder:ctx.folder,candidateRoot:ctx.sourceAudienceRoot,limits:ctx.sourceAudienceRoot?{files:4096,fileBytes:8*1024*1024,totalBytes:128*1024*1024}:PROMOTION_LIMITS,sourceCommit:ctx.sourceCommit,entries:inventory.entries.filter(e=>e.type==='file'&&e.path.startsWith(ctx.sourceAudienceRoot&&value.toRole==='students'?ctx.sourceAudienceRoot+'/':ctx.folder+'/'))};
    })();
    if(exact(value,['operation','repo','year','season','fromRole','toRole','destination','paths'])&&value.operation==='reviewPromotion'){const {operation,...input}=value;return promotion.review(input);}
    if(exact(value,['operation','planId'])&&value.operation==='applyPromotion')return promotion.finish(value.planId,'copy');
