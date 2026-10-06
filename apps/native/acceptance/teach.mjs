@@ -48,12 +48,12 @@ try{
  const previousClipboard=await driver.app.evaluate(({clipboard})=>clipboard.readText());
  await button('One-Page Course').click();await page.getByText('Schedule copied',{exact:true}).waitFor();
  const schedule=await driver.app.evaluate(({clipboard})=>clipboard.readText());assert.match(schedule,/Sep 07: Class 01<br>No Class\. Holiday/);assert.match(schedule,/Sep 14: Class 04<br>ClassContent/);assert.equal(await fs.readFile(path.join(data,'workspaces/asMagicBrain',course.repo,`${course.course.terms[0].year}-autumn/instructor.md`),'utf8'),savedBefore);await capture('05-schedule-copy-annotated');
- await button('Multi-Page Course').click();await page.getByText('Class pages saved. Click again to copy.',{exact:true}).waitFor();
+ await button('Multi-Page Course').click();await page.getByText('Class pages saved. Schedule copied.',{exact:true}).waitFor();
  const linked=await driver.app.evaluate(({clipboard})=>clipboard.readText());assert.match(linked,/\[No Class\. Holiday\]\(classes\/Class01.md\)/);assert.match(linked,/\[ClassContent\]\(classes\/Class09.md\)/);
  const termRoot=path.join(data,'workspaces/asMagicBrain',course.repo,'2026-autumn/classes');
  const pageNames=(await fs.readdir(termRoot)).filter(name=>/^Class\d+\.md$/.test(name));assert.equal(pageNames.length,9);
  const pageBytes=await Promise.all(pageNames.map(name=>fs.readFile(path.join(termRoot,name),'utf8')));
- await button('Multi-Page Course').click();await page.getByText('Class pages saved. Click again to copy.',{exact:true}).waitFor();assert.deepEqual(await Promise.all(pageNames.map(name=>fs.readFile(path.join(termRoot,name),'utf8'))),pageBytes);
+ await button('Multi-Page Course').click();await page.getByText('Class pages saved. Schedule copied.',{exact:true}).waitFor();assert.deepEqual(await Promise.all(pageNames.map(name=>fs.readFile(path.join(termRoot,name),'utf8'))),pageBytes);
  const geometry=await page.locator('.tcal-settings').evaluate(el=>{const save=el.querySelector('button[type=submit]').getBoundingClientRect(),multi=[...el.querySelectorAll('button')].find(b=>b.textContent==='Multi-Page Course').getBoundingClientRect();return {sameRow:Math.abs(save.top-multi.top)<2,right:multi.left>save.right,weeksSameRow:Math.abs(el.querySelector('input[type=number]').getBoundingClientRect().bottom-save.bottom)<2};});assert.equal(geometry.sameRow,true);assert.equal(geometry.right,true);assert.equal(geometry.weeksSameRow,true);
  const feedback=await page.locator('.tcal-guidance-row').evaluate(el=>{const note=el.querySelector('.tcal-scope').getBoundingClientRect(),status=el.querySelector('.tcal-copy-status').getBoundingClientRect();return status.left>note.right&&Math.abs(status.top-note.top)<2;});assert.equal(feedback,true);
  await capture('07-multi-page-schedule-annotated');await page.locator('.rfe-sidebar').getByText('classes',{exact:true}).waitFor();

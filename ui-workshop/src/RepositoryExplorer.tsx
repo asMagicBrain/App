@@ -25,10 +25,12 @@ export type RepositoryExplorerProps = {
   onPickFiles?(destination: string): Promise<void>;
   onReveal?(path: string): Promise<void>;
   onCheckGitHubUpdates?(): void;
+  onRenameRepository?(): void;
+  onVisibleRowsChange?(rows: number): void;
   githubUpdatesUnavailableReason?: string;
 };
 
-type Action = {id: ExplorerCommand | 'open' | 'rename' | 'collapse' | 'reveal' | 'github-updates'; label: string; disabled?: boolean; separator?: boolean; danger?: boolean; title?: string};
+type Action = {id: ExplorerCommand | 'open' | 'rename' | 'collapse' | 'reveal' | 'github-updates' | 'rename-repository'; label: string; disabled?: boolean; separator?: boolean; danger?: boolean; title?: string};
 type ExplorerContextValue = {
   props: RepositoryExplorerProps;
   host: HTMLElement | null;
@@ -167,6 +169,7 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
   const root = useRef<HTMLDivElement>(null), viewport = useRef<HTMLDivElement>(null), tree = useRef<TreeApi<ExplorerNode>>(null);
   const pendingRef = useRef(false), mounted = useRef(true);
   const [host, setHost] = useState<HTMLElement | null>(null), [height, setHeight] = useState(240);
+  const [treeVersion,setTreeVersion]=useState(0);
   const [selected, setSelected] = useState<string[]>([]), [contextPath, setContextPath] = useState<string | null>(null);
   const [pending, setPending] = useState(false), [error, setError] = useState('');
   const [external,setExternal]=useState<ExplorerContextValue['external']>(null);
@@ -195,6 +198,8 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
     tree.current?.openParents(props.activePath);
   }, [props.activePath,data]);
 
+  useLayoutEffect(()=>{props.onVisibleRowsChange?.(tree.current?.visibleNodes.length ?? data.length);},[data,props.activePath,treeVersion]);
+
   const perform = async (action: () => void | Promise<void>, propagate = false) => {
     if (pendingRef.current || props.busy) {if (propagate) throw new Error('Wait for the current operation to finish.');return;}
     pendingRef.current = true;setPending(true);setError('');
@@ -211,6 +216,7 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
     const paths = pathsFor(path), single = path !== null && (!tree.current?.isSelected(path) || tree.current.selectedIds.size === 1);
     const folder = path === null || (entries.get(path) ?? tree.current?.get(path)?.data)?.type === 'directory';
     const result: Action[] = [];
+    if(path===null&&props.onRenameRepository)result.push({id:'rename-repository',label:'Rename repository…',disabled:immutable});
     if (path !== null) result.push({id: 'open', label: 'Open', disabled: blocked || !single});
     if (folder) result.push({id: 'new-file', label: 'New Markdown file', disabled: immutable || !single && path !== null}, {id: 'new-folder', label: 'New folder', disabled: immutable || !single && path !== null}, {id:'import-files',label:'Import files…',disabled:immutable||!props.onPickFiles||!single&&path!==null});
     if (path !== null) {
@@ -229,7 +235,8 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
   const runAction = (action: Action['id'], path: string | null) => {
     if (actions(path).find(item => item.id === action)?.disabled) return;
     const paths = pathsFor(path);
-    if (action === 'collapse') {tree.current?.closeAll();return;}
+    if(action==='rename-repository'){props.onRenameRepository?.();return;}
+    if (action === 'collapse') {tree.current?.closeAll();setTreeVersion(v=>v+1);return;}
     if (action === 'github-updates') {props.onCheckGitHubUpdates?.();return;}
     if (action === 'rename') {setTimeout(() => {if (mounted.current && !pendingRef.current) void tree.current?.edit(paths[0]);}, 0);return;}
     if (action === 'open') {const entry = entries.get(paths[0]) ?? tree.current?.get(paths[0])?.data;if (entry) void perform(() => props.onOpen(entry.path, entry.type));return;}
@@ -302,7 +309,7 @@ export function RepositoryExplorer(props: RepositoryExplorerProps) {
         {props.rootActionsContainer === undefined ? <div className="rex-toolbar"><span className="rex-selection" role="status">{selected.length > 1 ? `${selected.length} selected` : ''}</span><ExplorerDropdown path={null}/></div>
           : selected.length > 1 && <div className="rex-selection rex-selection-summary" role="status">{selected.length} selected</div>}
         <div ref={viewport} className="rex-viewport">
-          <Tree<ExplorerNode> ref={tree} data={data} width="100%" height={height} rowHeight={32} indent={16} overscanCount={6} openByDefault={false} selection={props.activePath ?? undefined} selectionFollowsFocus={false} disableEdit={immutable} disableDrag={()=>immutable||Boolean(tree.current?.isEditing)} disableDrop={({parentNode,dragNodes}) => Boolean(moveProblem(dragNodes.map(node => node.id), parentNode.isRoot ? '' : parentNode.id))} onSelect={nodes => setSelected(nodes.map(node => node.id))} onToggle={path => {if (entries.has(path) || tree.current?.get(path)) props.onToggle?.(path, Boolean(tree.current?.isOpen(path)));}} onActivate={node => {if (!blocked) void perform(() => props.onOpen(node.id, node.data.type));}} onRename={({id,name}) => perform(async () => {
+          <Tree<ExplorerNode> ref={tree} data={data} width="100%" height={height} rowHeight={32} indent={16} overscanCount={6} openByDefault={false} selection={props.activePath ?? undefined} selectionFollowsFocus={false} disableEdit={immutable} disableDrag={()=>immutable||Boolean(tree.current?.isEditing)} disableDrop={({parentNode,dragNodes}) => Boolean(moveProblem(dragNodes.map(node => node.id), parentNode.isRoot ? '' : parentNode.id))} onSelect={nodes => setSelected(nodes.map(node => node.id))} onToggle={path => {setTreeVersion(v=>v+1);if (entries.has(path) || tree.current?.get(path)) props.onToggle?.(path, Boolean(tree.current?.isOpen(path)));}} onActivate={node => {if (!blocked) void perform(() => props.onOpen(node.id, node.data.type));}} onRename={({id,name}) => perform(async () => {
             if (props.readOnly) throw new Error('Historical revisions are read only.');
             const problem = renameProblem(name);if (problem) throw new Error(problem);
             await props.onRename(id, name);

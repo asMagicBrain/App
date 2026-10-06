@@ -25,7 +25,7 @@ try{
  assert.equal(await page.locator('.document-presentation header,.document-presentation footer').count(),0);
  await page.locator('.document-presentation-content').press('Meta+=');
  assert.equal(await page.locator('.document-presentation').evaluate(node=>node.style.getPropertyValue('--presentation-size')),'26px');
- await page.locator('.document-presentation-content').press('m');await page.locator('.document-presentation-content').press('ArrowRight');
+ await page.locator('.document-presentation-content').press('m');await page.locator('.document-presentation-content').press('m');await page.locator('.document-presentation-content').press('ArrowRight');
  await page.locator('.document-presentation').getByRole('heading',{name:'Introduction',exact:true}).waitFor();
  await page.locator('.document-presentation').getByRole('link',{name:'Missing',exact:true}).click();
  await page.locator('.document-presentation-notice').waitFor();
@@ -40,7 +40,7 @@ try{
  await until(()=>page.locator('.document-presentation img').first().evaluate(node=>node.complete&&node.naturalWidth===1&&node.src.startsWith('blob:')),{label:'admitted local Chinese image decoded'});
  await driver.screenshot('presentation-class');
  await page.locator('.document-presentation-content').press('?');await page.getByRole('button',{name:'Back to previous document'}).click();await page.locator('.document-presentation').getByRole('heading',{name:'Introduction',exact:true}).waitFor();
- await page.getByRole('button',{name:'Use Document',exact:true}).click();
+ await page.getByRole('button',{name:'Use Pages',exact:true}).click();await page.getByRole('button',{name:'Use Document',exact:true}).click();
  await page.keyboard.press('Escape');
  await until(()=>page.locator('.document-presentation-content').evaluate(node=>node===document.activeElement),{label:'Escape restores focus from temporary controls'});
  await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'Document presentation'}).waitFor({state:'detached'});

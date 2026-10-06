@@ -9,3 +9,29 @@
 .teach-pipeline[data-teach-area=TP1]{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 
 .fw-main:has(>.teach-pipeline[data-teach-area=TP1]){min-height:0;overflow:hidden}
+
+.teach-workflow-settings{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}.teach-workflow-settings h2,.teach-workflow-settings p{margin:0}.teach-workflow-settings details{margin-top:8px}.teach-workflow-settings details>button{margin-top:12px}.teach-workflow-settings summary{cursor:pointer}
+
+/* Settings sections share the editor's compact GitHub-like spacing. */
+.teach-settings-nav{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 24px;padding-bottom:16px;border-bottom:1px solid var(--fw-line,#d1d9e0)}
+.teach-settings-nav button{font:inherit;font-size:14px;font-weight:600;padding:6px 12px;border:1px solid var(--fw-line,#d1d9e0);border-radius:6px;background:var(--fw-bg,#fff);color:inherit;cursor:pointer}
+.teach-settings-nav button:hover{background:var(--fw-hover,#f6f8fa)}.teach-settings-nav button:focus-visible,.teach-pipeline summary:focus-visible{outline:2px solid var(--fw-accent,#0969da);outline-offset:2px}
+.teach-settings-section{padding:0 0 24px;margin-bottom:24px;border-bottom:1px solid var(--fw-line,#d1d9e0);scroll-margin-top:16px}.teach-settings-section h2{margin:0 0 8px}.teach-settings-section h3{font-size:15px;margin:24px 0 8px}.teach-settings-section p{margin:8px 0 12px;font-size:14px}.teach-settings-section h2:focus{outline:none}
+.teach-settings-section .teach-workflow-settings{margin-top:24px;margin-bottom:0;padding:16px;background:var(--fw-chrome,#f6f8fa);border-radius:6px}.teach-settings-section .teach-workflow-settings h2{font-size:15px;margin:0}
+.teach-settings-optional{padding:0 0 24px;margin-bottom:24px;border-bottom:1px solid var(--fw-line,#d1d9e0)}.teach-settings-optional>summary{font-size:14px;font-weight:600;cursor:pointer}.teach-settings-optional>summary span{font-weight:400;color:var(--fw-muted,#59636e);margin-left:8px}.teach-settings-optional>p{font-size:14px}
+.teach-settings-connection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:end}.teach-settings-connection label{min-width:0}.teach-settings-connection input,.teach-settings-connection select{width:100%;font:inherit}.teach-settings-connection>button{justify-self:start}
+.teach-pipeline-table td{overflow-wrap:anywhere}.teach-pipeline-table th{white-space:nowrap}.teach-settings-note{font-size:13px!important}.teach-pipeline [role=status]:empty{display:none}
+@media(max-width:700px){.teach-settings-connection{grid-template-columns:minmax(0,1fr)}.teach-settings-nav{gap:6px}.teach-settings-section{padding-bottom:20px;margin-bottom:20px}}
+
+.teach-settings-roster{list-style:none;padding:0;margin:12px 0}.teach-settings-roster li{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--fw-line,#d1d9e0)}.teach-settings-roster button{margin-left:auto}
+
+/* Course settings pages retain mounted forms while displaying one page. */
+.teach-settings-layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:28px;margin-top:24px}
+.teach-settings-layout .teach-settings-nav{display:flex;flex-direction:column;align-self:start;position:sticky;top:0;margin:0;padding:0 16px 0 0;border:0;border-right:1px solid var(--fw-line,#d1d9e0)}
+.teach-settings-layout .teach-settings-nav button{text-align:left;border-color:transparent;background:transparent}
+.teach-settings-layout .teach-settings-nav button[aria-current=page]{background:var(--fw-hover,#f6f8fa);color:var(--fw-accent,#0969da);border-color:var(--fw-line,#d1d9e0)}
+.teach-settings-pages{min-width:0}.teach-settings-pages [hidden]{display:none!important}
+.teach-settings-pages>.teach-settings-section{border:0;margin:0}.teach-directory-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.teach-directory-form label,.teach-directory-search{display:grid;gap:6px;font-size:14px;min-width:0}.teach-directory-form input{width:100%;font:inherit}.teach-directory-search{max-width:360px;margin:24px 0 12px}.teach-directory-actions{display:flex;gap:8px}
+@media(max-width:800px){.teach-settings-layout{grid-template-columns:140px minmax(0,1fr);gap:16px}.teach-directory-form{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.teach-settings-layout{grid-template-columns:minmax(0,1fr)}.teach-settings-layout .teach-settings-nav{position:static;flex-direction:row;flex-wrap:wrap;border:0;padding:0}}
+.teach-settings-shell{display:flex;flex:1;min-height:0;min-width:0;position:relative;overflow:hidden;width:100%}.teach-settings-shell>.teach-pipeline{flex:1;min-width:0;overflow:auto;margin:0 auto}.teach-settings-sidebar{position:relative;flex-shrink:0;width:var(--panel-resize-width,280px);overflow:visible;border-right:1px solid var(--fw-line,#d1d9e0)}.teach-settings-sidebar nav{padding:12px 8px}.teach-settings-sidebar button{width:100%;font:inherit;text-align:left;border:0;background:transparent;min-height:32px;cursor:pointer;border-radius:6px}.teach-settings-sidebar button[aria-current=page]{background:var(--fw-hover,#f6f8fa);font-weight:600}.teach-settings-shell .teach-settings-layout{display:block;margin-top:24px}.teach-settings-shell textarea{font:inherit;width:100%}.teach-settings-shell small{color:var(--fw-muted,#59636e)}

@@ -1,17 +1,21 @@
-import React,{useMemo} from 'react';
+import React,{useMemo,useState} from 'react';
 import {FocusedWriting} from './FocusedWriting';
 import {TeachPipelineSettings,type PipelineCall} from './TeachPipelineSettings';
 // Explicit session-only adapter: these fixtures never access native repositories.
 export function TeachPipelineStudy(){
+ const [sidebar,setSidebar]=useState(true);
  const call=useMemo<PipelineCall>(()=>{
   let migrated=false,revision=0,assistant:string|null=null;const ids={instructors:'1'.repeat(64),assistants:'2'.repeat(64),students:'3'.repeat(64)};
   const files=[{path:'2026-autumn/student.md',text:'# Robotics\n\n[Run the example](run.py)\n'},{path:'2026-autumn/run.py',text:'import mujoco\nmodel = mujoco.MjModel.from_xml_path("model.xml")\n'},{path:'2026-autumn/model.xml',text:'<mujoco><worldbody><body><geom type="box" size=".1 .1 .1"/></body></worldbody></mujoco>\n'},{path:'2026-autumn/LICENSE',text:'Synthetic fixture for local workflow review.\n'}];
   const roles=()=>Object.entries(ids).map(([role,id])=>({role,repositoryId:role==='assistants'?assistant:id,name:role==='assistants'&&!assistant?null:`TEST101_${role==='instructors'?'asTeach':role==='assistants'?'Assistants':'Students'}`,available:role!=='assistants'||Boolean(assistant),intendedVisibility:role==='students'?'public':'private',sourceUrl:remoteRecords[role]?.remote.url??null}));
   const remoteRecords:Record<string,any>={};let remoteReview:any=null;
-  const settings=()=>({github:{roles:remoteRecords,pending:null},migrated,revision,roles:roles(),repositories:Object.entries(ids).map(([role,stableId])=>({stableId,name:`TEST101_${role==='instructors'?'asTeach':role==='assistants'?'Assistants':'Students'}`}))});
+  let roster:any={entries:[],revision:0};
+  const settings=()=>({staff:{roster,pending:null},github:{roles:remoteRecords,pending:null},migrated,revision,roles:roles(),repositories:Object.entries(ids).map(([role,stableId])=>({stableId,name:`TEST101_${role==='instructors'?'asTeach':role==='assistants'?'Assistants':'Students'}`}))});
   let projects:any[]=[],projectReview:any=null;
   let selected:any[],destination='',source='',pendingAssistant:string|null=null;
   return async input=>{
+   if(input.operation==='saveCourseStaff'){if(input.revision!==roster.revision)throw Error('Directory changed; review again.');roster={entries:structuredClone(input.entries),revision:roster.revision+1};return {saved:true};}
+   if(String(input.operation).includes('PeopleAccessBatch'))throw Error('GitHub access review requires the native app.');
    if(input.operation==='projectSettings')return {projects,pending:null};
    if(input.operation==='reviewProjectCreation'){projectReview={planId:'project-local',teams:Array.from({length:Number(input.count)},(_,i)=>({id:crypto.randomUUID(),label:`Team${String(i+1).padStart(2,'0')}`,localName:`TEST101_2026autumn_Team${String(i+1).padStart(2,'0')}`,term:'2026-autumn'})),status:'Synthetic local repositories only; no files or GitHub requests.'};return projectReview;}
    if(input.operation==='applyProjectCreation'){if(projects.length)return {created:0};projects=projectReview.teams.map((p:any)=>({...p,name:p.localName,available:true,revision:1,policy:{members:[],milestones:[]},github:{roles:{},pending:null},staff:{pending:null},submissions:{receipts:[],checks:[]}}));return {created:projects.length};}
@@ -30,5 +34,5 @@ export function TeachPipelineStudy(){
    return {cancelled:true};
   };
  },[]);
- return <FocusedWriting repositoryHeader repositoryCode initialTheme="light-default" workspaceStudy={{active:true,rail:null,onExit:()=>{},headerContext:<nav className="pws-breadcrumb" aria-label="asTeach breadcrumb">asTeach / Courses / TEST101 / 2026 Autumn / Course settings</nav>,headerContextReplacesOwner:true,content:<><p className="teach-pipeline">Session-only settings study. Opening repositories is available in the native app.</p><TeachPipelineSettings repo="TEST101_asTeach" year={2026} season="autumn" call={call}/></>}}/>;
+ return <FocusedWriting repositoryHeader repositoryCode initialTheme="light-default" workspaceStudy={{active:true,sidebar:{open:sidebar,onToggle:()=>setSidebar(v=>!v)},rail:null,onExit:()=>{},headerContext:<nav className="pws-breadcrumb" aria-label="asTeach breadcrumb">asTeach / Courses / TEST101 / 2026 Autumn / Course settings</nav>,headerContextReplacesOwner:true,content:<><TeachPipelineSettings sidebarOpen={sidebar} onSidebarClose={()=>setSidebar(false)} repo="TEST101_asTeach" year={2026} season="autumn" call={call}/></>}}/>;
 }

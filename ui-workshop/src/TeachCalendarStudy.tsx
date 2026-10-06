@@ -3,6 +3,7 @@ import type {TeachStudyCourse} from './teach-plugin-fixture';
 import {TeachYearSelect} from './TeachYearSelect';
 import {combinedTeachingMondays, currentTeachingSeason, teachingCompactDate, teachingCourseAnchorError, teachingDateAt, teachingDays, teachingISODate, teachingNoClassDayError, teachingSeasons, teachingSessionOccurs, teachingSessionsOverlap, teachingTimeError, teachingWeekAt, teachingWeekError} from './teach-calendar.mjs';
 import './teach-calendar-study.css';
+import {copyWorkspaceText} from './native-bridge.mjs';
 import {generateTeachingSchedule,teachingScheduleError} from './teach-schedule.mjs';
 
 export type TeachClassSession = {id:string;title:string;weekday:number;start:string;end:string;location:string;weekFrom:number;weekTo:number};
@@ -148,7 +149,7 @@ export function TeachCalendarStudy({courses,state,onChange,onOpenTerm}:{courses:
 }
 
 /** Recorded reference dates are read-only; new course plans remain session-local. */
-export function TeachCourseCalendarStudy({course,state,onChange,onOpenSchedule,onGenerateMultiPage,onCreateClassPackage,nativeMode=false}:{onCreateClassPackage?():void;onGenerateMultiPage?():Promise<string>;nativeMode?:boolean;course:TeachStudyCourse;onOpenSchedule?():void}&StateProps) {
+export function TeachCourseCalendarStudy({course,state,onChange,onOpenSchedule,onGenerateMultiPage,onCreateClassPackage,classCreationLabel='New class package',nativeMode=false}:{classCreationLabel?:string;onCreateClassPackage?():void;onGenerateMultiPage?():Promise<string>;nativeMode?:boolean;course:TeachStudyCourse;onOpenSchedule?():void}&StateProps) {
   const calendar=state.terms[course.id]??defaultTeachTermCalendar(),[editing,setEditing]=useState<TeachClassSession|null|undefined>(undefined),[status,setStatus]=useState('');
   const addButton=useRef<HTMLButtonElement>(null);
   const [copyStatus,setCopyStatus]=useState(''),[generating,setGenerating]=useState(false);
@@ -157,11 +158,11 @@ export function TeachCourseCalendarStudy({course,state,onChange,onOpenSchedule,o
   const copySchedule=async(multi=false)=>{
     if(copyPending.current)return;copyPending.current=true;setGenerating(true);setCopyStatus('');
     let generated=false;
-    try{const text=multi?await onGenerateMultiPage!():generateTeachingSchedule(calendar,state.noClassDays);generated=multi;await navigator.clipboard.writeText(text);setCopyStatus(multi?'Class pages saved. Click again to copy.':'Schedule copied');}
+    try{const text=multi?await onGenerateMultiPage!():generateTeachingSchedule(calendar,state.noClassDays);generated=multi;await copyWorkspaceText(text);setCopyStatus(multi?'Class pages saved. Schedule copied.':'Schedule copied');}
     catch(error){setCopyStatus(generated?'Class pages saved. Click again to copy.':multi?(error as Error).message:'Could not copy schedule. Try again.');}
     finally{copyPending.current=false;setGenerating(false);}
   };
-  const actions=<div className="tcal-schedule-actions"><button className="tcal-button" type="button" disabled={Boolean(scheduleProblem)||generating} title={scheduleProblem||'Copy a one-page Markdown schedule'} onClick={()=>void copySchedule()}>One-Page Course</button><button className="tcal-button" type="button" disabled={Boolean(scheduleProblem)||generating||!onGenerateMultiPage} title={scheduleProblem||(!onGenerateMultiPage?'Class-file creation is available in the native app.':'Create or reuse class pages and copy their linked schedule')} onClick={()=>void copySchedule(true)}>Multi-Page Course</button>{onCreateClassPackage&&<button className="tcal-button" type="button" onClick={onCreateClassPackage}>New class package</button>}</div>;
+  const actions=<div className="tcal-schedule-actions"><button className="tcal-button" type="button" disabled={Boolean(scheduleProblem)||generating} title={scheduleProblem||'Copy a one-page Markdown schedule'} onClick={()=>void copySchedule()}>One-Page Course</button><button className="tcal-button" type="button" disabled={Boolean(scheduleProblem)||generating||!onGenerateMultiPage} title={scheduleProblem||(!onGenerateMultiPage?'Class-file creation is available in the native app.':'Create or reuse class pages and copy their linked schedule')} onClick={()=>void copySchedule(true)}>Multi-Page Course</button>{onCreateClassPackage&&<button className="tcal-button" type="button" onClick={onCreateClassPackage}>{classCreationLabel}</button>}</div>;
 
   const recordedReference=Boolean(course.readOnly&&calendar.recordedClasses?.length);
   const update=(next:TeachTermCalendar)=>onChange(previous=>({...previous,terms:{...previous.terms,[course.id]:next}}));

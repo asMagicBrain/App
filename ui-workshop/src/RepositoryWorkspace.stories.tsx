@@ -1,3 +1,4 @@
+import {TeachSpacesStudy} from './TeachSpacesStudy';
 import {TeachPipelineStudy} from './TeachPipelineStudy';
 import {PresentationStudy} from './PresentationStudy';
 import type { Meta, StoryObj } from '@storybook/react-vite';
@@ -44,3 +45,5 @@ export const TeachDES5002Reference:Story={name:'asTeach — DES5002 reference',r
 export const ReadingNavigation:Story={name:'Reading navigation — history and evidence',render:()=> <ReadingNavigationStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Shared reading history and CM6 in-memory study. Two fictional measured/target reports, exact return positions and failed navigation. Native repository identities, filesystem references and persistence require packaged acceptance.'}}}};
 
 export const TeachRepositoryPipeline:Story={name:'asTeach — Repository pipeline Phase 1',render:()=> <TeachPipelineStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Session-only local role-binding migration and reviewed code manifest. Native durability, conflicts and recovery are qualified separately. GitHub provisioning, access verification, GitBook monitoring and team submissions remain Phase 2/3.'}}}};
+
+export const TeachSpacesReview:Story={name:'asTeach — Four-space workflow review',render:()=> <TeachSpacesStudy/>,parameters:{controls:{disable:true},docs:{description:{story:'Intended next revision, session-only. Independent Instructors, Assistants, Students and per-team Projects repositories. Students is one shared authoritative repository, with in-repository instructor review. No native persistence, migrations, authorization or remote operations are implemented by this study.'}}}};

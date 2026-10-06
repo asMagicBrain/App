@@ -1,6 +1,6 @@
 import {runCli} from './automation-cli.mjs';
 import {createLocalAutomation} from './local-automation.mjs';
-import {app, BrowserWindow, WebContentsView, dialog, ipcMain, Menu, protocol, session, shell} from 'electron';
+import {app, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, protocol, session, shell} from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -127,6 +127,11 @@ ipcMain.handle('asmb:native', async (event, input) => {
     if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['method', 'args'].includes(key)) || typeof input.method !== 'string') throw Error('Invalid native request.');
     if (terminalFailure) throw Error('Local storage needs recovery. The preview is held; reopen only after resolving the reported issue.');
     if (pendingClose?.phase === 'draining') throw Error('The window is closing.');
+    if (input.method === 'copyText') {
+      if(typeof input.args?.text !== 'string' || Object.keys(input.args).length !== 1 || Buffer.byteLength(input.args.text,'utf8') > 8*1024*1024)throw Error('Clipboard text exceeds the supported limit.');
+      clipboard.writeText(input.args.text);
+      return {ok:true,value:null};
+    }
     if (input.method === 'getApplicationInfo') {
       if (input.args !== undefined) throw Error('Application information takes no arguments.');
       const release = packageMetadata ?? JSON.parse(fs.readFileSync(new URL('./release.json',import.meta.url),'utf8'));

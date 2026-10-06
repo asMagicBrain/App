@@ -6,9 +6,9 @@ const hash=value=>createHash('sha256').update(value).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 // Called only within the native host queue, using physically guarded repository I/O.
-export async function generateClassPages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths=async()=>{},audiences=null}){
+export async function generateClassPages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths=async()=>{},audiences=null,recordPath=null}){
  if(audiences||term.audiences)return generateClassPackages({repo,term,calendar,noClassDays,read,writeBatch,checkCreatePaths,audiences:audiences??audienceStructure(term)});
- const directory=`${term.year}-${term.season}`,manifestPath=`${directory}/class-pages.json`;
+ const directory=`${term.year}-${term.season}`,manifestPath=recordPath??`${directory}/class-pages.json`;
  let pageDirectory=`${directory}/classes`,stored=await read(repo,manifestPath),manifest;
  if(stored){
   try{manifest=JSON.parse(stored.text);}catch{fail('CLASS_PAGES_RECORD_INVALID');}
