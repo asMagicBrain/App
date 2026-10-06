@@ -1,3 +1,4 @@
+import {createTeachAccessBatch} from './teach-access-batch.mjs';
 import {createTeachSubmissions} from './teach-submissions.mjs';
 import {openRawFile} from '../../packages/desktop-host/src/local-git/raw-file.mjs';
 import {createTeachProjects} from './teach-projects.mjs';
@@ -6,13 +7,14 @@ import {createTeachGitHubProvider} from './teach-github-provider.mjs';
 import {createTeachGitHubSetup} from './teach-github-setup.mjs';
 import {createPromotionReceipts} from './teach-promotion-receipts.mjs';
 import {createTeachRepositoryGraph} from './teach-repository-graph.mjs';
+import {createTeachWorkflow} from './teach-workflow.mjs';
 import {buildRolePromotion,PROMOTION_LIMITS} from './teach-promotion.mjs';
 import {createRepositoryConnections,validConnectionBranch} from './repository-connections.mjs';
 import {createTeachPairs} from './teach-pairs.mjs';
 import {internalTeachPath,teachMetadataPaths} from '../../packages/asteach-plugin/metadata.mjs';
 import {courseKey,parseCourse} from '../../packages/asteach-plugin/course.mjs';
 import {createPackageZip} from '../../packages/desktop-host/src/package-exchange/archive.mjs';
-import {readPublicationFile,createTeachPublication} from './teach-publication.mjs';
+import {readPublicationFile,createTeachPublication,buildAudiencePublication} from './teach-publication.mjs';
 import {isTrustedTeachPackage} from '../../packages/asteach-plugin/binding.mjs';
 import {createTeachDefaults} from './teach-defaults.mjs';
 import {createTeachService} from './teach-service.mjs';
@@ -361,17 +363,25 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(mapped!== 'asteach-course.json'&&!entries)return new Set(['.asteach']);
    if(mapped!== 'asteach-course.json')return new Set(entries.filter(e=>e.path==='.asteach'||e.path.startsWith('.asteach/')).map(e=>e.path));
    let legacy=false;try{legacy=(await workspace.execute(name,'inspectEntry',{path:'asteach-course.json'})).type==='file';}catch(error){if(!['NOT_FOUND','ENOENT','PARTIAL'].includes(error.code))throw error;}
+   if(entries?.some(e=>e.path==='.asteach'||e.path.startsWith('.asteach/'))&&!legacy)return new Set(entries.filter(e=>e.path==='.asteach'||e.path.startsWith('.asteach/')).map(e=>e.path));
    if(!entries&&legacy){const file=await workspace.execute(name,'open',{path:'asteach-course.json'}),course=parseCourse(file.text);return new Set(['asteach-course.json',...course.terms.flatMap(term=>['teaching','class-pages','class-packages'].map(kind=>`${term.year}-${term.season}/${kind}.json`))]);}
    return new Set(legacy?teachMetadataPaths([{path:'asteach-course.json'},...(entries??[])]):[]);
   }
   const teach=createTeachService({
-   defaults:teachDefaults,probe:probeTeachFile,
+   defaults:teachDefaults,probe:probeTeachFile,directStudents:async(name,term)=>{const value=await workflow.descriptor(name,term);if(value.pending)fail('TEACH_WORKFLOW_RECOVERY_REQUIRED');const role=value.roles.find(r=>r.role==='students');if(!role?.available)fail('TEACH_STUDENT_UNAVAILABLE');return role;},
    checkCreatePaths:async(name,paths)=>{const trash=await workspace.execute(name,'listTrash',{});if(trash.some(entry=>paths.some(target=>{const reserved=portablePathKey(entry.path),key=portablePathKey(target);return key===reserved||key.startsWith(reserved+'/');})))fail('TRASH_PATH_RESERVED');},
    repositories:readingRepositories,
    prepare:async name=>{repo(name);assertWritable(name);await managementReady(name);},
    read:async(name,relative)=>{relative=await teachPath(name,relative);let file;try{file=await workspace.execute(name,'open',{path:relative});}catch(error){if(['NOT_FOUND','ENOENT','PARTIAL'].includes(error.code))return null;throw error;}if(file.readOnly||file.draft)fail('DRAFT_CONFLICT');return file;},
    writeBatch:async(name,files)=>workspace.writeBatch(name,await Promise.all(files.map(async file=>({...file,path:await teachPath(name,file.path)})))),
-   importCourse:importTeachCourse,ensurePair:ensureTeachPair
+   importCourse:importTeachCourse,beginCreate:course=>workflow.startCreation(course.courseId,createHash('sha256').update(JSON.stringify(course)).digest('hex')),workflowMode:id=>workflow.get(id)?.mode??null,
+   ensurePair:async(found,options)=>{
+    const direct=options?.fresh===true&&workflow.creation(found.course.courseId)===createHash('sha256').update(JSON.stringify(found.course)).digest('hex')||workflow.get(found.course.courseId)?.mode==='direct-students';
+    await ensureTeachPair(found,undefined,direct);
+    if(direct){await graph.initialize(found.repo);const prior=workflow.get(found.course.courseId),homes={...prior?.homes};for(const term of found.course.terms){const id=`${term.year}-${term.season}`;homes[id]??=id+'/student.md';}
+     if(!prior)await workflow.initialize(found.repo,homes);else if(JSON.stringify(homes)!==JSON.stringify(prior.homes)){const plan=await workflow.review(found.repo,homes);await workflow.apply(plan.planId);}
+    }
+   }
   });
   const promotionReceipts=createPromotionReceipts(createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-promotion-receipts'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-promotion-receipts:1').digest('hex')}));
   const graphStore=createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-graph'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-graph:1').digest('hex')});
@@ -389,6 +399,19 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   const githubSetup=createTeachGitHubSetup({fetch:githubFetch,store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-github'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-github:1').digest('hex')}),provider:teachGitHubProvider,context:teachGitHubContext,connect:async(ctx,remote)=>{const ready=await managementReady(ctx.localName);if(ready.source.identity!==ctx.identity||ready.git.branch!==ctx.branch)fail('CONFLICT');const prior=updateManagerFor(ctx.localName)?.provenance;if(prior){if(prior.sourceUrl.toLowerCase()!==remote.url.toLowerCase()||prior.branch!==ctx.branch)fail('GITHUB_ALREADY_CONNECTED');return;}connections.set(ready.binding.stateKey,{identity:ready.source.identity,sourceUrl:canonicalGitHubUrl(remote.url),branch:ctx.branch});}});
   const teachStaff=createTeachStaffAccess({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-staff'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-staff:1').digest('hex')}),provider:teachGitHubProvider,context:teachGitHubContext,setupStatus:id=>githubSetup.status(id)});
   const projects=createTeachProjects({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-projects'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-projects:1').digest('hex')}),snapshot:async name=>{const settings=await graph.settings(name),courses=await teach({operation:'list'}),found=courses.find(c=>c.course.courseId===settings.courseId);if(!found)fail('INVALID_COURSE');return {...settings,code:courseKey(found.course.code)};},createLocal:async(team,files)=>{await importTeachCourse({name:team.localName,requestId:team.requestId,bytes:createPackageZip(files)});const entry=readingRepositories().find(e=>e.name===team.localName);if(!entry)fail('TEACH_GRAPH_BINDING');return entry;}});
+  const workflow=createTeachWorkflow({store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-workflow'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-workflow:1').digest('hex')}),at:hooks.workflowAt,snapshot:async(name,{inventory:scanFiles=true}={})=>{
+   const settings=await graph.settings(name),binding=graph.get(settings.courseId),requested=readingRepositories().find(r=>r.name===name);if(binding&&binding.bindings.instructors!==requested?.stableId)fail('TEACH_GRAPH_BINDING');
+   const found=(await teach({operation:'list'})).find(c=>c.repo===name&&c.course.courseId===settings.courseId);if(!found)fail('INVALID_COURSE');
+   const files=[],drafts=[],inventories={},roleHomes={instructors:{},assistants:{}},studentCandidates={},legacyCandidates={};let total=0,blocked=false;
+   for(const role of settings.roles){if(!scanFiles||!role.available)continue;const ready=await managementReady(role.name),runtime=await workspace.execute(role.name,'runtimeStatus',{}),inventory=await workspace.execute(role.name,'discover',{});blocked||=!inventory.complete;
+    drafts.push(...[...runtime.draftPaths,...runtime.recoveredDrafts.map(d=>d.path),...workspace.bootstrap(role.name).newDrafts.map(d=>d.path)].map(p=>({repositoryId:role.repositoryId,path:p})));
+    const keys=new Set();for(const entry of inventory.entries){const key=portablePathKey(entry.path);if(keys.has(key))fail('CONFLICT');keys.add(key);if(entry.type!=='file')continue;total+=entry.byteLength;if(total>128*1024*1024)fail('LIMIT_EXCEEDED');const bytes=readPublicationFile(ready.source,entry.path);files.push({role:role.role,path:entry.path,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
+    inventories[role.role]={identity:ready.source.identity,head:ready.git.head??null,branch:ready.git.branch??null,entries:inventory.entries,issues:inventory.issues};
+   }
+   for(const term of found.course.terms){const id=`${term.year}-${term.season}`;roleHomes.instructors[id]=found.audiences[id]?`${found.audiences[id].instructors.root}/README.md`:term.source.paths[0];const assistant=settings.roles.find(r=>r.role==='assistants');roleHomes.assistants[id]=assistant.available&&await probeTeachFile(assistant.name,id+'/README.md')?id+'/README.md':null;studentCandidates[id]=files.filter(f=>f.role==='students'&&f.path.startsWith(id+'/')&&/\.md$/i.test(f.path)).map(f=>f.path);legacyCandidates[id]=files.filter(f=>f.role==='instructors'&&(f.path===id+'/student.md'||f.path.startsWith(id+'/students/'))).map(f=>({path:f.path,sha256:f.sha256}));}
+   const teamSettings=settings.migrated?await projects.settings(name):{projects:[],pending:null};
+   return {courseId:settings.courseId,terms:settings.terms,bound:settings.migrated,roles:settings.roles.map(r=>({role:r.role,repositoryId:r.repositoryId,name:r.name,available:r.available,sourceUrl:r.sourceUrl,branch:r.branch,rootPath:'',intendedVisibility:r.intendedVisibility,accessStatus:r.accessStatus})),roleHomes,projects:teamSettings.projects.map(p=>({id:p.id,term:p.term,label:p.label,repositoryId:p.bindingId,name:p.name,available:p.available,rootPath:'',homePath:'README.md'})),preservedProjects:teamSettings,courseHash:found.hash,graph:graph.get(settings.courseId),files,drafts,inventories,studentCandidates,legacyCandidates,blocked:blocked||Boolean(teamSettings.pending)};
+  }});
   const projectContext=async(projectId,role)=>{if(role!=='instructors')fail('INVALID_REQUEST');const team=projects.get(projectId);if(!team)fail('TEACH_GRAPH_BINDING');const entry=readingRepositories().find(r=>r.stableId===team.bindingId);if(!entry)fail('TEACH_GRAPH_BINDING');const ready=await managementReady(entry.name),trusted=updateManagerFor(entry.name)?.provenance;if(trusted&&ready.git.branch!==trusted.branch)fail('BRANCH_CHANGED');return {courseId:team.id,role,bindingId:team.bindingId,localName:entry.name,migrated:true,revision:team.revision,branch:trusted?.branch??ready.git.branch,identity:ready.source.identity,stateKey:ready.binding.stateKey,url:trusted?.sourceUrl??null,terms:[team.term],otherUrls:readingRepositories().filter(r=>r.stableId!==team.bindingId).map(r=>updateManagerFor(r.name)?.provenance?.sourceUrl).filter(Boolean)};};
   const projectProvider={session:async()=>{const session=await teachGitHubProvider.session();const observed=async remote=>remote?{...remote,isolation:await session.projectIsolation(remote)}:null;return {...session,inspect:async(owner,name)=>observed(await session.inspect(owner,name)),create:async input=>observed(await session.create(input))};}};
   const projectGitHub=createTeachGitHubSetup({requireIsolation:true,fetch:githubFetch,store:createPrivateStore({privateRoot:privateDirectory(path.join(privateRoot.path,'.asmb-teach-project-github'),true).path,bindingHash:createHash('sha256').update(bindingHash+':teach-project-github:1').digest('hex')}),provider:projectProvider,context:projectContext,connect:async(ctx,remote)=>{const ready=await managementReady(ctx.localName);if(ready.source.identity!==ctx.identity||ready.git.branch!==ctx.branch)fail('CONFLICT');const prior=updateManagerFor(ctx.localName)?.provenance;if(prior){if(prior.sourceUrl.toLowerCase()!==remote.url.toLowerCase()||prior.branch!==ctx.branch)fail('GITHUB_ALREADY_CONNECTED');return;}connections.set(ready.binding.stateKey,{identity:ready.source.identity,sourceUrl:canonicalGitHubUrl(remote.url),branch:ctx.branch});}});
@@ -402,6 +425,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    const courses=await teach({operation:'list'}),found=courses.find(c=>c.repo===input.repo),folder=`${input.year}-${input.season}`;
    if(!found?.course.terms.some(t=>`${t.year}-${t.season}`===folder))fail('INVALID_TERM');
    const roles=graph.get(found.course.courseId);if(!roles)fail('TEACH_GRAPH_REQUIRED');
+   if(input.toRole==='students'&&workflow.get(found.course.courseId)?.mode==='direct-students')fail('TEACH_DIRECT_STUDENTS');
    if(!['instructors','assistants'].includes(input.fromRole)||!['instructors','assistants','students'].includes(input.toRole)||input.fromRole===input.toRole||input.toRole==='instructors'&&input.fromRole!=='assistants')fail('INVALID_REQUEST');
    const entries=readingRepositories();if(entries.find(e=>e.name===input.repo)?.stableId!==roles.bindings.instructors)fail('TEACH_GRAPH_BINDING');const source=entries.find(e=>e.stableId===roles.bindings[input.fromRole]),destination=entries.find(e=>e.stableId===roles.bindings[input.toRole]);
    if(!source||!destination||source.name===destination.name)fail('TEACH_GRAPH_BINDING');
@@ -434,7 +458,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    }
   });
   const publicationArchive=(output,ctx)=>createPackageZip([...output.files,{path:'asmagicbrain-package.json',bytes:Buffer.from(JSON.stringify({format:'asMagicBrain-package',schemaVersion:1,collectionId:ctx.collectionId,version:'1',semantics:ctx.semantics??'snapshot',files:output.files.map(file=>({path:file.path,sha256:file.hash}))}))}]);
-  async function ensureTeachPair(found,preferred){
+  async function ensureTeachPair(found,preferred,direct=false){
    if(!found)fail('INVALID_COURSE');await managementReady(found.repo);
    const source=readingRepositories().find(e=>e.name===found.repo);if(!source)fail('UNKNOWN_REPOSITORY');
    let pair=teachPairs.get(source.stableId),destination;
@@ -448,11 +472,12 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(pair.destinationId){destination=readingRepositories().find(e=>e.stableId===pair.destinationId);if(!destination)fail('TEACH_STUDENT_UNAVAILABLE');}
    else {
     const initial=found.course.terms[0],folder=`${initial.year}-${initial.season}`;
-    const bytes=createPackageZip([{path:'README.md',bytes:Buffer.from('# '+found.course.code+' — Student course\n')},{path:`${folder}/student.md`,bytes:Buffer.from('# '+found.course.code+'\n\nReview Instructor content to prepare this Student course.\n')}]);
+    const bytes=createPackageZip([{path:'README.md',bytes:Buffer.from('# '+found.course.code+' — Student course\n')},{path:`${folder}/student.md`,bytes:Buffer.from('# '+found.course.code+(direct?'\n\n':'\n\nReview Instructor content to prepare this Student course.\n'))}]);
     const imported=await importTeachCourse({name:pair.name,requestId:pair.requestId,bytes});destination=readingRepositories().find(e=>e.name===imported.name);if(!destination)fail('TEACH_PAIR_CONFLICT');
     pair=teachPairs.set(source.stableId,{...pair,destinationId:destination.stableId});
    }
    await managementReady(destination.name);
+   if(direct){const homes=workflow.get(found.course.courseId)?.homes??{};for(const term of found.course.terms){const id=`${term.year}-${term.season}`,relative=homes[id]??id+'/student.md';if(!await probeTeachFile(destination.name,relative)){if(homes[id])fail('TEACH_STUDENT_PAGE_MISSING');await workspace.writeBatch(destination.name,[{path:relative,baseHash:null,text:'# '+found.course.code+'\n\n'}]);}}return {repo:destination.name};}
    for(const term of found.course.terms){
     const folder=`${term.year}-${term.season}`,relative=folder+'/student.md',manager=exchangeFor(destination.name),status=manager.status();
     if(status.registration&&status.registration.collectionId!=='asteach-'+found.course.courseId)fail('TEACH_PAIR_CONFLICT');
@@ -461,9 +486,9 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
     const present=await probeTeachFile(destination.name,relative),owned=manager.ownedPaths().includes(relative);
     if(present&&status.registration){continue;}
     if(!present&&owned)fail('TEACH_STUDENT_PAGE_MISSING');
-    const text='# '+found.course.code+'\n\nReview Instructor content to prepare this Student course.\n',bytes=Buffer.from(text),output={folder,files:[{path:relative,bytes,hash:createHash('sha256').update(bytes).digest('hex')}]},ctx={collectionId:'asteach-'+found.course.courseId};
+    const text='# '+found.course.code+'\n\nReview Instructor content to prepare this Student course.\n',bytes=present?readPublicationFile((await managementReady(destination.name)).source,relative):Buffer.from(text),output={folder,files:[{path:relative,bytes,hash:createHash('sha256').update(bytes).digest('hex')}]},ctx={collectionId:'asteach-'+found.course.courseId};
     if(!status.registration){
-     // A retried import may already exist. Registration requires exact placeholder bytes and no draft.
+     // Register the existing saved bytes, including an independently authored home. Draft guards remain mandatory.
      if(!present)await workspace.writeBatch(destination.name,[{path:relative,baseHash:null,text}]);
      await packageMutation(destination.name,m=>m.registerBase({archive:publicationArchive(output,ctx),collectionId:ctx.collectionId,version:'1'}));
     }else if(!owned){
@@ -472,6 +497,22 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    }
    return {repo:destination.name};
   }
+  const directDelivery=createTeachPublication({build:buildAudiencePublication,destinations:async()=>[],context:async input=>{
+   if(!exact(input,['repo','year','season','destination','convertGitBook'])||input.destination!==null||typeof input.convertGitBook!=='boolean')fail('INVALID_REQUEST');
+   const folder=`${input.year}-${input.season}`,descriptor=await workflow.descriptor(input.repo,folder);
+   if(descriptor.workflow.mode!=='direct-students')fail('TEACH_DIRECT_STUDENTS_REQUIRED');if(descriptor.pending)fail('TEACH_WORKFLOW_RECOVERY_REQUIRED');
+   const role=descriptor.roles.find(r=>r.role==='students');if(!role?.available||!role.homePath)fail('TEACH_STUDENT_UNAVAILABLE');
+   const ready=await managementReady(role.name),runtime=await workspace.execute(role.name,'runtimeStatus',{});
+   if(runtime.draftPaths.length||runtime.recoveredDrafts.length||workspace.bootstrap(role.name).newDrafts.length)fail('DRAFT_CONFLICT');
+   const inventory=await workspace.execute(role.name,'discoverScope',{path:folder});if(!inventory.complete)fail('LIMIT_EXCEEDED');
+   const entries=inventory.entries.filter(e=>e.type==='file');if(entries.length>4096||entries.reduce((n,e)=>n+e.byteLength,0)>128*1024*1024)fail('LIMIT_EXCEEDED');
+   const hashes=[];for(const entry of entries)hashes.push([entry.path,createHash('sha256').update(readPublicationFile(ready.source,entry.path)).digest('hex')]);
+   return {direct:true,root:ready.source,folder,studentPath:role.homePath,convertGitBook:input.convertGitBook,identity:ready.source.identity,recordHash:JSON.stringify({workflow:descriptor.workflow,role,hashes}),repository:role.name,hashes};
+  },prepare:async(output,ctx)=>{
+   if(ctx.convertGitBook)fail('INVALID_REQUEST');
+   const files=output.files.filter(f=>f.generated).map(f=>({path:f.path,text:f.bytes.toString('utf8'),baseHash:ctx.hashes.find(([p])=>p===f.path)?.[1]??null}));
+   await workspace.writeBatch(ctx.repository,files);return {repository:ctx.repository,homePath:output.homePath,files:files.map(f=>f.path)};
+  }});
   const publication=createTeachPublication({
    context:async request=>{
     const input={...request};const convertGitBook=input.convertGitBook??false;if(typeof convertGitBook!=='boolean')fail('INVALID_REQUEST');delete input.convertGitBook;
@@ -541,8 +582,27 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    return {folder,audiences:record.audiences[folder],instructor:record.audiences[folder]?record.audiences[folder].instructors.root+'/README.md':term.source.paths[0],entries:source.entries.filter(e=>e.path.startsWith(folder+'/')||e.path.startsWith('shared/')),students};
   }
   const recordBindings=name=>record.repositoryBindings.find(b=>b.name===name);
+  const reviewProjectAccess=async value=>{const team=await requireProject(value.repo,value.projectId);const session=await projectProvider.session(),record=projectGitHub.status(team.id).roles.instructors;if(!record)fail('GITHUB_VERIFY_FIRST');const remote=await session.inspect(record.remote.owner,record.remote.name);if(!remote?.isolation?.complete)fail('GITHUB_PROJECT_ISOLATION_UNVERIFIED');const allowed=new Set([...team.policy.members,...remote.isolation.owners].map(v=>v.toLowerCase()));if(remote.collaborators.some(v=>!allowed.has(v.login.toLowerCase()))||remote.invitations.some(v=>!v.login||!allowed.has(v.login.toLowerCase())))fail('GITHUB_PROJECT_ACCESS_DRIFT');if(!team.policy.members.some(login=>login.toLowerCase()===value.login?.toLowerCase()))fail('GITHUB_STAFF_NOT_LISTED');const roster=projectStaff.status(team.id).roster,entries=team.policy.members.map(login=>({login,role:'assistant'}));if(JSON.stringify(roster.entries)!==JSON.stringify(entries))await projectStaff.saveRoster({repo:team.id,revision:roster.revision,entries});return projectStaff.review({repo:value.projectId,role:'instructors',login:value.login,permission:'write'});};
+  const peopleBatch=createTeachAccessBatch({
+   context:async input=>{const settings=await graph.settings(input.repo),roster=teachStaff.status(settings.courseId);if(roster.pending)fail('GITHUB_STAFF_RECOVERY_REQUIRED');const selected=input.logins.map(login=>roster.roster.entries.find(e=>e.login?.toLowerCase()===login.toLowerCase()));if(selected.some(e=>!e))fail('GITHUB_STAFF_NOT_LISTED');
+    if(input.target.startsWith('project:')){if(input.permission!=='write')fail('INVALID_REQUEST');const team=await requireProject(input.repo,input.target.slice(8));if(projectStaff.status(team.id).pending)fail('GITHUB_STAFF_RECOVERY_REQUIRED');if(input.logins.some(login=>!team.policy.members.some(v=>v.toLowerCase()===login.toLowerCase())))fail('GITHUB_STAFF_NOT_LISTED');return {courseId:settings.courseId,roster:roster.roster.revision,teamId:team.id,bindingId:team.bindingId,revision:team.revision,remote:projectGitHub.status(team.id).roles.instructors?.remote.id??null};}
+    const role=settings.roles.find(r=>r.role===input.target);if(!role?.available)fail('TEACH_GRAPH_BINDING');if(selected.some(e=>!e.assignments?.some(a=>a.role===input.target&&a.repositoryId===role.repositoryId&&a.permission===input.permission)))fail('GITHUB_ASSIGNMENT_REQUIRED');return {courseId:settings.courseId,roster:roster.roster.revision,revision:settings.revision,bindingId:role.repositoryId,remote:githubSetup.status(settings.courseId).roles[input.target]?.remote.id??null};
+   },
+   review:input=>input.target.startsWith('project:')?reviewProjectAccess({repo:input.repo,projectId:input.target.slice(8),login:input.login}):teachStaff.review({repo:input.repo,role:input.target,login:input.login,permission:input.permission}),
+   apply:(input,id)=>input.target.startsWith('project:')?projectStaff.apply(id):teachStaff.apply(id),
+   cancel:async(input,id)=>input.target.startsWith('project:')?projectStaff.cancel(id):teachStaff.cancel(id)
+  });
   const teachDispatch=request=>{
    const value={...request};
+   if(exact(value,['operation','repo','target','logins','permission'])&&value.operation==='reviewPeopleAccessBatch'){if(typeof value.target!=='string'||!['instructors','assistants','students'].includes(value.target)&&!/^project:[0-9a-f-]{36}$/.test(value.target))fail('INVALID_REQUEST');return peopleBatch.review(value);}
+   if(exact(value,['operation','planId'])&&value.operation==='applyPeopleAccessBatch')return peopleBatch.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelPeopleAccessBatch')return peopleBatch.cancel(value.planId);
+   if((exact(value,['operation','repo'])||exact(value,['operation','repo','term']))&&value.operation==='workspaceDescriptor')return workflow.descriptor(value.repo,value.term);
+   if(exact(value,['operation','repo'])&&value.operation==='workflowInventory')return workflow.inventory(value.repo);
+   if(exact(value,['operation','repo','homes'])&&value.operation==='reviewDirectStudents')return workflow.review(value.repo,value.homes);
+   if(exact(value,['operation','planId'])&&value.operation==='applyDirectStudents')return workflow.apply(value.planId);
+   if(exact(value,['operation','planId'])&&value.operation==='cancelDirectStudents')return workflow.cancel(value.planId);
+   if(exact(value,['operation','repo','direction'])&&value.operation==='recoverDirectStudents')return workflow.recover(value.repo,value.direction);
    if(exact(value,['operation','repo'])&&value.operation==='projectSettings')return projects.settings(value.repo).then(result=>({...result,projects:result.projects.map(p=>({...p,github:projectGitHub.status(p.id),staff:projectStaff.status(p.id),submissions:submissions.status(p.id)}))}));
    if(exact(value,['operation','repo','projectId','milestone','sequence'])&&value.operation==='reviewSubmission')return submissions.review(value);
    if(exact(value,['operation','planId'])&&value.operation==='applySubmission')return submissions.apply(value.planId);
@@ -560,7 +620,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(exact(value,['operation','planId'])&&value.operation==='cancelProjectGitHub')return projectGitHub.cancel(value.planId);
    if(exact(value,['operation','repo','projectId'])&&value.operation==='verifyProjectGitHub')return (async()=>{await requireProject(value.repo,value.projectId);return projectGitHub.verify({repo:value.projectId,role:'instructors'});})();
    if(exact(value,['operation','repo','projectId','direction'])&&value.operation==='recoverProjectGitHub')return (async()=>{await requireProject(value.repo,value.projectId);return projectGitHub.recover({repo:value.projectId,direction:value.direction});})();
-   if(exact(value,['operation','repo','projectId','login'])&&value.operation==='reviewProjectAccess')return (async()=>{const team=await requireProject(value.repo,value.projectId);const session=await projectProvider.session(),record=projectGitHub.status(team.id).roles.instructors;if(!record)fail('GITHUB_VERIFY_FIRST');const remote=await session.inspect(record.remote.owner,record.remote.name);if(!remote?.isolation?.complete)fail('GITHUB_PROJECT_ISOLATION_UNVERIFIED');const allowed=new Set([...team.policy.members,...remote.isolation.owners].map(v=>v.toLowerCase()));if(remote.collaborators.some(v=>!allowed.has(v.login.toLowerCase()))||remote.invitations.some(v=>!v.login||!allowed.has(v.login.toLowerCase())))fail('GITHUB_PROJECT_ACCESS_DRIFT');if(!team.policy.members.some(login=>login.toLowerCase()===value.login?.toLowerCase()))fail('GITHUB_STAFF_NOT_LISTED');const roster=projectStaff.status(team.id).roster,entries=team.policy.members.map(login=>({login,role:'assistant'}));if(JSON.stringify(roster.entries)!==JSON.stringify(entries))await projectStaff.saveRoster({repo:team.id,revision:roster.revision,entries});return projectStaff.review({repo:value.projectId,role:'instructors',login:value.login,permission:'write'});})();
+   if(exact(value,['operation','repo','projectId','login'])&&value.operation==='reviewProjectAccess')return reviewProjectAccess(value);
    if(exact(value,['operation','planId'])&&value.operation==='applyProjectAccess')return projectStaff.apply(value.planId);
    if(exact(value,['operation','planId'])&&value.operation==='cancelProjectAccess')return projectStaff.cancel(value.planId);
    if(exact(value,['operation','repo','projectId','direction'])&&value.operation==='recoverProjectAccess')return (async()=>{await requireProject(value.repo,value.projectId);return projectStaff.recover({repo:value.projectId,direction:value.direction});})();
@@ -594,8 +654,11 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(exact(value,['operation','repo','year','season','fromRole','toRole','destination','paths'])&&value.operation==='reviewPromotion'){const {operation,...input}=value;return promotion.review(input);}
    if(exact(value,['operation','planId'])&&value.operation==='applyPromotion')return promotion.finish(value.planId,'copy');
    if(exact(value,['operation','planId'])&&value.operation==='cancelPromotion')return promotion.cancel(value.planId);
+   if(exact(value,['operation','repo','year','season','convertGitBook'])&&value.operation==='reviewDirectDelivery'){const {operation,...input}=value;return directDelivery.review({...input,destination:null});}
+   if(exact(value,['operation','planId'])&&value.operation==='prepareDirectDelivery')return directDelivery.finish(value.planId,'prepare');
+   if(exact(value,['operation','planId'])&&value.operation==='cancelDirectDelivery')return directDelivery.cancel(value.planId);
    let conversion;if(Object.hasOwn(value,'convertGitBook')){if(value.operation!=='reviewPublication'||typeof value.convertGitBook!=='boolean')fail('INVALID_REQUEST');conversion=value.convertGitBook;delete value.convertGitBook;}
-   if((exact(value,['operation','repo'])||exact(value,['operation','repo','destination']))&&value.operation==='ensureStudent')return teach({operation:'list'}).then(records=>ensureTeachPair(records.find(r=>r.repo===value.repo),value.destination));
+   if((exact(value,['operation','repo'])||exact(value,['operation','repo','destination']))&&value.operation==='ensureStudent')return teach({operation:'list'}).then(records=>{const found=records.find(r=>r.repo===value.repo);return ensureTeachPair(found,value.destination,found&&workflow.get(found.course.courseId)?.mode==='direct-students');});
    if(exact(value,['operation','repo','year','season'])&&value.operation==='courseFiles')return courseFiles(value);
    if((exact(value,['operation','repo','year','season','destination'])||exact(value,['operation','repo','year','season','destination','selectedPages'])||exact(value,['operation','repo','year','season','destination','selectedPages','studentText','sourceHash']))&&value.operation==='reviewPublication'){const {operation,...input}=value;return publication.review({...input,...(conversion!==undefined?{convertGitBook:conversion}:{})});}
    if(exact(value,['operation','planId'])&&value.operation==='copyPublication')return publication.finish(value.planId,'copy');
@@ -605,7 +668,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
   };
   async function publicationDestinations(){const courses=await teach({operation:'list'});return readingRepositories().filter(entry=>!courses.some(c=>c.repo===entry.name)).flatMap(entry=>{try{assertWritable(entry.name);const p=updateManagerFor(entry.name)?.provenance;return [{name:entry.name,sourceUrl:p?.sourceUrl??null,branch:p?.branch??null}];}catch{return [];}});}
   const api=Object.freeze({
-   buildTeachPublication:input=>{const value=copyRequest(input);return queue(()=>{requireTeach();if(!exact(value,['planId']))fail('INVALID_REQUEST');return publication.finish(value.planId,'zip');});},
+   buildTeachPublication:input=>{const value=copyRequest(input);return queue(()=>{requireTeach();if(exact(value,['planId','direct'])&&value.direct===true)return directDelivery.finish(value.planId,'zip');if(!exact(value,['planId']))fail('INVALID_REQUEST');return publication.finish(value.planId,'zip');});},
    nativeTeachRequest:input=>{const value=copyRequest(input);return queue(()=>{requireTeach();return teachDispatch(value);});},
    teachRequest:input=>{const value=copyRequest(input);return queue(()=>teachDispatch(value));},
    inspectPluginPackage:request=>{const value=pluginArchive(request,[]);return queue(()=>pluginPackages.inspect(value.bytes));},
@@ -824,14 +887,14 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    listRepositoryFiles:request=>search.listRepositoryFiles(request),
    searchRepositoryText:request=>search.searchRepositoryText(request),
    cancelRepositorySearch:request=>search.cancelRepositorySearch(request),
-   pauseTeachGitHub:async()=>{githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();await serial;},
-   resumeTeachGitHub:()=>{githubSetup.resume();teachStaff.resume();projectGitHub.resume();projectStaff.resume();submissions.resume();},
+   pauseTeachGitHub:async()=>{peopleBatch.pause();githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();await serial;},
+   resumeTeachGitHub:()=>{peopleBatch.resume();githubSetup.resume();teachStaff.resume();projectGitHub.resume();projectStaff.resume();submissions.resume();},
    prepareSearchClose:()=>search.prepareClose(),
    resumeSearch:()=>search.resume(),
    getAppearance:()=>queue(()=>({...record.appearance})),
    setAppearance:value=>{let next;try{next=copyRequest(value);if(!appearanceValid(next))fail('INVALID_APPEARANCE');}catch(error){return Promise.reject(error);}return queue(()=>{persist({...record,appearance:next});return {...record.appearance};});},
    drain:async()=>{await search.drain();await Promise.allSettled([...updateJobs].map(job=>job.promise));await serial;},
-   close:()=>{if(closePromise)return closePromise;closing=true;githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
+   close:()=>{if(closePromise)return closePromise;closing=true;peopleBatch.pause();githubSetup.pause();teachStaff.pause();projectGitHub.pause();projectStaff.pause();submissions.pause();void search.close();for(const job of updateJobs)job.controller.abort();closePromise=Promise.allSettled([search.close(),...[...updateJobs].map(job=>job.promise)]).then(()=>serial).then(()=>{if(closed)return;workspace.close();release();closed=true;});return closePromise;},
   });
   const automationRoot=privateDirectory(path.join(privateRoot.path,'.asmb-automation'),true);
   const automation=createAutomationDispatch({api,applyPackage:(input,operationId)=>{const value=packageRequest(input,['planId','choices']);if(!validCreationId(operationId))fail('INVALID_REQUEST');return queue(()=>packageMutation(value.repo,manager=>manager.apply({planId:value.planId,choices:value.choices,operationId})));},validate:input=>queue(async()=>{const value=copyRequest(input);if(!exact(value,['repoId']))fail('INVALID_REQUEST');const entry=readingRepositories().find(entry=>entry.stableId===value.repoId);if(!entry)fail('UNKNOWN_REPOSITORY');assertApplyReady(entry.name);const found=await workspace.execute(entry.name,'discover',{}),paths=found.entries.filter(entry=>entry.type==='file').map(entry=>entry.path),files=[];for(const path of paths.slice(0,256)){let text;try{const snapshot=await readLocalRepository(entry.name,path,organization.path,'',{builtinRepositories:builtins()});if(typeof snapshot.content==='string'&&Buffer.byteLength(snapshot.content)<=65536)text=snapshot.content;}catch{}files.push({path,size:found.entries.find(entry=>entry.path===path)?.byteLength,...(text!==undefined?{text}:{})});}const result=validateAutomationFiles({files,inventoryPaths:paths,analyzeReferences});if(paths.length>256||!found.complete){result.truncated=true;result.status='truncated';}return result;}),write:automationWrite,importArchive:automationImport,importStatus:value=>queue(()=>importer.findCompletedImport(value)),store:createPrivateStore({privateRoot:automationRoot.path,bindingHash:createHash('sha256').update(bindingHash+':automation:1').digest('hex')})});

@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('asMagicBrain', Object.freeze({
   selectPluginPackage: () => invoke('selectPluginPackage'),
   installPluginPackage: args => invoke('installPluginPackage',args),
   cancelPluginPackageReview: args => invoke('cancelPluginPackageReview',args),
+  copyText: args => invoke('copyText',args),
   nativeTeachRequest: input => invoke('nativeTeachRequest', input),
   listPluginPackages: () => invoke('listPluginPackages'),
   setPluginPackageEnabled: args => invoke('setPluginPackageEnabled',args),

@@ -5,4 +5,5 @@ export {analyzeReferences} from './automation-validation-parser.mjs';
 export {studentReferences,rewriteStudentLinks} from './teach-reference-parser.mjs';
 
 export {convertGitBookMarkdown,rewriteGitBookAnchors} from './teach-gitbook-conversion.mjs';
+export {portableHeadingOutput} from './teach-portable-headings.mjs';
 export {studentNavigation} from './teach-navigation.mjs';

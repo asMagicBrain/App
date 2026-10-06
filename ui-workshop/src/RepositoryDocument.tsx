@@ -9,8 +9,8 @@ export const isRepositoryMedia = (path: string) => Boolean(getNativeBridge()) &&
 
 function scrollToFragment(root: HTMLElement | null, fragment: string) {
   if (!root || !fragment) return;
-  const target = Array.from(root.querySelectorAll<HTMLElement>('[id], [data-heading-anchor]'))
-    .find(element => element.id === fragment || element.dataset.headingAnchor === fragment);
+  const target = Array.from(root.querySelectorAll<HTMLElement>('[id], [data-heading-anchor], [data-explicit-heading-anchor]'))
+    .find(element => element.id === fragment || element.dataset.headingAnchor === fragment || element.dataset.explicitHeadingAnchor === fragment);
   if (target) {target.tabIndex = -1; target.focus({preventScroll: true}); target.scrollIntoView({block: 'start'});}
 }
 

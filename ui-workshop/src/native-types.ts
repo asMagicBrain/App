@@ -72,6 +72,7 @@ export type NativeBridge = {
   selectPluginPackage():Promise<PluginPackageReview|null>;
   installPluginPackage(input:{ticket:string;requestId:string}):Promise<PluginPackageEntry>;
   cancelPluginPackageReview(input:{ticket:string}):Promise<void>;
+  copyText?(input:{text:string}):Promise<null>;
   nativeTeachRequest(input:Record<string,unknown>):Promise<any>;
   listPluginPackages():Promise<PluginPackageEntry[]>;
   setPluginPackageEnabled(input:{pluginId:string;enabled:boolean}):Promise<PluginPackageEntry>;
@@ -95,7 +96,7 @@ export type NativeBridge = {
   recoverPackageUpdate(input:{repo:string;operationId:string;direction:'resume'|'rollback'}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeResult>;
   rollbackPackageUpdate(input:{repo:string;operationId:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeResult>;
   reviewPackageExport(input:{repo:string;collectionId:string;version:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').PackageReview>;
-  saveTeachPublication(input:{planId:string}):Promise<{saved:boolean;filename?:string}>;
+  saveTeachPublication(input:{planId:string;direct?:true}):Promise<{saved:boolean;filename?:string}>;
   savePackageExport(input:{repo:string;planId:string;kind:'source'|'offline'}):Promise<{saved:boolean;filename?:string;sha256?:string}>;
   cancelPackagePlan(input:{repo:string;planId:string}):Promise<unknown>;
   getReadingEvidence(input:{repo:string;path:string;ref:string}):Promise<import('./ReadingEvidenceContext').ReadingEvidence>;

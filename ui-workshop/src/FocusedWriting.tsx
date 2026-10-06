@@ -107,7 +107,9 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
   const navigationConsumed=useCallback((id:number)=>setNavigationRequest(value=>value?.id===id?null:value),[]);
   const reportOutline=useCallback((value:OutlineState|null)=>setOutlineState(value),[]);
   const openSearch=(value:SearchRequest)=>{if(isNativeClosing())return;searchReturnFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;setSearchRequest(value);};
-  const editorDirty=useRef(false),beforeLeave=useRef<((reason?:'close')=>Promise<void>)|null>(null);
+  const teachLeave=useRef<((reason?:'close')=>Promise<void>)|null>(null),baseLeave=useRef<((reason?:'close')=>Promise<void>)|null>(null);
+ const registerTeachLeave=useCallback((fn:(reason?:'close')=>Promise<void>)=>{teachLeave.current=fn;},[]);
+ const editorDirty=useRef(false),beforeLeave=useRef<((reason?:'close')=>Promise<void>)|null>(null);
  const windowRoot=useRef<HTMLDivElement>(null);
  const nativeWindow=useNativeWindow(windowRoot,beforeLeave);
  const plugins=usePluginHost();
@@ -117,13 +119,14 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
  const openPlugins=async()=>{if(isNativeClosing())return;try{await beforeLeave.current?.();plugins?.cancelOperations();setPluginsOpen(true);}catch(reason){setNavigationError((reason as Error).message);}};
  useEffect(()=>{if(nativeWindow.closing)plugins?.cancelOperations();},[nativeWindow.closing,plugins]);
  // Native plugins have their own host. Browser-only asTeach studies never become native modules.
- const teach=useNativeTeach({navigate:action=>{void completeNavigation(()=>{setPluginsOpen(false);action();});},onDocument:(repo,path,reload)=>{setCatalogEpoch(v=>v+1);if(repo!==repository||showDraft||reload)activateRepository(repo,true,true);else setWorkspaceView(null);setNavigationRequest({repo,path,type:'file',ref:'',id:++navigationId.current});}});
+ const teach=useNativeTeach({registerBeforeLeave:registerTeachLeave,navigate:action=>{void completeNavigation(()=>{setPluginsOpen(false);action();});},onDocument:(repo,path,reload)=>{setCatalogEpoch(v=>v+1);if(repo!==repository||showDraft||reload)activateRepository(repo,true,true);else setWorkspaceView(null);setNavigationRequest({repo,path,type:'file',ref:'',id:++navigationId.current});}});
  const study:WorkspaceStudy|undefined=pluginsOpen?{active:true,rail:null,content:<NativePluginManager onReturn={closePlugins}/>,headerContext:<strong>Plugins</strong>,onExit:closePlugins}:nativeWindow.native?teach.study:workspaceStudy;
  const [filesRequested,setFilesRequested]=useState(false);
  const [fileViewActive,setFileViewActive]=useState(false),[fileSidebarOpen,setFileSidebarOpen]=useState(true);
  const [renamedLocation,setRenamedLocation]=useState<{path:string;directory:boolean}|null>(null);
  const [navigationError,setNavigationError]=useState('');
- const registerBeforeLeave=useCallback((fn:(reason?:'close')=>Promise<void>)=>{beforeLeave.current=fn;},[]);
+ const registerBeforeLeave=useCallback((fn:(reason?:'close')=>Promise<void>)=>{baseLeave.current=fn;},[]);
+ beforeLeave.current=async reason=>{await teachLeave.current?.(reason);await baseLeave.current?.(reason);};
  const completeNavigation=async(action:()=>void)=>{if(isNativeClosing())return;try{setNavigationError('');await beforeLeave.current?.();if(isNativeClosing())return;action();setPendingNavigation(null);}catch(reason){setNavigationError(`Could not preserve the draft: ${(reason as Error).message}`);}};
   const reportEditorDirty=useCallback((dirty:boolean)=>{editorDirty.current=dirty;},[]);
   const [pendingNavigation,setPendingNavigation]=useState<(()=>void)|null>(null);

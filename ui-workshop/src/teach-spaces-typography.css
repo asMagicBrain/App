@@ -1,0 +1,13 @@
+/* Storybook typography review: reuse the pinned local font files. */
+@font-face{font-family:'asMagicBrain MiSans UI';src:url('../../apps/desktop/ui/fonts/MiSans-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'asMagicBrain MiSans UI';src:url('../../apps/desktop/ui/fonts/MiSans-Semibold.woff2') format('woff2');font-weight:600 900;font-style:normal;font-display:swap}
+@font-face{font-family:'asMagicBrain MiSans TC UI';src:url('../../apps/desktop/ui/fonts/MiSansTC-Regular.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'asMagicBrain MiSans TC UI';src:url('../../apps/desktop/ui/fonts/MiSansTC-Semibold.woff2') format('woff2');font-weight:600 900;font-style:normal;font-display:swap}
+.fw-window.fw-window:has(.tss-shared-workspace){font-family:'asMagicBrain MiSans UI',sans-serif}
+.fw-window:has(.tss-shared-workspace) .rfe-preview,.fw-window:has(.tss-shared-workspace) .rex{font-family:inherit}
+.fw-window:has(.tss-shared-workspace) :lang(zh-Hant),.fw-window:has(.tss-shared-workspace) :lang(zh-TW),.fw-window:has(.tss-shared-workspace) :lang(zh-HK){font-family:'asMagicBrain MiSans TC UI','asMagicBrain MiSans UI',sans-serif}
+/* Existing CJK-only font faces remain fallback for Chinese inside monospace. */
+.fw-window:has(.tss-shared-workspace) .rfe-source .cm-editor,.fw-window:has(.tss-shared-workspace) pre,.fw-window:has(.tss-shared-workspace) code{font-family:'asMagicBrain MiSans',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+body:has(.tss-shared-workspace) .document-presentation{font-family:'asMagicBrain MiSans UI',sans-serif}
+body:has(.tss-shared-workspace) .document-presentation :lang(zh-Hant){font-family:'asMagicBrain MiSans TC UI','asMagicBrain MiSans UI',sans-serif}
+body:has(.tss-shared-workspace) .document-presentation code{font-family:'asMagicBrain MiSans',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}

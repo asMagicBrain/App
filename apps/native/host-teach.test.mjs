@@ -42,8 +42,9 @@ test('teacher defaults and course calendars persist without overwriting course s
  await assert.rejects(f.service.nativeTeachRequest({operation:'list'}),{code:'PLUGIN_DISABLED'});
 });
 
-test('native class generation creates 42 pages durably, reuses edits and refuses stale settings',async t=>{
+test('legacy native class generation creates 42 pages durably, reuses edits and refuses stale settings',async t=>{
  const f=await fixture(t),created=await f.service.teachRequest(create());
+ await f.service.teachRequest({operation:'recoverDirectStudents',repo:created.repo,direction:'rollback'});
  const calendar={monday:'2026-09-07',totalWeeks:14,sessions:[0,2,4].map(weekday=>({id:String(weekday),title:'Class',weekday,start:'09:00',end:'10:00',location:'R',weekFrom:1,weekTo:14}))};
  const saved=await f.service.teachRequest({operation:'setCalendar',repo:created.repo,year:2026,season:'autumn',expectedHash:created.settings['2026-autumn'].hash,calendar});
  const input={operation:'generateClassPages',repo:created.repo,year:2026,season:'autumn',expectedHash:saved.settings['2026-autumn'].hash};
@@ -54,8 +55,9 @@ test('native class generation creates 42 pages durably, reuses edits and refuses
  await f.restart();assert.equal((await f.service.teachRequest(input)).reused,42);
  assert.equal((await f.service.request({repo:created.repo,operation:'open',args:{path:file.path}})).text,'# Edited class\n');assert.equal((await f.service.read({repo:created.repo})).commitCount,0);
 });
-test('native Trash preserves recovery reservations; external deletion permits a new set',async t=>{
+test('legacy native Trash preserves recovery reservations; external deletion permits a new set',async t=>{
  const f=await fixture(t),created=await f.service.teachRequest(create()),repo=created.repo;
+ await f.service.teachRequest({operation:'recoverDirectStudents',repo:created.repo,direction:'rollback'});
  const calendar={monday:'2026-09-07',totalWeeks:2,sessions:[{id:'lecture',title:'Class',weekday:0,start:'09:00',end:'10:00',location:'R',weekFrom:1,weekTo:2}]};
  const saved=await f.service.teachRequest({operation:'setCalendar',repo,year:2026,season:'autumn',expectedHash:created.settings['2026-autumn'].hash,calendar});
  const input={operation:'generateClassPages',repo,year:2026,season:'autumn',expectedHash:saved.settings['2026-autumn'].hash};await f.service.teachRequest(input);
@@ -72,8 +74,9 @@ test('native Trash preserves recovery reservations; external deletion permits a 
  const entries=(await request('discover',{})).entries;assert.equal(entries.filter(e=>/Class\d+\.md$/.test(e.path)).length,2);
 });
 
-test('empty Trash releases generated class paths for a fresh set',async t=>{
+test('legacy empty Trash releases generated class paths for a fresh set',async t=>{
  const f=await fixture(t),created=await f.service.teachRequest(create()),repo=created.repo;
+ await f.service.teachRequest({operation:'recoverDirectStudents',repo:created.repo,direction:'rollback'});
  const calendar={monday:'2026-09-07',totalWeeks:2,sessions:[{id:'lecture',title:'Class',weekday:0,start:'09:00',end:'10:00',location:'R',weekFrom:1,weekTo:2}]};
  const saved=await f.service.teachRequest({operation:'setCalendar',repo,year:2026,season:'autumn',expectedHash:created.settings['2026-autumn'].hash,calendar});
  const input={operation:'generateClassPages',repo,year:2026,season:'autumn',expectedHash:saved.settings['2026-autumn'].hash};await f.service.teachRequest(input);
@@ -84,8 +87,9 @@ test('empty Trash releases generated class paths for a fresh set',async t=>{
  await f.restart();assert.deepEqual(await request('listTrash'),[]);assert.equal((await f.service.teachRequest(input)).created,2);
  assert.equal((await request('discover')).entries.filter(entry=>/Class\d+\.md$/.test(entry.path)).length,2);
 });
-test('editable course template affects new terms only; Student content goes directly to paired repo',async t=>{
+test('editable course template affects new terms only; legacy preparation remains available',async t=>{
  const f=await fixture(t),course=await f.service.teachRequest(create()),repo=course.repo,req={repo,year:2026,season:'autumn'};
+ await f.service.teachRequest({operation:'recoverDirectStudents',repo,direction:'rollback'});
  const template=await f.service.request({repo,operation:'open',args:{path:'instructor-template.md'}});
  await f.service.request({repo,operation:'save',args:{path:template.path,baseHash:template.sourceHash,text:'# Custom course\n'}});
  const original=await f.service.teachRequest({operation:'studentReview',...req});

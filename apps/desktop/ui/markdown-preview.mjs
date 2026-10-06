@@ -15,6 +15,21 @@ parser.block.ruler.before('hr','frontmatter',(state,startLine,endLine,silent)=>{
 });
 installComments(parser);
 installMath(parser);
+// GitBook's portable heading anchors are inert metadata, not general HTML.
+// Accept only an empty, trailing anchor with a bounded ASCII identifier and
+// an optional matching fragment href. Everything else remains literal source.
+parser.core.ruler.before('inline', 'portable_heading_anchor', state => {
+  const used = new Set();
+  for (let index = 0; index < state.tokens.length; index++) {
+    const heading = state.tokens[index], inline = state.tokens[index + 1];
+    if (heading.type !== 'heading_open' || inline?.type !== 'inline') continue;
+    const match = /[ \t]+<a(?: href="#([A-Za-z][A-Za-z0-9_-]{0,127})")? id="([A-Za-z][A-Za-z0-9_-]{0,127})"><\/a>[ \t]*$/.exec(inline.content);
+    if (!match || match[1] && match[1] !== match[2] || used.has(match[2])) continue;
+    used.add(match[2]);
+    heading.attrSet('data-explicit-heading-anchor', match[2]);
+    inline.content = inline.content.slice(0, match.index);
+  }
+});
 // Recognize only attribute-free breaks, and only render them inside table cells.
 // Escapes, code spans, other HTML and non-table text retain their literal meaning.
 parser.inline.ruler.before('html_inline', 'table_break_candidate', (state, silent) => {

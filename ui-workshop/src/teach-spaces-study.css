@@ -1,0 +1,44 @@
+/* Shared editor styles remain authoritative; these rules arrange repository roots. */
+.tss-shared-workspace{height:100%;display:flex;flex-direction:column;min-height:0}
+.tss-shared-panes{display:flex;flex:1;min-height:0}
+.tss-shared-editor{flex:1;min-width:0;display:flex}
+.tss-shared-editor[hidden]{display:none}
+.tss-shared-editor>.rfe{flex:1}
+.tss-breadcrumb{display:flex!important;align-items:center;gap:5px;overflow:hidden;white-space:nowrap}
+.tss-breadcrumb button{display:inline-flex!important;flex:none;border:0;background:transparent;color:inherit;font:inherit;padding:4px}
+.tss-shared-calendar{display:flex;flex:1;min-width:0}
+.tss-calendar-content{flex:1;overflow:auto;padding:24px;min-width:0}
+.tss-dialog-body{line-height:1.6}
+.tss-feedback{margin:0;padding:8px 16px;font-size:12px;color:var(--fw-muted);border-top:1px solid var(--fw-line)}
+.tss-unified-sidebar{width:280px;flex:none;overflow:auto;border-right:1px solid var(--fw-line)}
+.tss-unified{padding:8px 0;font-size:14px;font-family:inherit}
+.tss-calendar-link{display:flex;align-items:center;gap:8px;margin:0 8px 8px;padding:8px;width:calc(100% - 16px);height:36px;font:inherit;border:0;border-radius:6px;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.tss-calendar-link:hover,.tss-repo-group .rfe-icon:hover{background:var(--fw-hover)}
+.tss-calendar-link[aria-current=page]{background:var(--fw-accent-soft,#ddf4ff)}
+.tss-calendar-link svg,.tss-unified .rfe-icon svg{width:16px;height:16px;flex:none}
+.tss-repo-group{margin:0 0 8px}
+.tss-repo-group>.rfe-sidebar-header{display:flex;align-items:center;gap:4px;min-height:40px;padding:4px 8px;font:inherit;border-radius:0}
+.tss-repo-group>.rfe-sidebar-header.is-active{background:var(--fw-accent-soft,#ddf4ff)}
+.tss-repo-group>.rfe-sidebar-header strong{flex:1;min-width:0;font-size:14px;font-weight:600}
+.tss-repo-group>.rfe-sidebar-header button.rfe-icon{border:0;background:transparent;color:var(--fw-muted);display:inline-flex;align-items:center;justify-content:center;padding:0;width:28px;height:28px;flex:none;border-radius:6px;cursor:pointer;font:inherit}
+.tss-existing-title{border:0;background:transparent;color:inherit;font:inherit;font-weight:600;padding:0;text-align:left;cursor:pointer}
+.tss-unified .fnc{margin:4px 0 0}
+.tss-unified .fnc-controls{padding:0 16px 8px}
+.tss-unified .rex{height:100%;min-height:0;padding-bottom:0;font-family:inherit}
+.tss-project-roots{padding-left:16px;border-left:1px solid var(--fw-line);margin-left:20px}
+/* Separate repository explorers without narrowing the team explorer controls. */
+.tss-unified>.tss-repo-group+.tss-repo-group{border-top:1px solid var(--fw-line);padding-top:8px}
+.tss-project-roots{padding-left:0;margin-left:0;border-left:0}
+.tss-project-roots>.tss-repo-group+.tss-repo-group{border-top:1px solid var(--fw-line);padding-top:8px}
+.tss-project-roots>.tss-repo-group>.rfe-sidebar-header{position:relative}
+.tss-project-roots>.tss-repo-group>.rfe-sidebar-header:before{content:'';position:absolute;left:4px;top:10px;bottom:10px;width:2px;border-radius:1px;background:var(--fw-line)}
+.tss-project-header{background:var(--fw-chrome);border-bottom:1px solid var(--fw-line)}
+.tss-unified>.tss-calendar-link+.tss-repo-group{border-top:1px solid var(--fw-line);padding-top:8px}
+/* Projects uses the same 8px gap on both sides of repository dividers. */
+.tss-project-header{border-bottom:0}
+.tss-project-roots{margin-top:8px;border-top:1px solid var(--fw-line);padding-top:8px}
+.tss-project-roots>.tss-repo-group:last-child{margin-bottom:0}
+/* Closing divider belongs to Projects, including its collapsed state. */
+.tss-unified>.tss-repo-group:last-child{padding-bottom:8px;border-bottom:1px solid var(--fw-line)}
+
+.tss-unified .tss-calendar-link{width:100%;height:40px;margin:0;padding:4px 8px 4px 40px;border-radius:0;font-size:14px;font-weight:600;line-height:21px;box-sizing:border-box}

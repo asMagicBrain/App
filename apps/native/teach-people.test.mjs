@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {reviewPeopleImport,assignCoursePeople,validCoursePeople} from '../../packages/asteach-plugin/course-people.mjs';
+const people=[{login:'alice',role:'student',email:'a@example.com',firstName:'原名'}];
+test('CSV upsert preserves blanks and UTF-8; TSV adds without duplication',()=>{const r=reviewPeopleImport(people,'email,github,first_name\na@example.com,,新名');assert.equal(r.entries.length,1);assert.equal(r.entries[0].login,'alice');assert.equal(r.entries[0].firstName,'新名');assert.equal(reviewPeopleImport(r.entries,'email\tgithub\na@example.com\talice').changes[0].action,'unchanged');});
+test('ambiguous identities and duplicate input stop before saving',()=>{assert.throws(()=>reviewPeopleImport([...people,{login:'bob',role:'student',email:'b@example.com'}],'email,github\na@example.com,bob'));assert.throws(()=>reviewPeopleImport(people,'github\nbob\nBOB'));});
+test('student private/write assignment forbidden; stable course binding retained',()=>{const repositoryId='a'.repeat(64);assert.throws(()=>assignCoursePeople(people,[0],{role:'instructors',permission:'write',repositoryId}));const r=assignCoursePeople(people,[0],{role:'students',permission:'read',repositoryId});assert.equal(r[0].assignments[0].repositoryId,repositoryId);assert.ok(validCoursePeople(r));});
