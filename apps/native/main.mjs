@@ -1,3 +1,4 @@
+import {transitionPresentationFullscreen} from './presentation-fullscreen.mjs';
 import {runCli} from './automation-cli.mjs';
 import {createLocalAutomation} from './local-automation.mjs';
 import {app, BrowserWindow, WebContentsView, clipboard, dialog, ipcMain, Menu, protocol, session, shell} from 'electron';
@@ -30,6 +31,7 @@ import {PLUGIN_PACKAGE_LIMITS} from '../../packages/desktop-host/src/plugin-pack
 import {createStartupTiming} from './startup-timing.mjs';
 
 let presentationFullscreen = null;
+let presentationBackgroundThrottling = null;
 const startupMark = createStartupTiming({enabled: process.argv.includes('--startup-timing')});
 startupMark('main-entered');
 
@@ -181,8 +183,8 @@ ipcMain.handle('asmb:native', async (event, input) => {
       if (input.args === 'close') requestClose();
       else if (input.args === 'minimize') window.minimize();
       else if (input.args === 'maximize') window.isMaximized() ? window.unmaximize() : window.maximize();
-      else if(input.args==='presentation-enter'){artifactHost?.stop();if(presentationFullscreen===null)presentationFullscreen=window.isFullScreen();window.setFullScreen(true);}
-      else if(input.args==='presentation-exit'){if(presentationFullscreen!==null){window.setFullScreen(presentationFullscreen);presentationFullscreen=null;}}
+      else if(input.args==='presentation-enter'){artifactHost?.stop();if(presentationFullscreen===null){presentationFullscreen=window.isFullScreen();presentationBackgroundThrottling=window.webContents.getBackgroundThrottling();}window.webContents.setBackgroundThrottling(false);try{await transitionPresentationFullscreen(window,true);}catch(error){window.webContents.setBackgroundThrottling(presentationBackgroundThrottling??true);presentationBackgroundThrottling=null;presentationFullscreen=null;throw error;}}
+      else if(input.args==='presentation-exit'){if(presentationFullscreen!==null){await transitionPresentationFullscreen(window,presentationFullscreen);window.webContents.setBackgroundThrottling(presentationBackgroundThrottling??true);presentationBackgroundThrottling=null;presentationFullscreen=null;}}
       else throw Error('Unknown window action.');
       return {ok: true};
     }

@@ -21,3 +21,9 @@ Pages respects every heading depth and horizontal-rule breaks. Consecutive headi
 The view starts near the current source/reading block. On exit, the editor reveals the corresponding source position without changing the caret or document content. Local Markdown links stay within the repository. Back restores the previous document's presentation position. Layout changes are tracked using source-block locations rather than a whole-document scroll percentage.
 
 See [getting started](getting-started.md) for supported platforms.
+
+Prose uses a bounded reading width while landscape figures can use the available screen width. Arrow navigation remains available when presentation controls have focus. Figures with a following Markdown blockquote caption stay together where possible. Equations and code blocks remain intact; oversized content scrolls instead of being truncated.
+
+Native presentation keeps rendering active while you temporarily focus another window. Leaving presentation restores the normal background rendering policy. Fullscreen entry and return wait for the native transition to finish before measuring or restoring the document.
+
+Code blocks align with the prose column. Long code lines remain intact and scroll horizontally within their block.

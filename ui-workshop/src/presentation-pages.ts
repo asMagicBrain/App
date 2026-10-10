@@ -8,12 +8,15 @@ export function paginatePresentation(html:string,probe:HTMLElement,height:number
  const textSlice=(node:HTMLElement,from:number,to:number)=>{const clone=node.cloneNode(false) as HTMLElement,walk=document.createTreeWalker(node,NodeFilter.SHOW_TEXT),texts:Text[]=[];let text;while((text=walk.nextNode()))texts.push(text as Text);const point=(offset:number):[Node,number]=>{let used=0;for(const t of texts){if(offset<=used+t.length)return [t,offset-used];used+=t.length;}return [node,node.childNodes.length];};const range=document.createRange(),a=point(from),b=point(to);range.setStart(...a);range.setEnd(...b);clone.append(range.cloneContents());return clone;};
  const blocks=Array.from(source.children);for(let index=0;index<blocks.length;index++){const raw=blocks[index];
   if(pages.length>=255){flush();current.push(...blocks.slice(index) as HTMLElement[]);oversized=true;flush();break;}
-  const node=raw as HTMLElement;
+  let node=raw as HTMLElement;
+  // Treat a landscape figure and its following Markdown caption as one unit.
+  const caption=blocks[index+1] as HTMLElement|undefined;
+  if(node.matches('p')&&node.querySelector('img,[data-local-image]')&&caption?.matches('blockquote')){const group=document.createElement('div');group.className='presentation-figure';group.dataset.sourceLine=node.dataset.sourceLine??'1';group.dataset.sourceEndLine=caption.dataset.sourceEndLine??caption.dataset.sourceLine??'1';group.append(node.cloneNode(true),caption.cloneNode(true));node=group;index++;}
   if(node.matches('hr')){flush();continue;}
   // Every heading depth is retained. Consecutive headings stay with their body.
   if(node.matches('h1,h2,h3,h4,h5,h6')&&current.some(n=>!n.matches('h1,h2,h3,h4,h5,h6')))flush();
   if(fits([...current,node])){current.push(node);continue;}
-  if(node.matches('p')&&node.textContent&&!node.querySelector('img,svg,math,iframe,[data-local-image],[data-artifact]')){
+  if(node.matches('p')&&node.textContent&&!node.querySelector('img,svg,math,iframe,.preview-math,[data-local-image],[data-artifact]')){
    const length=node.textContent.length,graphemes=new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(node.textContent);let start=0,offset=0;
    while(start<length){if(pages.length>=255){current.push(textSlice(node,start,length));oversized=true;flush();break;}let low=start,high=length;
     while(low<high){const mid=Math.ceil((low+high)/2);if(fits([...current,textSlice(node,start,mid)]))low=mid;else high=mid-1;}

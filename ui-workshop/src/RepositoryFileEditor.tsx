@@ -366,9 +366,9 @@ export function RepositoryFileEditor(props: Props) {
    setPresenter(module);
   }catch(reason){setError((reason as Error).message);}finally{presentationBusy.current=false;setPresentationPreparing(false);}
  };
- const stopPresentation=(position:{line:number;offset:number})=>{
+ const stopPresentation=async(position:{line:number;offset:number})=>{
   const restored=presentationViews.current.get(active.current.path);if(restored){setEditing(restored.editing);setPreview(restored.preview);setSplit(restored.split);setVisual(restored.visual);}
-  setPresenter(null);void getNativeBridge()?.windowAction('presentation-exit').catch((reason:Error)=>setError(reason.message));
+  const selected=active.current.id;setPresenter(null);try{await getNativeBridge()?.windowAction('presentation-exit');}catch(reason){setError((reason as Error).message);}if(selected!==active.current.id||!mounted.current)return;
   requestAnimationFrame(()=>{const editor=view.current;if(editor){const line=editor.state.doc.line(Math.max(1,Math.min(editor.state.doc.lines,position.line)));const selection=presentationSelections.current.get(active.current.path);editor.dispatch({...(selection?{selection}:{}),effects:EditorView.scrollIntoView(line.from,{y:'start',yMargin:Math.max(0,position.offset)})});presentationResume.current.set(active.current.path,{position,doc:editor.state.doc,selection:editor.state.selection,...(restored??{editing,preview,split,visual})});}if(reading.current)presenter?.restorePresentationPosition(reading.current,position);});
  };
  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.defaultPrevented||event.isComposing||presenter||!root.current?.getClientRects().length||document.querySelector('dialog[open]'))return;if((event.metaKey||event.ctrlKey)&&event.shiftKey&&event.key.toLowerCase()==='p'){event.preventDefault();event.stopPropagation();void startPresentation();}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[presenter,ready,loading,busy,path,actualPreview]);
