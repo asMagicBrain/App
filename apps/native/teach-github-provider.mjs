@@ -1,3 +1,4 @@
+import {githubFailure} from './teach-github-diagnostics.mjs';
 import {readGitHubSubmission} from './teach-submission-provider.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 async function bounded(response,limit){const reader=response.body?.getReader();if(!reader)return Buffer.alloc(0);const chunks=[];let size=0;try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit)fail('GITHUB_RESPONSE_LIMIT');chunks.push(Buffer.from(value));}}finally{await reader.cancel().catch(()=>{});}return Buffer.concat(chunks,size);}
@@ -5,7 +6,22 @@ const name=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/.test(v)&&
 export function createTeachGitHubProvider({getCredential,fetch:fetcher=globalThis.fetch}){
  return {async session(){
   if(typeof getCredential!=='function')fail('GITHUB_RECONNECT_REQUIRED');const {token}=await getCredential();if(typeof token!=='string'||!token)fail('GITHUB_RECONNECT_REQUIRED');
-  async function request(route,method='GET',body){let response;try{response=await fetcher('https://api.github.com'+route,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:method==='PUT'?{'Content-Length':'0'}:{})},...(body?{body:JSON.stringify(body)}:{})});}catch{fail('GITHUB_OUTCOME_UNKNOWN');}if(response.status===404)return null;if(!response.ok)fail(response.status===401?'GITHUB_RECONNECT_REQUIRED':response.status===403?'GITHUB_PERMISSION_REQUIRED':response.status===422?(method==='PUT'?'GITHUB_GRANT_REJECTED':'GITHUB_NAME_CONFLICT'):'GITHUB_UNAVAILABLE');const text=(await bounded(response,512*1024)).toString('utf8');if(response.status===204&&text==='')return {data:null,status:204};let data;try{data=JSON.parse(text);}catch{fail('GITHUB_INVALID_RESPONSE');}return {data,status:response.status,serverDate:response.headers.get('date'),more:Boolean(response.headers.get('link')?.includes('rel="next"')),scopes:response.headers.get('x-oauth-scopes')??''};}
+  async function request(route,method='GET',body){
+   let response;
+   try{response=await fetcher('https://api.github.com'+route,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{Accept:'application/vnd.github+json',Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28',...(body?{'Content-Type':'application/json'}:method==='PUT'?{'Content-Length':'0'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
+   catch{throw githubFailure('GITHUB_OUTCOME_UNKNOWN');}
+   if(response.status===404&&method==='GET')return null;
+   const details={status:response.status,requestId:response.headers.get('x-github-request-id')};
+   if(!response.ok){
+    let code=response.status===401?'GITHUB_RECONNECT_REQUIRED':response.status===403?'GITHUB_PERMISSION_REQUIRED':response.status===404?'GITHUB_REPOSITORY_UNAVAILABLE':response.status===422?(method==='PUT'?'GITHUB_GRANT_REJECTED':'GITHUB_NAME_CONFLICT'):'GITHUB_UNAVAILABLE';
+    let apiMessage,reason;try{const body=JSON.parse((await bounded(response,16384)).toString('utf8'));apiMessage=body.message;if(response.status===422&&method==='PUT'&&Array.isArray(body.errors)&&body.errors.some(e=>e?.resource==='Repository'&&e?.field==='seat_limit'&&e?.code==='custom')){reason='seat_limit';code='GITHUB_SEAT_LIMIT';}}catch{}
+    throw githubFailure(code,{...details,apiMessage,reason,outcome:[400,401,403,404,409,422].includes(response.status)?'rejected':'unknown'});
+   }
+   let text;try{text=(await bounded(response,512*1024)).toString('utf8');}catch{throw githubFailure('GITHUB_OUTCOME_UNKNOWN',details);}
+   if(response.status===204&&text==='')return {data:null,status:204};
+   let data;try{data=JSON.parse(text);}catch{throw githubFailure('GITHUB_INVALID_RESPONSE',details);}
+   return {data,status:response.status,serverDate:response.headers.get('date'),more:Boolean(response.headers.get('link')?.includes('rel="next"')),scopes:response.headers.get('x-oauth-scopes')??''};
+  }
   async function binary(route,limit,accept,asset=false){
    let response;try{response=await fetcher('https://api.github.com'+route,{redirect:'manual',signal:AbortSignal.timeout(60000),headers:{Accept:accept,Authorization:'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'}});
     if(asset&&[301,302,303,307,308].includes(response.status)){const url=new URL(response.headers.get('location'));if(url.protocol!=='https:'||url.hostname!=='release-assets.githubusercontent.com'||url.username||url.password||url.port)fail('SUBMISSION_ARTIFACT');response=await fetcher(url.href,{redirect:'error',signal:AbortSignal.timeout(60000)});}

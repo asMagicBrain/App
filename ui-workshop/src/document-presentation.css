@@ -14,3 +14,29 @@
 .document-presentation-page img,.document-presentation-page svg{max-height:calc(100dvh - 80px);object-fit:contain}.document-presentation-page{overscroll-behavior:contain}
 @media(max-width:640px){.document-presentation-measure{top:20px;bottom:20px;width:calc(100% - 48px)}}
 .document-presentation-probe th{white-space:nowrap}.document-presentation-probe img,.document-presentation-probe svg{max-width:100%;height:auto}.document-presentation-page article>:first-child{margin-top:0}
+
+/* Measurement and visible pages share the same block geometry. Prose is
+   bounded separately from landscape figures, tables and technical blocks. */
+.document-presentation-content article,.document-presentation-probe{display:flow-root;width:100%;min-width:0;max-width:100%;overflow-wrap:anywhere}
+:is(.document-presentation-content,.document-presentation-probe){--presentation-prose:68ch;--presentation-canvas:100ch}
+:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(p,h1,h2,h3,h4,h5,h6,ul,ol,blockquote){box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin-inline:auto;white-space:normal;overflow-wrap:anywhere}
+:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(p:has(img),p:has([data-local-image]),.presentation-figure){max-width:var(--presentation-canvas);width:100%;margin-inline:auto}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-figure{display:flow-root;break-inside:avoid}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-figure p{margin:0;text-align:center}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-figure blockquote{max-width:80ch;margin:12px auto;font-size:.85em;line-height:1.5}
+:is(.document-presentation-content,.document-presentation-probe) :is(img,.preview-image-placeholder){max-width:100%;max-height:60dvh;object-fit:contain}
+.document-presentation-probe .preview-image-placeholder{display:block;height:45dvh}
+:is(.document-presentation-content,.document-presentation-probe) h1{font-size:1.65em;margin-top:0}
+:is(.document-presentation-content,.document-presentation-probe) h2{font-size:1.35em;margin-top:1em}
+:is(.document-presentation-content,.document-presentation-probe) h3{font-size:1.1em}
+:is(.document-presentation-content article,.document-presentation-probe)>:first-child{margin-top:0}
+.document-presentation-page .preview-math :is(svg,img){max-height:none;object-fit:initial}
+
+/* Keep commands beside their explanation; long lines scroll within the column.
+   The probe uses the same font metrics and width as the rendered block. */
+:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>pre{box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin-inline:auto;font-family:inherit;font-size:inherit;white-space:pre;overflow-x:auto}
+
+/* Local images are block elements after asset admission. Centre the image
+   itself as well as its containing paragraph; text-align cannot centre a block. */
+:is(.document-presentation-content,.document-presentation-probe) :is(p:has(img),.presentation-figure) img{display:block;margin-inline:auto;width:min(100%,calc(60dvh * var(--presentation-image-ratio,1)));height:auto;max-width:100%;max-height:none}
+:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(table,.preview-math,.preview-diagram){box-sizing:border-box;width:100%;max-width:var(--presentation-canvas);margin-inline:auto}

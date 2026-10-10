@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {getNativeBridge, readRepositoryAsset} from './native-bridge.mjs';
 import {localLink, type PreviewImage} from '../../apps/desktop/ui/markdown-preview.mjs';
 import {isMediaFile} from './repository-file-session';
@@ -23,11 +23,10 @@ type DocumentProps = {
 /** Markdown markup is inert until local links/assets pass the explicit catalog adapter. */
 export function RepositoryDocument({repository, revision, sourcePath, rendered, fragment = '', onNavigate}: DocumentProps) {
   const root = useRef<HTMLElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = root.current;
     if (!element) return;
     const controller = new AbortController(), urls: string[] = [];
-    element.innerHTML = rendered.html;
     enhanceTechnicalPreview(element, controller.signal);
     const images = [...rendered.images];
     const load = async () => {
@@ -43,6 +42,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
           const url = URL.createObjectURL(new Blob([asset.data], {type: asset.mime})); urls.push(url);
           const img = document.createElement('img');
           img.alt = image.alt; img.src = url; img.className = 'repository-local-image';
+          img.addEventListener('load', () => {if (!controller.signal.aborted && img.naturalHeight) img.style.setProperty('--presentation-image-ratio', String(img.naturalWidth / img.naturalHeight));});
           img.addEventListener('error', () => {if (!controller.signal.aborted) {img.replaceWith(slot); slot.textContent = `${image.alt} — Image could not be decoded.`;}});
           slot.replaceWith(img);
         } catch (reason) {
@@ -54,7 +54,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
     return () => {controller.abort(); for (const url of urls) URL.revokeObjectURL(url);};
   }, [repository, revision, sourcePath, rendered]);
   useEffect(() => {scrollToFragment(root.current, fragment);}, [fragment, rendered]);
-  return <article lang={rendered.language} ref={root} onClick={event => {
+  return <article key={JSON.stringify([repository,revision,sourcePath])} lang={rendered.language} ref={root} onClick={event => {
     const anchor = (event.target as HTMLElement).closest('[data-local-link]');
     if (!anchor) return;
     event.preventDefault();
