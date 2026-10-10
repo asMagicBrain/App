@@ -42,6 +42,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
           const url = URL.createObjectURL(new Blob([asset.data], {type: asset.mime})); urls.push(url);
           const img = document.createElement('img');
           img.alt = image.alt; img.src = url; img.className = 'repository-local-image';
+          img.addEventListener('load', () => {if (!controller.signal.aborted && img.naturalHeight) img.style.setProperty('--presentation-image-ratio', String(img.naturalWidth / img.naturalHeight));});
           img.addEventListener('error', () => {if (!controller.signal.aborted) {img.replaceWith(slot); slot.textContent = `${image.alt} — Image could not be decoded.`;}});
           slot.replaceWith(img);
         } catch (reason) {
