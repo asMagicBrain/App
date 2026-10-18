@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('asMagicBrain', Object.freeze({
   resizeArtifact: args => invoke('resizeArtifact', args),
   stopArtifact: args => invoke('stopArtifact', args),
   resetArtifact: args => invoke('resetArtifact', args),
+  onArtifactState: callback => {if(typeof callback!=='function')throw Error('Expected state callback');const listener=(_event,value)=>callback(value);ipcRenderer.on('asmb:artifact-state',listener);return()=>ipcRenderer.removeListener('asmb:artifact-state',listener);},
   artifactStatus: args => invoke('artifactStatus', args),
 
   read: args => invoke('read', args),

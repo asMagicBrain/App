@@ -40,6 +40,16 @@ This recovery copy covers the managed data in `~/asMagicBrain/`; it is not a com
 
 The updated app remembers the drive's stable volume identity. A replaced folder, changed drive identity or damaged record still requires investigation.
 
+## A repository folder was replaced or moved
+
+A registered repository is bound to its original physical folder so private drafts and Git operations cannot silently attach to a different copy. Replacing a whole repository folder in Finder can break that binding even when the name is unchanged. Editing files inside the existing folder does not replace that folder identity.
+
+If a repository is unavailable, the app keeps it out of normal navigation and shows **Repositories needing recovery**. Healthy repositories remain available. If the default repository is affected, the app opens another healthy repository; if none are available, it shows a recovery screen. **Recheck repositories** repeats the checks without adopting a replacement or deleting data.
+
+Before restoring folders, quit normally and preserve both the original and replacement, including Git history and the complete private state. Restore the original physical folder to its registered location, then reopen and recheck. Copying it to a new folder does not restore its identity. If newer files need reconciliation, work from verified backups and retain the originals. Saved-content changes can conflict with retained drafts; review those conflicts rather than overwriting either version.
+
+Do not delete the `state` folder, edit registration records, or reset drafts to dismiss a warning. If the original folder cannot be located, retain the replacement and private state and request recovery assistance. The app does not automatically rebind a replacement. Corrupted shared profile/catalog records and interrupted shared transactions can still hold the whole workspace for recovery.
+
 ## When something goes wrong
 
 Keep your data folder unchanged. Note the error message, app version, and the action that led to it, then [report the problem](https://github.com/asMagicBrain/App/issues) with a small example that contains no private data.

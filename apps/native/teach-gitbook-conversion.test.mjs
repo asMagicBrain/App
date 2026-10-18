@@ -37,7 +37,7 @@ test('navigation preserves module groups, labels, order and one home',()=>{
  const text=studentNavigation({folder:'2026-spring',studentPath:'2026-spring/student.md',homeAliases:{'2026-spring/README.md':'2026-spring/student.md'},documents:[{path:'2026-spring/student.md',title:'Course'},{path:'2026-spring/Class10.md',title:'Ten'},{path:'2026-spring/Class02.md',title:'Two'}],sourceSummary:'# Summary\n* [Home](README.md)\n## Module A\n* [Second class](Class02.md)\n* [Tenth class](Class10.md)'});assert.equal((text.match(/student.md/g)||[]).length,1);assert.ok(text.indexOf('Class02.md')<text.indexOf('Class10.md'));assert.match(text,/## Module A/);assert.match(text,/Second class/);
 });
 test('GitBook inline double-dollar math works without changing currencies or source code',()=>{
- const html=renderSourcePreview('Value $$x^2$$ and $5.\n\n```text\n$$x$$\n```','note.md',{technical:true}).html;assert.equal((html.match(/data-copy-math/g)||[]).length,1);assert.match(html,/\$5/);
+ const html=renderSourcePreview('Value $$x^2$$ and $5.\n\n```text\n$$x$$\n```','note.md',{technical:true}).html;assert.equal((html.match(/data-copy-math/g)||[]).length,0);assert.match(html,/\$5/);
  assert.match(renderSourcePreview('---\nordinary text\n---').html,/ordinary text/);
 });
 

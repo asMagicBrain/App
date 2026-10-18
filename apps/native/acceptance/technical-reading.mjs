@@ -106,9 +106,10 @@ async function inspectMath() {
   assert.ok(values.fonts.some(f => f.family.includes('KaTeX_Main') && f.status === 'loaded'), 'Bundled KaTeX Main font loaded');
   assert.ok(values.fonts.some(f => f.family.includes('KaTeX_Math') && f.status === 'loaded'), 'Bundled KaTeX Math font loaded');
   assert.ok(values.fonts.some(f => f.family.includes('KaTeX_Size3') && f.status === 'loaded'), 'Bundled small KaTeX font loaded without a data URL');
-  const copy = page.locator('.rfe-preview [data-copy-math]').first();
-  const expected = await copy.evaluate(n => n.closest('[data-math-source]').dataset.mathSource);
-  await clearClipboard(); await copy.click(); await until(() => clipboard().then(v => v === expected), {label: 'Copy TeX bytes'});
+  assert.equal(await page.locator('.rfe-preview [data-copy-math]').count(),0);
+  const copy = page.locator('.rfe-preview [data-math-source]').first();
+  const expected = await copy.evaluate(n => n.dataset.mathSource);
+  await clearClipboard(); await copy.click({button:'right'}); await page.getByRole('menuitem',{name:'Copy TeX',exact:true}).click(); await until(() => clipboard().then(v => v === expected), {label: 'Copy TeX bytes'});
   copies.push({kind: 'math', expected, actual: await clipboard()});
   await page.locator('.rfe-preview [role=status]').filter({hasText: 'Copied'}).first().waitFor({state: 'visible'});
   record('M01-M03-M05-M06-math-source-and-accessible-fallback', values);
@@ -126,7 +127,7 @@ async function inspectDiagrams() {
   assert.ok(values.text.includes('This paragraph must remain readable after the error.'));
   assert.ok(values.text.includes('Sensor capture')); assert.ok(values.text.includes('Monitor')); assert.ok(values.text.includes('Disconnected'));
   const copy = page.locator('.technical-diagram').first().getByRole('button', {name: /Copy/}).first();
-  await clearClipboard(); await copy.click(); await until(() => clipboard().then(v => v.includes('flowchart LR')), {label: 'Copy diagram source'});
+  await clearClipboard(); await copy.click({button:'right'}); await page.getByRole('menuitem',{name:'Copy TeX',exact:true}).click(); await until(() => clipboard().then(v => v.includes('flowchart LR')), {label: 'Copy diagram source'});
   copies.push({kind: 'diagram', actual: await clipboard()});
   const enlarge = page.locator('.technical-diagram').first().getByRole('button', {name: /Enlarge/});
   await enlarge.click();

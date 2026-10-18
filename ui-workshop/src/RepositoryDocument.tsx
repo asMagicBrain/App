@@ -1,4 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {ArtifactViewer} from './ArtifactViewer';
 import {getNativeBridge, readRepositoryAsset} from './native-bridge.mjs';
 import {localLink, type PreviewImage} from '../../apps/desktop/ui/markdown-preview.mjs';
 import {isMediaFile} from './repository-file-session';
@@ -23,6 +25,8 @@ type DocumentProps = {
 /** Markdown markup is inert until local links/assets pass the explicit catalog adapter. */
 export function RepositoryDocument({repository, revision, sourcePath, rendered, fragment = '', onNavigate}: DocumentProps) {
   const root = useRef<HTMLElement>(null);
+  const [interactive,setInteractive]=useState<Array<{slot:HTMLElement;path:string;caption:string;fallback:string}>>([]);
+  useLayoutEffect(()=>{const slots=Array.from(root.current?.querySelectorAll<HTMLElement>('[data-artifact]')??[]);slots.forEach(slot=>slot.replaceChildren());setInteractive(slots.map(slot=>({slot,path:localLink(slot.dataset.artifact??'',sourcePath)?.path??'',caption:slot.dataset.artifactCaption??'',fallback:slot.dataset.artifactFallback??''})));},[rendered.html,sourcePath,repository,revision]);
   useLayoutEffect(() => {
     const element = root.current;
     if (!element) return;
@@ -54,7 +58,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
     return () => {controller.abort(); for (const url of urls) URL.revokeObjectURL(url);};
   }, [repository, revision, sourcePath, rendered]);
   useEffect(() => {scrollToFragment(root.current, fragment);}, [fragment, rendered]);
-  return <article key={JSON.stringify([repository,revision,sourcePath])} lang={rendered.language} ref={root} onClick={event => {
+  return <><article key={JSON.stringify([repository,revision,sourcePath])} lang={rendered.language} ref={root} onClick={event => {
     const anchor = (event.target as HTMLElement).closest('[data-local-link]');
     if (!anchor) return;
     event.preventDefault();
@@ -62,7 +66,7 @@ export function RepositoryDocument({repository, revision, sourcePath, rendered, 
     if (!target) return;
     if (target.path === sourcePath && target.fragment) scrollToFragment(root.current, target.fragment);
     else onNavigate(target.path, target.fragment);
-  }} dangerouslySetInnerHTML={{__html: rendered.html}}/>;
+  }} dangerouslySetInnerHTML={{__html: rendered.html}}/>{interactive.map(({slot,path,caption,fallback},index)=>createPortal(path?<ArtifactViewer repository={repository} path={path} inline caption={caption} fallback={fallback} disabled={revision!==''}/>:<p role="alert">This interactive path is outside the repository.</p>,slot,`${repository}:${sourcePath}:${index}:${path}`))}</>;
 }
 
 /** Media is always read-only; the same file tree and breadcrumb remain in place. */

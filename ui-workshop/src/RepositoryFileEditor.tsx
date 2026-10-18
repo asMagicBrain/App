@@ -74,7 +74,7 @@ export function RepositoryFileEditor(props: Props) {
  const [presentationPreparing,setPresentationPreparing]=useState(false);
  const presentationBusy=useRef(false);
  const presentationEntry=useRef({line:1,offset:0});
- const presentationResume=useRef(new Map<string,{position:{line:number;offset:number};doc:EditorState['doc'];selection:EditorSelection;editing:boolean;preview:boolean;split:boolean;visual:boolean}>());
+ const presentationResume=useRef(new Map<string,{position:{line:number;offset:number};source:string;doc:EditorState['doc']|null;selection:EditorSelection|null;editing:boolean;preview:boolean;split:boolean;visual:boolean}>());
  const presentationSelections=useRef(new Map<string,EditorSelection>());
  const presentationViews=useRef(new Map<string,{editing:boolean;preview:boolean;split:boolean;visual:boolean}>());
  const Presentation=presenter?.default;
@@ -354,28 +354,37 @@ export function RepositoryFileEditor(props: Props) {
  const startPresentation=async()=>{
   if(presentationBusy.current||!ready||loading||busy||directoryView||media||!isMarkdownFile(path)||documentSession.current?.isComposing)return;
   presentationBusy.current=true;setPresentationPreparing(true);
-  const selected=active.current.id;
+  const selected=active.current.id,entrySelection=view.current?.state.selection;
   try{const module=await import('./DocumentPresentation');if(selected!==active.current.id||isNativeClosing())return;const language=contentLanguage(active.current.buffer.getText());const family=/^zh-(?:Hant|TW|HK)/i.test(language)?'asMagicBrain MiSans TC':'asMagicBrain MiSans';await Promise.all([document.fonts.load(`24px '${family}'`),document.fonts.load(`600 24px '${family}'`)]);if(selected!==active.current.id||isNativeClosing())return;if(renderSourcePreview(active.current.buffer.getText(),path).limited)throw Error('This document is too large for presentation. Its source remains available.');
    const editor=view.current;
    presentationViews.current.clear();presentationViews.current.set(active.current.path,{editing,preview,split,visual});
-   presentationSelections.current.clear();if(editor)presentationSelections.current.set(active.current.path,editor.state.selection);
+   presentationSelections.current.clear();if(editor)presentationSelections.current.set(active.current.path,entrySelection??editor.state.selection);
    const resume=presentationResume.current.get(active.current.path);
-   const reusable=editor&&resume&&resume.doc===editor.state.doc&&resume.selection.eq(editor.state.selection)&&resume.editing===editing&&resume.preview===preview&&resume.split===split&&resume.visual===visual;
+   const reusable=resume&&resume.source===active.current.buffer.getText()&&(!editor?resume.doc===null:resume.doc===editor.state.doc&&!!resume.selection&&resume.selection.eq(editor.state.selection))&&resume.editing===editing&&resume.preview===preview&&resume.split===split&&resume.visual===visual;
    presentationEntry.current=reusable?resume.position:actualPreview&&reading.current?module.visiblePresentationPosition(reading.current):{line:editor?editor.state.doc.lineAt(editor.lineBlockAtHeight(editor.scrollDOM.scrollTop).from).number:1,offset:0};
    const bridge=getNativeBridge();if(bridge){await bridge.windowAction('presentation-enter');}
    setPresenter(module);
   }catch(reason){setError((reason as Error).message);}finally{presentationBusy.current=false;setPresentationPreparing(false);}
  };
  const stopPresentation=async(position:{line:number;offset:number})=>{
-  const restored=presentationViews.current.get(active.current.path);if(restored){setEditing(restored.editing);setPreview(restored.preview);setSplit(restored.split);setVisual(restored.visual);}
-  const selected=active.current.id;setPresenter(null);try{await getNativeBridge()?.windowAction('presentation-exit');}catch(reason){setError((reason as Error).message);}if(selected!==active.current.id||!mounted.current)return;
-  requestAnimationFrame(()=>{const editor=view.current;if(editor){const line=editor.state.doc.line(Math.max(1,Math.min(editor.state.doc.lines,position.line)));const selection=presentationSelections.current.get(active.current.path);editor.dispatch({...(selection?{selection}:{}),effects:EditorView.scrollIntoView(line.from,{y:'start',yMargin:Math.max(0,position.offset)})});presentationResume.current.set(active.current.path,{position,doc:editor.state.doc,selection:editor.state.selection,...(restored??{editing,preview,split,visual})});}if(reading.current)presenter?.restorePresentationPosition(reading.current,position);});
+  const restored=presentationViews.current.get(active.current.path),modes=restored??{editing,preview,split,visual};if(restored){setEditing(restored.editing);setPreview(restored.preview);setSplit(restored.split);setVisual(restored.visual);}
+  const selected=active.current.id,selectedPath=active.current.path,editor=view.current;
+  // Preview may never have created a CM6 view. Reading resume belongs to the
+  // document, not to the existence of an editing engine.
+  presentationResume.current.set(selectedPath,{position,source:active.current.buffer.getText(),doc:editor?.state.doc??null,selection:editor?.state.selection??null,...modes});
+  // Restore the retained caret before hiding presentation; fullscreen exit is asynchronous.
+  const retainedSelection=presentationSelections.current.get(selectedPath);if(editor&&retainedSelection)editor.dispatch({selection:retainedSelection});
+  presentationBusy.current=true;setPresentationPreparing(true);setPresenter(null);
+  try{await getNativeBridge()?.windowAction('presentation-exit');}catch(reason){setError((reason as Error).message);}
+  if(selected!==active.current.id||!mounted.current){presentationBusy.current=false;if(mounted.current)setPresentationPreparing(false);return;}
+  requestAnimationFrame(()=>{try{const editor=view.current;if(editor){const line=editor.state.doc.line(Math.max(1,Math.min(editor.state.doc.lines,position.line)));editor.dispatch({effects:EditorView.scrollIntoView(line.from,{y:'start',yMargin:Math.max(0,position.offset)})});presentationResume.current.set(selectedPath,{position,source:active.current.buffer.getText(),doc:editor.state.doc,selection:editor.state.selection,...modes});}if(reading.current)presenter?.restorePresentationPosition(reading.current,position);}finally{presentationBusy.current=false;if(mounted.current)setPresentationPreparing(false);}});
  };
+
  useEffect(()=>{const key=(event:KeyboardEvent)=>{if(event.defaultPrevented||event.isComposing||presenter||!root.current?.getClientRects().length||document.querySelector('dialog[open]'))return;if((event.metaKey||event.ctrlKey)&&event.shiftKey&&event.key.toLowerCase()==='p'){event.preventDefault();event.stopPropagation();void startPresentation();}};window.addEventListener('keydown',key,true);return()=>window.removeEventListener('keydown',key,true);},[presenter,ready,loading,busy,path,actualPreview]);
  // Explicit reader/editor navigation invalidates resume. Layout clamping near
  // the end of a document does not change the shared content position.
  useEffect(()=>{const element=root.current;if(!element)return;const invalidate=()=>presentationResume.current.delete(active.current.path);const pointer=(event:PointerEvent)=>{if(!(event.target as HTMLElement).closest('button,a,input,select,textarea'))invalidate();};const key=(event:KeyboardEvent)=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End',' '].includes(event.key))invalidate();};element.addEventListener('wheel',invalidate,{passive:true});element.addEventListener('touchstart',invalidate,{passive:true});element.addEventListener('pointerdown',pointer);element.addEventListener('keydown',key);return()=>{element.removeEventListener('wheel',invalidate);element.removeEventListener('touchstart',invalidate);element.removeEventListener('pointerdown',pointer);element.removeEventListener('keydown',key);};},[]);
- const presentationRendered=useMemo(()=>presenter?renderSourcePreview(source,active.current.proposedPath,{technical:true,sourceMap:true}):{html:'',images:[]},[presenter,source,path]);
+ const presentationRendered=useMemo(()=>presenter?renderSourcePreview(source,active.current.proposedPath,{technical:true,sourceMap:true}):{html:'',images:[]},[presenter,source,path,active.current.proposedPath]);
  const rendered=useMemo(()=>(actualPreview||splitActive)&&!media?renderSourcePreview(source,active.current.proposedPath,{externalLinks:true,technical:true,sourceMap:true}):null,[actualPreview,splitActive,media,source,active.current.proposedPath]);
  const shownPath=directoryView?.path??path,shownCommit=directoryView?directoryView.snapshot?.commit??null:commit,directoryReadmePath=directoryView?.snapshot?.readmePath,directoryReadme=directoryView?.snapshot?.readme;
  const renderedDirectoryReadme=useMemo(()=>typeof directoryReadme==='string'&&directoryReadmePath?renderSourcePreview(directoryReadme,directoryReadmePath,{externalLinks:true,technical:true}):null,[directoryReadme,directoryReadmePath]);

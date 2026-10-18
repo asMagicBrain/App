@@ -35,3 +35,13 @@ test('nested documentation links and image paths stay repository-relative', () =
   assert.match(result.html, /External or unsafe image stays inert/);
   assert.doesNotMatch(result.html, /<script>|<img/);
 });
+
+test('interactive fences admit escaped local specs and remain inert without the native adapter',()=>{
+ const fence=spec=>'```asmb-interactive\n'+JSON.stringify(spec)+'\n```';
+ const spec={path:'media/demo.artifact.json',caption:'Compare <script> and 中文',fallback:'Use the static plot.'};
+ const result=renderSourcePreview(fence(spec),'lesson.md',{technical:true,sourceMap:true});
+ assert.match(result.html,/data-artifact="media\/demo.artifact.json"/);assert.match(result.html,/data-source-line="1"/);assert.match(result.html,/&lt;script&gt;/);assert.doesNotMatch(result.html,/<script>|<iframe/);
+ for(const invalid of [{...spec,path:'https://example.com/demo.html'},{...spec,path:'/etc/demo.html'},{...spec,network:true},{...spec,path:'demo.js'},{...spec,fallback:null}])assert.doesNotMatch(renderSourcePreview(fence(invalid),'lesson.md',{technical:true}).html,/data-artifact=/);
+ assert.doesNotMatch(renderSourcePreview(fence(spec),'lesson.md').html,/data-artifact=/);
+ const bounded=renderSourcePreview(Array(18).fill(fence(spec)).join('\n\n'),'lesson.md',{technical:true}).html;assert.equal([...bounded.matchAll(/data-artifact=/g)].length,16);
+});

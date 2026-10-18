@@ -33,6 +33,8 @@ Use `<br>` inside a table cell for a line break, for example `Oct 20: Class 01<b
 
 ### Local interactive views
 
+[Inline interactive examples](interactive-examples.md) can also run inside Markdown Preview and Present after explicit review and activation.
+
 Open a local `.html` file or `.artifact.json` package and choose **Review interactive view**. Review the listed files, then choose **Run interactive view**. Nothing runs just because you open a repository.
 
 The view runs inside the app with network, account access, popups and downloads blocked. **Stop**, **Source** and **Static fallback** keep a reading option available. **Reset** restarts the example and its controls without changing your files. Closing the view disposes it.

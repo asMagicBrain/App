@@ -21,6 +21,7 @@ files.push('apps/native/teach-workflow.test.mjs','apps/native/host-teach-workflo
 // Durable filesystem workers share the test drive. Bound file-level concurrency
 // so stress from unrelated cases does not turn the fixed worker deadline into
 // a test-runner resource race; production deadlines remain unchanged.
+files.push('ui-workshop/src/artifact-frame.test.mjs','apps/native/acceptance/pro-editor-probe.test.mjs');
 const child = spawn(process.execPath, ['--test', '--test-concurrency=2', ...files], {cwd: appRoot, env: {PATH: process.env.PATH ?? '/usr/bin:/bin', ASMB_TEST_ROOT: testRoot, TMPDIR: tmp, TMP: tmp, TEMP: tmp, LANG: 'en_US.UTF-8'}, stdio: ['inherit', 'pipe', 'pipe']});
 const log = fs.createWriteStream(path.join(run, 'tests.log'), {flags: 'wx'});
 child.stdout.on('data', value => {process.stdout.write(value); log.write(value);});

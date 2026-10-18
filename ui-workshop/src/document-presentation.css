@@ -1,42 +1,55 @@
-.document-presentation{position:fixed;inset:0;z-index:100000;background:var(--fw-bg,#fff);color:var(--fw-text,#1f2328);font-family:'asMagicBrain MiSans UI',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;outline:none}
-.document-presentation-content{box-sizing:border-box;flex:1;min-width:0;overflow:auto;padding:24px 32px;font-size:var(--presentation-size);line-height:1.55;scroll-padding:24px;outline:none}
-.document-presentation-content h1{font-size:1.65em;margin-top:0}.document-presentation-content h2{font-size:1.35em;margin-top:1em}.document-presentation-content h3{font-size:1.1em}.document-presentation-content>:first-child{margin-top:0}
-.document-presentation-content img,.document-presentation-content svg{max-width:100%;height:auto}.document-presentation-content pre{overflow:auto}.document-presentation-content table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}.document-presentation-content td,.document-presentation-content th{border:1px solid #d0d7de;padding:10px 16px}.document-presentation-content th{white-space:nowrap}.document-presentation-content a{color:#0969da}.document-presentation-content code{font-family:ui-monospace,monospace;font-size:.85em}
-.document-presentation-help{position:absolute;right:8px;bottom:8px;opacity:0;background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:6px;padding:6px 10px}.document-presentation-help:hover,.document-presentation-help:focus-visible{opacity:1}
-.document-presentation-controls{position:absolute;right:16px;bottom:48px;max-width:380px;padding:16px;background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:8px;font-size:14px;box-shadow:0 6px 20px #0002}.document-presentation-controls button{font:inherit;padding:6px 10px;margin:4px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#1f2328}
-.document-presentation :focus-visible{outline:2px solid #0969da;outline-offset:2px}.document-presentation-notice{position:absolute;bottom:16px;left:32px;padding:8px 12px;background:#fff;color:#1f2328;border:1px solid #d0d7de;font-size:14px}
-@media(max-width:640px){.document-presentation-content{padding:20px 24px}}
-
-.document-presentation :lang(zh-Hant),.document-presentation :lang(zh-TW),.document-presentation :lang(zh-HK){font-family:'asMagicBrain MiSans TC UI','asMagicBrain MiSans UI',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-/* Measurement shares the visible page typography without an editor or assets runtime. */
-.document-presentation-measure{position:absolute;left:-200vw;top:24px;bottom:24px;width:calc(100% - 64px);visibility:hidden;pointer-events:none;overflow:hidden;font-size:var(--presentation-size);line-height:1.55}
-.document-presentation-probe{display:flow-root}.document-presentation-probe h1{font-size:1.65em;margin-top:0}.document-presentation-probe h2{font-size:1.35em;margin-top:1em}.document-presentation-probe h3{font-size:1.1em}.document-presentation-probe>:first-child{margin-top:0}.document-presentation-probe table{border-collapse:collapse;display:block;max-width:100%;overflow:auto}.document-presentation-probe td,.document-presentation-probe th{border:1px solid #d0d7de;padding:10px 16px}.document-presentation-probe pre{font-family:ui-monospace,monospace;white-space:pre;overflow:auto}.document-presentation-probe code{font-family:ui-monospace,monospace;font-size:.85em}
-.document-presentation-page img,.document-presentation-page svg{max-height:calc(100dvh - 80px);object-fit:contain}.document-presentation-page{overscroll-behavior:contain}
-@media(max-width:640px){.document-presentation-measure{top:20px;bottom:20px;width:calc(100% - 48px)}}
-.document-presentation-probe th{white-space:nowrap}.document-presentation-probe img,.document-presentation-probe svg{max-width:100%;height:auto}.document-presentation-page article>:first-child{margin-top:0}
-
-/* Measurement and visible pages share the same block geometry. Prose is
-   bounded separately from landscape figures, tables and technical blocks. */
-.document-presentation-content article,.document-presentation-probe{display:flow-root;width:100%;min-width:0;max-width:100%;overflow-wrap:anywhere}
-:is(.document-presentation-content,.document-presentation-probe){--presentation-prose:68ch;--presentation-canvas:100ch}
-:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(p,h1,h2,h3,h4,h5,h6,ul,ol,blockquote){box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin-inline:auto;white-space:normal;overflow-wrap:anywhere}
-:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(p:has(img),p:has([data-local-image]),.presentation-figure){max-width:var(--presentation-canvas);width:100%;margin-inline:auto}
-:is(.document-presentation-content,.document-presentation-probe) .presentation-figure{display:flow-root;break-inside:avoid}
-:is(.document-presentation-content,.document-presentation-probe) .presentation-figure p{margin:0;text-align:center}
-:is(.document-presentation-content,.document-presentation-probe) .presentation-figure blockquote{max-width:80ch;margin:12px auto;font-size:.85em;line-height:1.5}
-:is(.document-presentation-content,.document-presentation-probe) :is(img,.preview-image-placeholder){max-width:100%;max-height:60dvh;object-fit:contain}
-.document-presentation-probe .preview-image-placeholder{display:block;height:45dvh}
-:is(.document-presentation-content,.document-presentation-probe) h1{font-size:1.65em;margin-top:0}
-:is(.document-presentation-content,.document-presentation-probe) h2{font-size:1.35em;margin-top:1em}
+/* Resolve ch at body size so larger headings keep the prose left edge. */
+@property --presentation-prose {syntax:'<length>';inherits:true;initial-value:960px}
+.document-presentation{position:fixed;inset:0;z-index:100000;background:var(--fw-bg,#fff);color:var(--fw-text,#1f2328);font-family:'asMagicBrain MiSans UI',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;outline:none;--presentation-safe-x:5.5vw;--presentation-safe-y:4.5dvh;--presentation-navigation:24px}
+.document-presentation :lang(zh-Hant),.document-presentation :lang(zh-TW),.document-presentation :lang(zh-HK){font-family:'asMagicBrain MiSans TC UI','asMagicBrain MiSans UI',sans-serif}
+.document-presentation-content{box-sizing:border-box;flex:1;min-width:0;overflow:auto;padding:var(--presentation-safe-y) var(--presentation-safe-x) calc(var(--presentation-safe-y) + var(--presentation-navigation));font-size:var(--presentation-size);line-height:1.5;scroll-padding:var(--presentation-safe-y);outline:none}
+.document-presentation-measure{position:absolute;left:-200vw;top:var(--presentation-safe-y);bottom:calc(var(--presentation-safe-y) + var(--presentation-navigation));width:calc(100% - 2 * var(--presentation-safe-x));visibility:hidden;pointer-events:none;overflow:hidden;font-size:var(--presentation-size);line-height:1.5}
+.document-presentation-probe,.document-presentation-content article{display:flow-root;box-sizing:border-box;width:100%;min-width:0;overflow-wrap:anywhere}
+:is(.document-presentation-content,.document-presentation-probe){--presentation-prose:50ch;text-align:left}
+:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe,.presentation-group)>:is(p,h1,h2,h3,h4,h5,h6,ul,ol,blockquote,pre){box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin-inline:auto;white-space:normal;overflow-wrap:anywhere}
+:is(.document-presentation-content,.document-presentation-probe) :is(h1,h2,h3,h4,h5,h6){line-height:1.2;margin-top:1em;margin-bottom:.4em;text-align:left}
+:is(.document-presentation-content,.document-presentation-probe) h1{font-size:1.5em}
+:is(.document-presentation-content,.document-presentation-probe) h2{font-size:1.25em}
 :is(.document-presentation-content,.document-presentation-probe) h3{font-size:1.1em}
 :is(.document-presentation-content article,.document-presentation-probe)>:first-child{margin-top:0}
+:is(.document-presentation-content,.document-presentation-probe) p{margin-block:0 1em}
+:is(.document-presentation-content,.document-presentation-probe) :is(ul,ol){padding-inline-start:1.5em;list-style-position:outside}
+:is(.document-presentation-content,.document-presentation-probe) li{padding-inline-start:.15em;margin-block:.3em}
+:is(.document-presentation-content,.document-presentation-probe) :is(img,svg){max-width:100%;height:auto}
+:is(.document-presentation-content,.document-presentation-probe) :is(p:has(img),p:has([data-local-image]),.presentation-figure){width:100%;max-width:100%;margin-inline:auto}
+:is(.document-presentation-content,.document-presentation-probe) :is(.presentation-figure,.presentation-group){display:flow-root;break-inside:avoid}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-figure p{margin:0;text-align:center}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-figure :is(blockquote,.presentation-caption){box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin:12px auto 0;padding:0;border:0;font:inherit;font-size:.95em;font-style:normal;line-height:1.5;color:inherit;text-align:left}
+:is(.document-presentation-content,.document-presentation-probe) :is(p:has(img),.presentation-figure) img{display:block;margin-inline:auto;width:min(100%,calc(var(--presentation-figure-height,60dvh) * var(--presentation-image-ratio,1)));height:auto;max-height:none;object-fit:contain}
+.document-presentation-probe .preview-image-placeholder{display:block;height:var(--presentation-figure-height,60dvh);max-width:100%}
+:is(.document-presentation-content,.document-presentation-probe) pre{box-sizing:border-box;white-space:pre;overflow:auto;border:1px solid #d0d7de;border-radius:6px;padding:.6em .8em;font:inherit}
+:is(.document-presentation-content,.document-presentation-probe) code{font-family:ui-monospace,monospace;font-size:.95em;white-space:break-spaces;overflow-wrap:anywhere}
+:is(.document-presentation-content,.document-presentation-probe) pre code{white-space:pre;overflow-wrap:normal}
+:is(.document-presentation-content,.document-presentation-probe) table{border-collapse:collapse;display:table;width:100%;max-width:100%;table-layout:auto;margin-inline:auto;font-size:1em}
+:is(.document-presentation-content,.document-presentation-probe) :is(td,th){border:1px solid #d0d7de;padding:.4em .6em;text-align:left;vertical-align:top;white-space:normal;word-break:normal;overflow-wrap:normal}
+:is(.document-presentation-content,.document-presentation-probe) :is(td,th) code{white-space:normal;word-break:normal;overflow-wrap:normal}
+:is(.document-presentation-content,.document-presentation-probe) .preview-math-display{box-sizing:border-box;width:100%;max-width:100%;margin-inline:auto;text-align:center}
+/* Measure the complete expression, including left overflow from centring. */
+:is(.document-presentation-content,.document-presentation-probe) .katex-display>.katex>.katex-html{display:inline-block;width:max-content;max-width:none}
 .document-presentation-page .preview-math :is(svg,img){max-height:none;object-fit:initial}
+.document-presentation-page{overscroll-behavior:contain}
+.document-presentation-content a{color:#0969da}
+.document-presentation-help{position:absolute;right:var(--presentation-safe-x);bottom:10px;opacity:0;background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:6px;padding:6px 10px}
+.document-presentation-help:hover,.document-presentation-help:focus-visible{opacity:1}
+.document-presentation-controls{position:absolute;right:var(--presentation-safe-x);bottom:48px;max-width:380px;padding:16px;background:#fff;color:#1f2328;border:1px solid #d0d7de;border-radius:8px;font-size:14px;box-shadow:0 6px 20px #0002}
+.document-presentation-controls button{font:inherit;padding:6px 10px;margin:4px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:#1f2328}
+.document-presentation :focus-visible{outline:2px solid #0969da;outline-offset:2px}
+.document-presentation-notice{position:absolute;bottom:10px;left:var(--presentation-safe-x);padding:8px 12px;background:#fff;color:#1f2328;border:1px solid #d0d7de;font-size:14px}
 
-/* Keep commands beside their explanation; long lines scroll within the column.
-   The probe uses the same font metrics and width as the rendered block. */
-:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>pre{box-sizing:border-box;width:100%;max-width:var(--presentation-prose);margin-inline:auto;font-family:inherit;font-size:inherit;white-space:pre;overflow-x:auto}
+:is(.document-presentation-content,.document-presentation-probe) .presentation-caption em{font-style:normal}
 
-/* Local images are block elements after asset admission. Centre the image
-   itself as well as its containing paragraph; text-align cannot centre a block. */
-:is(.document-presentation-content,.document-presentation-probe) :is(p:has(img),.presentation-figure) img{display:block;margin-inline:auto;width:min(100%,calc(60dvh * var(--presentation-image-ratio,1)));height:auto;max-width:100%;max-height:none}
-:is(.document-presentation-content,.document-presentation-content article,.document-presentation-probe)>:is(table,.preview-math,.preview-diagram){box-sizing:border-box;width:100%;max-width:var(--presentation-canvas);margin-inline:auto}
+.document-presentation-content img[role=button]{cursor:zoom-in}
+.presentation-figure-detail{position:absolute;inset:0;z-index:5;background:var(--fw-bg,#fff);color:var(--fw-text,#1f2328);display:flex;flex-direction:column;padding:3dvh 5.5vw;box-sizing:border-box;font-family:"asMagicBrain MiSans UI",sans-serif}
+.presentation-figure-detail-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:16px;flex:none;padding-bottom:12px}
+.presentation-figure-detail-controls span{flex:1;min-width:160px}
+.presentation-figure-detail-controls button{font:inherit;color:inherit;background:var(--fw-bg,#fff);border:1px solid #d0d7de;border-radius:6px;min-height:44px;padding:8px 12px}
+.presentation-figure-detail-controls output{min-width:3em;text-align:center}
+.presentation-figure-detail-viewport{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:#fff;color:#1f2328}
+.presentation-figure-detail-plane{display:flex;align-items:center;justify-content:center}
+.presentation-figure-detail-plane img{display:block;max-width:none;max-height:none;flex:none;user-select:none}
+.presentation-figure-detail-hint{font-size:14px;margin:10px 0 0;flex:none}

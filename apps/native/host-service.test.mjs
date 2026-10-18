@@ -103,7 +103,7 @@ test('invalid requests and unexpected existing profiles preserve all files',asyn
 test('replaced repository or damaged host state is held without reseeding source bytes',async t=>{
  const f=fixture(t);let service=await createNativeService(f);await service.close();
  const original=path.join(f.parent,'retained-workspace');fs.renameSync(f.source,original);fs.mkdirSync(f.source,{mode:0o700});fs.writeFileSync(path.join(f.source,'README.md'),'external replacement');
- await assert.rejects(createNativeService(f),{code:'REPOSITORY_CHANGED'});assert.equal(fs.readFileSync(path.join(f.source,'README.md'),'utf8'),'external replacement');
+ service=await createNativeService(f);assert.equal((await service.catalog()).repositoryRecovery[0].name,'Workspace');await assert.rejects(service.read({repo:'Workspace'}),{code:'REPOSITORY_RECOVERY_REQUIRED'});await service.close();assert.equal(fs.readFileSync(path.join(f.source,'README.md'),'utf8'),'external replacement');
  fs.rmSync(f.source,{recursive:true});fs.renameSync(original,f.source);
  const records=path.join(f.dataRoot,'state/native/.asmb-host'),record=fs.readdirSync(records).find(name=>name.endsWith('.json'));fs.appendFileSync(path.join(records,record),'broken');
  const source=fs.readFileSync(path.join(f.source,'README.md'));await assert.rejects(createNativeService(f),{code:'RECOVERY_REQUIRED'});assert.deepEqual(fs.readFileSync(path.join(f.source,'README.md')),source);
@@ -137,4 +137,21 @@ test('explicit GitHub connection persists privately, refuses replacement and rej
  assert.doesNotMatch(fs.readFileSync(path.join(f.source,'.git/config'),'utf8'),/github.com/);
  await service.close();service=await createNativeService(f);
  assert.equal((await service.getRepositoryUpdates({repo:'Workspace'})).sourceUrl,result.sourceUrl);
+});
+
+for(const disruption of ['replacement','missing','symlink'])test(`unavailable secondary repository is isolated at startup: ${disruption}`,async t=>{
+ const f=fixture(t);let service=await createNativeService(f);
+ await service.createRepository({name:'Assistants',requestId:'11111111-1111-4111-8111-111111111111'});
+ await service.request({repo:'Assistants',operation:'checkpointNew',args:{draftId:'private-note',path:'draft.md',text:'retained private draft'}});await service.close();
+ const root=path.join(f.dataRoot,'workspaces/asMagicBrain/Assistants'),preserved=path.join(f.parent,'original-assistants');fs.renameSync(root,preserved);
+ if(disruption==='replacement'){fs.mkdirSync(root);fs.writeFileSync(path.join(root,'README.md'),'replacement bytes');}
+ if(disruption==='symlink')fs.symlinkSync(preserved,root,'dir');
+ service=await createNativeService(f);let catalog=await service.catalog();assert.deepEqual(catalog.repositories.map(r=>r.name),['Workspace']);assert.deepEqual(catalog.repositoryRecovery.map(r=>r.name),['Assistants']);assert.match((await service.read({repo:'Workspace'})).readme,/Workspace/);
+ for(const action of [()=>service.bootstrap('Assistants'),()=>service.read({repo:'Assistants',path:'README.md'}),()=>service.request({repo:'Assistants',operation:'create',args:{path:'bad.md',text:'must not write'}})])await assert.rejects(action,{code:'REPOSITORY_RECOVERY_REQUIRED'});
+ await service.close();if(disruption==='replacement')fs.renameSync(root,path.join(f.parent,'replacement-assistants'));if(disruption==='symlink')fs.unlinkSync(root);
+ fs.renameSync(preserved,root);service=await createNativeService(f);f.after(()=>service.close());catalog=await service.catalog();assert.deepEqual(catalog.repositoryRecovery,[]);assert.equal(catalog.repositories.length,2);assert.deepEqual((await service.bootstrap('Assistants')).newDrafts,[{draftId:'private-note',path:'draft.md',text:'retained private draft'}]);
+});
+test('a replaced default repository leaves a healthy secondary usable without changing registration',async t=>{
+ const f=fixture(t);let service=await createNativeService(f);await service.createRepository({name:'Healthy',requestId:'22222222-2222-4222-8222-222222222222'});await service.close();fs.renameSync(f.source,path.join(f.parent,'original-default'));fs.mkdirSync(f.source);fs.writeFileSync(path.join(f.source,'README.md'),'unadmitted');
+ service=await createNativeService(f);f.after(()=>service.close());const catalog=await service.catalog();assert.equal(catalog.defaultRepository,'Healthy');assert.deepEqual(catalog.repositories.map(r=>r.name),['Healthy']);assert.equal(catalog.repositoryRecovery[0].name,'Workspace');assert.equal((await service.getRepositoryPins()).defaultRepository,'Healthy');await service.read({repo:'Healthy'});await assert.rejects(service.read({repo:'Workspace'}),{code:'REPOSITORY_RECOVERY_REQUIRED'});
 });

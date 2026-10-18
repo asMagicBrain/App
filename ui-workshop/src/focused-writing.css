@@ -7,3 +7,5 @@
 .rt-code-panel{display:flex;flex-direction:column;flex:1;min-height:0}
 /* Every titlebar action uses the same square and SVG centerline, including nested tab actions. */
 .fw-titlebar .fw-icon{width:var(--fw-button-size);height:var(--fw-button-size);min-width:var(--fw-button-size);min-height:var(--fw-button-size);padding:7px;margin:0;align-self:center;line-height:1}.fw-titlebar .fw-icon svg{width:var(--fw-icon-size);height:var(--fw-icon-size);display:block}.fw-titlebar .fw-traffic{align-items:center}
+
+.fw-repository-recovery{display:flex;align-items:flex-start;gap:16px;padding:10px 16px;border-bottom:1px solid var(--borderColor-default,#d0d7de);background:var(--bgColor-attention-muted,#fff8c5);color:var(--fgColor-default,#1f2328);font-size:13px;flex:none}.fw-repository-recovery details{flex:1;min-width:0}.fw-repository-recovery summary{cursor:pointer}.fw-repository-recovery ul{padding-left:20px}.fw-repository-recovery button{font:inherit;white-space:nowrap}

@@ -4,8 +4,8 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {pinDirectory, checkDirectory, checkSourceSpelling, contains} from '../../packages/desktop-host/src/physical-roots.mjs';
 
-export const ARTIFACT_POLICY_VERSION = 'offline-artifact-1';
-export const ARTIFACT_LIMITS = Object.freeze({manifestBytes: 65536, fileBytes: 2 * 1024 * 1024, totalBytes: 8 * 1024 * 1024, files: 64,
+export const ARTIFACT_POLICY_VERSION = 'offline-artifact-2';
+export const ARTIFACT_LIMITS = Object.freeze({manifestBytes: 65536, fileBytes: 2 * 1024 * 1024, fontBytes: 16 * 1024 * 1024, contentBytes: 8 * 1024 * 1024, totalBytes: 40 * 1024 * 1024, files: 64,
   lifetimeMs: 10 * 60 * 1000, loadMs: 15000, memoryKiB: 512 * 1024, sampleMs: 2000});
 const fail = (code, detail = '') => {throw Object.assign(new Error(detail ? `${code}: ${detail}` : code), {code});};
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -16,7 +16,8 @@ export const artifactPath = value => bounded(value, 240) && !/^[/.]/.test(value)
   && value.split('/').length <= 32 && value.split('/').every(part => part && part !== '.' && part !== '..' && !['.git', '.asmagicbrain'].includes(part.toLowerCase()) && !part.toLowerCase().startsWith('.asmb-'));
 const mimeTypes = Object.freeze({'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.woff2': 'font/woff2'});
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf'});
+const fileLimit = filename => /\.(?:woff2|ttf|otf)$/i.test(filename) ? ARTIFACT_LIMITS.fontBytes : ARTIFACT_LIMITS.fileBytes;
 const same = (a, b) => ['dev', 'ino', 'mode', 'nlink', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
 const physicalIdentity = value => `${value.dev}:${value.ino}:${value.mode}:${value.nlink}:${value.mtimeNs}:${value.ctimeNs}`;
 
@@ -53,22 +54,22 @@ export function validateArtifactManifest(value) {
     || !artifactPath(value.entryPath) || !/\.html$/i.test(value.entryPath) || !artifactPath(value.fallbackPath) || !/\.(md|txt)$/i.test(value.fallbackPath)
     || value.entryPath === value.fallbackPath || value.posterPath !== undefined && (!artifactPath(value.posterPath) || !/\.(?:png|jpe?g)$/i.test(value.posterPath))
     || value.network !== 'none' || !Array.isArray(value.assets) || value.assets.length < 2 || value.assets.length > ARTIFACT_LIMITS.files) fail('ARTIFACT_INVALID_MANIFEST');
-  let total = 0;
+  let total = 0, contentTotal = 0;
   for (const [index, asset] of value.assets.entries()) {
     if (!record(asset) || !artifactPath(asset.path)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].path: use a portable path relative to the manifest folder.`);
     if (typeof asset.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(asset.sha256)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].sha256: expected a lowercase SHA-256 hash.`);
-    if (!Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > ARTIFACT_LIMITS.fileBytes) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].bytes: expected 0 to ${ARTIFACT_LIMITS.fileBytes}.`);
+    if (!Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > fileLimit(asset.path)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].bytes: expected 0 to ${fileLimit(asset.path)}.`);
     if (!['entry','script','style','data','fallback'].includes(asset.role)) fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}].role: expected entry, script, style, data or fallback; images use data.`);
     if (!keys(asset, ['path', 'sha256', 'bytes', 'role']) || !artifactPath(asset.path) || typeof asset.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(asset.sha256)
-      || !Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > ARTIFACT_LIMITS.fileBytes
+      || !Number.isSafeInteger(asset.bytes) || asset.bytes < 0 || asset.bytes > fileLimit(asset.path)
       || !['entry', 'script', 'style', 'data', 'fallback'].includes(asset.role) || !mimeTypes[path.extname(asset.path).toLowerCase()]) fail('ARTIFACT_INVALID_MANIFEST');
     // Only the declared entry is a document. SVG is image-only through CSP; no nested HTML realm.
     if (/\.html$/i.test(asset.path) && asset.role !== 'entry') fail('ARTIFACT_INVALID_MANIFEST', `assets[${index}]: additional HTML pages cannot use the data role. Each interactive page needs its own entry manifest; ordinary document links stay in the main reader.`);
     if ((/\.html$/i.test(asset.path)) !== (asset.role === 'entry') || (asset.role === 'script' && !/\.(?:m?js)$/i.test(asset.path))
       || (asset.role === 'style' && !/\.css$/i.test(asset.path))) fail('ARTIFACT_INVALID_MANIFEST');
-    total += asset.bytes;
+    total += asset.bytes;if(!/\.(?:woff2|ttf|otf)$/i.test(asset.path))contentTotal+=asset.bytes;
   }
-  if (total > ARTIFACT_LIMITS.totalBytes || new Set(value.assets.map(asset => asset.path.toLowerCase())).size !== value.assets.length
+  if (total > ARTIFACT_LIMITS.totalBytes || contentTotal > ARTIFACT_LIMITS.contentBytes || new Set(value.assets.map(asset => asset.path.toLowerCase())).size !== value.assets.length
     || value.assets.filter(asset => asset.role === 'entry').length !== 1 || value.assets.filter(asset => asset.role === 'fallback').length !== 1
     || !value.assets.some(asset => asset.path === value.entryPath && asset.role === 'entry')
     || !value.assets.some(asset => asset.path === value.fallbackPath && asset.role === 'fallback')
@@ -95,7 +96,7 @@ export function prepareArtifactSnapshot({root, path: relative}) {
   const warnings = [], assets = new Map(), physical = [[relative, initial.physical]];
   for (const entry of manifest.assets) {
     let result;
-    try {result = standalone ? initial : read(root, prefix + entry.path, ARTIFACT_LIMITS.fileBytes);}
+    try {result = standalone ? initial : read(root, prefix + entry.path, fileLimit(entry.path));}
     catch (error) {if(error.code === 'ENOENT' || error.code === 'PARTIAL') fail('ARTIFACT_MISSING_ASSET', `${entry.path}: missing beside the manifest. Restore the file or correct its assets path.`);if(error.code === 'DENIED') fail('ARTIFACT_INVALID_FILE', `${entry.path}: linked, ambiguous or inaccessible path. Use the exact spelling of a regular local file.`);if(/^ARTIFACT_/.test(error.code ?? '')) fail(error.code, `${entry.path}: admission failed. Keep a regular local file within the manifest folder.`);throw error;}
     if (result.bytes.length !== entry.bytes) fail('ARTIFACT_HASH_MISMATCH', `${entry.path}: manifest ${entry.bytes} bytes; saved file ${result.bytes.length} bytes. Rebuild the manifest from saved files.`);
     const observedHash = hash(result.bytes);
@@ -109,7 +110,7 @@ export function prepareArtifactSnapshot({root, path: relative}) {
   // Recheck every input before admission, not just the last file. Replacement with
   // identical bytes still changes review identity; later execution never rereads URLs.
   for (const [filename, expected] of physical) {
-    const current = read(root, filename, filename === relative && !standalone ? ARTIFACT_LIMITS.manifestBytes : ARTIFACT_LIMITS.fileBytes);
+    const current = read(root, filename, filename === relative && !standalone ? ARTIFACT_LIMITS.manifestBytes : fileLimit(filename));
     if (current.physical !== expected) fail('ARTIFACT_PHYSICAL_CHANGE');
     const original = filename === relative ? initial.bytes : assets.get(filename.slice(prefix.length))?.bytes;
     if (!original || !current.bytes.equals(original)) fail('ARTIFACT_PHYSICAL_CHANGE');

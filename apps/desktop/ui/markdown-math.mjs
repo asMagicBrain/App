@@ -166,7 +166,7 @@ function renderMath(tokens, index, _options, env, renderer, escape, settings) {
 
 /** No source rewriting or auto-render pass: code is consumed by Markdown's code
  * rules, and explicit math tokens reach KaTeX before Markdown emphasis runs. */
-export function installMath(parser, {output = 'htmlAndMathml', copyButton = true} = {}) {
+export function installMath(parser, {output = 'htmlAndMathml', copyButton = false} = {}) {
   if (!['htmlAndMathml', 'mathml'].includes(output) || typeof copyButton !== 'boolean') throw Error('Invalid math rendering options.');
   const settings = {output, copyButton};
   parser.inline.ruler.before('escape', 'math_inline', inlineMath);

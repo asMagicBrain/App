@@ -10,7 +10,7 @@ function setup(options = {}) {
   class View {
     constructor(config) {this.config = config; const wc = new EventEmitter(); wc.id = views.length + 1; wc.destroyed = false;
       Object.assign(wc, {getOSProcessId: () => 4321, isDestroyed: () => wc.destroyed, close: () => {wc.destroyed = true;},
-        setWebRTCIPHandlingPolicy: policy => {wc.rtc = policy;}, setWindowOpenHandler: handler => {wc.popup = handler;}, loadURL: async url => {wc.url = url; await options.load?.(wc);}});
+        setBackgroundThrottling:value=>{wc.backgroundThrottling=value;}, setWebRTCIPHandlingPolicy: policy => {wc.rtc = policy;}, setWindowOpenHandler: handler => {wc.popup = handler;}, loadURL: async url => {wc.url = url; await options.load?.(wc);}});
       this.webContents = wc; views.push(this); }
     setBounds(bounds) {if (options.boundsError) throw Error("bounds failed"); this.bounds = bounds; if(this.visible)this.viewport={width:bounds.width,height:bounds.height};}
     setVisible(value) {this.visible = value;}
@@ -19,7 +19,7 @@ function setup(options = {}) {
     Object.assign(ses, {partition, config, protocol: {handle: (scheme, handler) => {ses.handler = handler;}, unhandle: () => {ses.handler = null;}},
       webRequest: {onBeforeRequest: handler => {ses.request = handler;}}, setPermissionRequestHandler: fn => {ses.permission = fn;},
       setPermissionCheckHandler: fn => {ses.check = fn;}, setDevicePermissionHandler: fn => {ses.device = fn;}, setDisplayMediaRequestHandler: () => {},
-      setSpellCheckerEnabled: () => {}, setProxy: async value => {ses.proxy = value;}, enableNetworkEmulation: value => {ses.network = value;},
+      setSpellCheckerEnabled: () => {}, setProxy: async value => {ses.proxy = value;if(options.proxyError)throw options.proxyError;}, enableNetworkEmulation: value => {ses.network = value;},
       closeAllConnections: async () => {}, clearStorageData: async () => {}, clearCache: async () => {}});
     sessions.push(ses); return ses; }};
   const owner = new EventEmitter(); owner.size = [1000, 800];
@@ -183,3 +183,44 @@ test('real hide/minimize, native geometry failure and renderer failure dispose r
 });
 
 test('hidden view receives a real renderer viewport after showing admitted bounds, including resize',async()=>{const t=setup(),review=await t.host.review({repo:'Test',path:'index.html'}),running=await t.host.run({reviewId:review.reviewId,approved:true,bounds});assert.equal(t.views[0].visible,false);t.host.resize({runId:running.runId,bounds,viewport:{width:1000,height:800}});assert.deepEqual(t.views[0].viewport,{width:500,height:300});t.owner.emit('resize');assert.equal(t.views[0].visible,false);assert.deepEqual(t.views[0].bounds,{x:0,y:0,width:0,height:0});t.host.resize({runId:running.runId,bounds,viewport:{width:1000,height:800}});assert.deepEqual(t.views[0].viewport,{width:500,height:300});await t.host.close();});
+
+test('inline Escape returns focus without disposing state; hidden surfaces retain the run',async()=>{
+ const t=setup(),r=await t.host.review({repo:'Test',path:'index.html'});let focused=0;t.owner.webContents={focus:()=>focused++};
+ const run=await t.host.run({reviewId:r.reviewId,approved:true,bounds,inline:true});
+ t.views[0].webContents.emit('before-input-event',{preventDefault(){}},{type:'keyDown',key:'Escape'});
+ assert.equal(t.host.status().runId,run.runId);assert.equal(t.host.status().focusReturn,1);assert.equal(focused,1);assert.equal(t.host.status().disposed,0);
+ t.host.resize({runId:run.runId,bounds,viewport:{width:1000,height:800},visible:false});assert.equal(t.views[0].visible,false);assert.equal(t.host.status().geometryPending,false);
+ t.host.resize({runId:run.runId,bounds,viewport:{width:1000,height:800},visible:true});assert.equal(t.views[0].visible,true);assert.equal(t.host.status().runId,run.runId);
+ t.views[0].webContents.emit('console-message',{}, {level:'error',message:'private script details'});assert.equal(t.host.status().errorCode,'ARTIFACT_SCRIPT_ERROR');assert.equal(JSON.stringify(t.host.status()).includes('private script details'),false);await t.host.close();
+});
+
+test('presentation zoom adapts on resize without another run or new file authority',async()=>{
+ const t=setup(),r=await t.host.review({repo:'Test',path:'index.html'});const value=await t.host.run({reviewId:r.reviewId,approved:true,bounds,inline:true,presentation:true});
+ t.views[0].webContents.setZoomFactor=z=>{t.views[0].webContents.zoom=z;};t.owner.size=[1920,1080];
+ t.host.resize({runId:value.runId,bounds:{x:100,y:100,width:1700,height:700},viewport:{width:1920,height:1080}});
+ assert.equal(t.host.status().zoomFactor,1700/1100);assert.equal(t.host.status().runId,value.runId);assert.equal(t.host.status().started,1);
+ await assert.rejects(t.host.run({reviewId:r.reviewId,approved:true,bounds,presentation:'privileged'}),{code:'ARTIFACT_INVALID_REQUEST'});await t.host.close();
+});
+
+test('stop diagnostics retain the disposed run and reject untrusted causes', async()=>{
+ const t=setup(),r=await t.host.review({repo:'Test',path:'index.html'});
+ Object.assign(t.owner,{isVisible:()=>true,isMinimized:()=>false,isFullScreen:()=>true,isFocused:()=>true});
+ const running=await t.host.run({reviewId:r.reviewId,approved:true,bounds});
+ for(const cause of ['owner-hidden','arbitrary',{},null])assert.throws(()=>t.host.stop({runId:running.runId,cause}),{code:'ARTIFACT_INVALID_REQUEST'});
+ assert.equal(t.host.status().runId,running.runId);
+ const stopped=t.host.stop({runId:running.runId,cause:'view-unmount'});
+ assert.equal(stopped.lastStop.cause,'view-unmount');assert.equal(stopped.lastStop.runId,running.runId);assert.equal(stopped.lastStop.didDispose,true);
+ assert.equal(stopped.lastStop.ownerVisible,true);assert.equal(stopped.lastStop.ownerFullscreen,true);
+ t.owner.emit('hide');assert.equal(t.host.status().lastStop.cause,'view-unmount');
+ const next=await t.host.run({reviewId:r.reviewId,approved:true,bounds});assert.equal(next.lastStop,null);
+ t.owner.isVisible=()=>false;t.owner.emit('hide');assert.equal(t.host.status().lastStop.cause,'owner-hidden');assert.equal(t.host.status().lastStop.ownerVisible,false);assert.equal(t.host.status().lastStop.runId,next.runId);
+ await t.host.close();
+});
+
+test('diagnostic capture never queries a destroyed window during normal close',async()=>{const t=setup();const r=await t.host.review({repo:'Test',path:'index.html'});await t.host.run({reviewId:r.reviewId,approved:true,bounds});t.owner.isDestroyed=()=>true;for(const name of ['isVisible','isMinimized','isFullScreen','isFocused'])t.owner[name]=()=>{throw Error('destroyed window');};await t.host.close();assert.equal(t.host.status().activeViews,0);assert.equal(t.host.status().lastStop.ownerVisible,null);});
+
+ test('visible macOS hide/show notifications retain the live view; actual hide disposes it',async()=>{const t=setup();t.owner.isVisible=()=>true;t.owner.isMinimized=()=>false;const review=await t.host.review({repo:'Test',path:'index.html'});const run=await t.host.run({reviewId:review.reviewId,approved:true,bounds});t.owner.emit('hide');t.owner.emit('show');assert.equal(t.host.status().state,'running');assert.equal(t.host.status().runId,run.runId);assert.equal(t.host.status().activeViews,1);assert.equal(t.host.status().lastStop,null);t.owner.isVisible=()=>false;t.owner.emit('hide');assert.equal(t.host.status().state,'stopped');assert.equal(t.host.status().activeViews,0);assert.equal(t.host.status().lastStop.cause,'owner-hidden');await t.host.close();});
+
+test('reactivation and fullscreen transitions retain identity but require fresh hidden geometry',async()=>{const t=setup();const review=await t.host.review({repo:'Test',path:'index.html'});const run=await t.host.run({reviewId:review.reviewId,approved:true,bounds});for(const event of ['show','restore','enter-full-screen','leave-full-screen']){t.host.resize({runId:run.runId,bounds,viewport:{width:1000,height:800}});t.owner.emit(event);assert.equal(t.host.status().state,'running');assert.equal(t.host.status().runId,run.runId);assert.equal(t.host.status().geometryPending,true);assert.equal(t.views[0].visible,false);t.host.resize({runId:run.runId,bounds,viewport:{width:999,height:800}});assert.equal(t.views[0].visible,false);t.host.resize({runId:run.runId,bounds,viewport:{width:1000,height:800}});assert.equal(t.views[0].visible,true);}await t.host.close();for(const event of ['show','restore','enter-full-screen','leave-full-screen'])assert.equal(t.owner.listenerCount(event),0);});
+test('visible native views keep owner frames live; offscreen views resume throttling',async()=>{const t=setup();const review=await t.host.review({repo:'Test',path:'index.html'});const run=await t.host.run({reviewId:review.reviewId,approved:true,bounds});assert.equal(t.views[0].config.webPreferences.backgroundThrottling,false);t.host.resize({runId:run.runId,bounds,visible:false,viewport:{width:1000,height:800}});assert.equal(t.views[0].webContents.backgroundThrottling,true);t.host.resize({runId:run.runId,bounds,viewport:{width:1000,height:800}});assert.equal(t.views[0].webContents.backgroundThrottling,false);await t.host.close();});
+test('run-phase diagnostics expose fixed native codes without exception text',async()=>{const error=Object.assign(new Error('PRIVATE_SENTINEL'),{code:'ERR_PROXY_CONNECTION_FAILED'});const t=setup({proxyError:error});const review=await t.host.review({repo:'Test',path:'index.html'});await assert.rejects(t.host.run({reviewId:review.reviewId,approved:true,bounds}),{code:'ARTIFACT_FAILED'});const value=t.host.status();assert.ok(value.diagnostics.some(d=>d.event==='run-error'&&d.phase==='session-proxy'&&d.nativeCode==='ERR_PROXY_CONNECTION_FAILED'));assert.ok(!JSON.stringify(value).includes('PRIVATE_SENTINEL'));await t.host.close();});

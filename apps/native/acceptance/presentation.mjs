@@ -23,8 +23,9 @@ try{
  await page.getByRole('button',{name:'Present',exact:true}).click();await page.getByRole('dialog',{name:'Document presentation'}).waitFor();
  await until(()=>driver.app.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows().find(window=>!window.getParentWindow()).isFullScreen()),{label:'native presentation fullscreen'});
  assert.equal(await page.locator('.document-presentation header,.document-presentation footer').count(),0);
+ const startingSize=await page.locator('.document-presentation-content').evaluate(node=>parseFloat(getComputedStyle(node).fontSize));
  await page.locator('.document-presentation-content').press('Meta+=');
- assert.equal(await page.locator('.document-presentation').evaluate(node=>node.style.getPropertyValue('--presentation-size')),'26px');
+ assert.equal(await page.locator('.document-presentation').evaluate(node=>node.style.getPropertyValue('--presentation-size')),`${startingSize+2}px`);
  await page.locator('.document-presentation-content').press('m');await page.locator('.document-presentation-content').press('m');await page.locator('.document-presentation-content').press('ArrowRight');
  await page.locator('.document-presentation').getByRole('heading',{name:'Introduction',exact:true}).waitFor();
  await page.locator('.document-presentation').getByRole('link',{name:'Missing',exact:true}).click();

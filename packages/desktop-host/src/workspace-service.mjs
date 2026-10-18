@@ -16,13 +16,13 @@ const text=(v,max)=>typeof v==='string'&&v.isWellFormed()&&!v.includes('\0')&&Bu
 function draftValid(v){return exact(v,['draftId','path','text'])&&typeof v.draftId==='string'&&/^[a-zA-Z0-9-]{1,80}$/.test(v.draftId)&&text(v.path,4096)&&!/[\x00-\x1f]/.test(v.path)&&text(v.text,1024*1024);}
 
 // Fixed host bindings only. Neither URLs nor renderer messages can select roots.
-export function createWorkspaceService({base,privateBase,builtinRepositories,repositoryBindings,localOwnerId='asMagicBrain',localRootId='local-editor',runtimeHooks={}}={}){
+export function createWorkspaceService({base,privateBase,builtinRepositories,repositoryBindings,isolateUnavailable=false,localOwnerId='asMagicBrain',localRootId='local-editor',runtimeHooks={}}={}){
  base=path.resolve(base);privateBase=path.resolve(privateBase);
  if(repositoryBindings!==undefined){
   if(!Array.isArray(repositoryBindings)||repositoryBindings.length>1000||repositoryBindings.some(value=>!exact(value,['name','identity','stateKey','bindingName'])||!validRepositoryName(value.name)||!validRepositoryName(value.bindingName)||typeof value.identity!=='string'||!/^\d+:\d+$/.test(value.identity)||typeof value.stateKey!=='string'||!(validRepositoryName(value.stateKey)||/^\.asmb-repo-[a-f0-9-]{36}$/.test(value.stateKey)))||new Set(repositoryBindings.map(value=>value.name.toUpperCase())).size!==repositoryBindings.length||new Set(repositoryBindings.map(value=>value.stateKey.toUpperCase())).size!==repositoryBindings.length)fail('INVALID_IDENTITY');
   repositoryBindings=repositoryBindings.map(value=>Object.freeze({...value}));
  }
- const basePin=pinDirectory(base),sessions=new Map(),catalog=createRepositoryCatalog(base,{builtinRepositories});
+ const basePin=pinDirectory(base),sessions=new Map(),catalog=createRepositoryCatalog(base,{builtinRepositories,isolateUnavailable});
  function directory(parent,name){
   const parentPin=pinDirectory(parent),target=path.join(parent,name);try{fs.mkdirSync(target,{mode:0o700});}catch(e){if(e.code!=='EEXIST')throw e;}
   const pin=pinDirectory(target);if((fs.statSync(target).mode&0o777)!==0o700)fail('INVALID_PRIVATE_ROOT');
