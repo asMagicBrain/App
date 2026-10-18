@@ -282,7 +282,7 @@ async function createNativeServiceInContext({dataRoot,hooks={},revealInFileManag
    if(pending>=64)return Promise.reject(Object.assign(new Error('SERVICE_BUSY'),{code:'SERVICE_BUSY'}));
    pending++;const work=serial.then(async()=>{check();const value=await fn();check();return value;});serial=work.catch(()=>{}).finally(()=>{pending--;});return work;
   }
-  const repo=value=>{if(!validRepositoryName(value))fail('UNKNOWN_REPOSITORY');assertRepositoryReady(value);if(isDocumentation(value))documentation.assertCurrent();return value;};
+  const repo=value=>{if(!validRepositoryName(value))fail('UNKNOWN_REPOSITORY');if(isDocumentation(value))documentation.assertCurrent();assertRepositoryReady(value);return value;};
   async function updatesContext(name){
    const context=updateManagerFor(name);if(!context)return {status:{eligible:false,reason:'local-only'}};
    const {manager,binding,provenance}=context;
