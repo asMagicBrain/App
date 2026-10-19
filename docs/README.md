@@ -24,3 +24,5 @@ Read, write, and organize Markdown and other files on your computer. Save your w
 The app includes this guide as **asMagicBrain-Docs**, at the bottom of the repository list. It is read-only. Choose **Duplicate repository** to make an editable copy for your own notes.
 
 Find downloads and version-specific notes on [GitHub Releases](https://github.com/asMagicBrain/App/releases). asMagicBrain is preview software; read the platform notes before installing and keep a backup of important work.
+
+- [Import or adopt existing course repositories](repository-intake.md)

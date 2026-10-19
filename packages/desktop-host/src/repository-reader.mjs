@@ -103,6 +103,25 @@ function commitLog(root,revision,relative='') {
   // The repository root shows its tip; a selected path shows its own last change.
   return git(root,['log','-1','--format=%an%x00%s%x00%h%x00%cI',revision,...(relative?['--',relative]:[])]);
 }
+// One bounded history query serves a directory, including nested descendants.
+// Older/unavailable row summaries stay blank; opening a file still reads its
+// exact path history. No asset bytes are read for directory navigation.
+async function directoryChanges(root,relative) {
+  const changes=new Map(),prefix=relative?relative+'/':'';
+  let raw;try {raw=await git(root,['log','-n','256','--format=%x00%H%x00%s%x00%cI%x00','--name-only','-z','--no-renames','HEAD',...(relative?['--',relative]:[])],true);}
+  catch(error){if(String(error.code).startsWith('GIT_RUNTIME_'))throw error;return changes;}
+  const tokens=raw.split('\0');let current=null,first=false;
+  for(let i=0;i<tokens.length;i++){
+    if(tokens[i]===''&&/^[a-f0-9]{40,64}$/.test(tokens[i+1]??'')&&/^\d{4}-\d\d-\d\dT/.test(tokens[i+3]??'')&&tokens[i+4]===''){
+      current={message:tokens[i+2],date:tokens[i+3]};i+=4;first=true;continue;
+    }
+    if(!current||!tokens[i])continue;
+    const value=first&&tokens[i].startsWith('\n')?tokens[i].slice(1):tokens[i];first=false;
+    if(!value.startsWith(prefix))continue;const name=value.slice(prefix.length).split('/')[0];
+    if(name&&!changes.has(name))changes.set(name,current);
+  }
+  return changes;
+}
 export async function readLocalRepository(name, relative='', base, revision='', options={}) {
   createRepositoryCatalog(path.resolve(base),options).assertKnown(name);
   const root=path.resolve(base,name);
@@ -116,10 +135,11 @@ export async function readLocalRepository(name, relative='', base, revision='', 
   const commit=parseCommit(head);
   const entries=[];
   if(stat.isDirectory()) {
+    const changes=await directoryChanges(root,relative);
     for (const entry of await readdir(target,{withFileTypes:true})) {
       if(entry.name.toLowerCase()==='.git'||entry.name.toLowerCase()==='.asmagicbrain'||entry.name.toLowerCase().startsWith('.asmb-')||entry.isSymbolicLink()||(!entry.isDirectory()&&!entry.isFile()))continue;
       const entryPath=relative?`${relative}/${entry.name}`:entry.name;
-      const last=parseCommit(await commitLog(root,'HEAD',entryPath));
+      const last=changes.get(entry.name);
       entries.push({name:entry.name,path:entryPath,type:entry.isDirectory()?'directory':'file',message:last?.message??'',date:last?.date??''});
     }
     entries.sort((a,b)=>(a.type===b.type?0:a.type==='directory'?-1:1)||a.name.localeCompare(b.name));

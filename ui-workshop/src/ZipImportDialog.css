@@ -41,3 +41,5 @@
 
 
 @media(max-width:480px){.zi-dialog{padding:20px;width:calc(100vw - 24px);max-height:calc(100dvh - 24px)}.zi-destination{flex-wrap:wrap;align-items:start;gap:12px}.zi-owner,.zi-name{flex-basis:100%}.zi-slash{display:none}.zi-dialog footer button{flex:1}}
+
+.local-checkout-form input[type=checkbox]{width:16px;height:16px;min-width:16px;min-height:16px;flex:none;margin:4px 6px 4px 0}

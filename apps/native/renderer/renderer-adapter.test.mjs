@@ -153,7 +153,7 @@ test('GitHub clone URL validation accepts repository URLs and rejects credential
 
 test('actual preload exposes clone and GitHub display-state methods with coded failures intact',async()=>{
  const requestId='1570c1ce-8353-43d5-bc83-275127788382';
- const inputs=[['cloneRepository',{url:'https://github.com/owner/repo',name:'Local',requestId,useAccount:false}],['getCloneProgress',{requestId}],['cancelClone',{requestId}],['getGitHubConnection',undefined],['startGitHubConnection',undefined],['pollGitHubConnection',{requestId}],['cancelGitHubConnection',{requestId}],['openGitHubVerification',{requestId}],['disconnectGitHub',undefined]];
+ const inputs=[...['pickLocalCheckout','applyLocalCheckout','cancelLocalCheckout','listIntakeRecovery','revealIntakeRecovery','getCheckoutProgress','cancelCheckoutValidation'].map(method=>[method,{name:'Fixture',planId:'synthetic-plan'}]),['cloneRepository',{url:'https://github.com/owner/repo',name:'Local',requestId,useAccount:false}],['getCloneProgress',{requestId}],['cancelClone',{requestId}],['getGitHubConnection',undefined],['startGitHubConnection',undefined],['pollGitHubConnection',{requestId}],['cancelGitHubConnection',{requestId}],['openGitHubVerification',{requestId}],['disconnectGitHub',undefined]];
  const calls=[];
  await withPreloadBoundary(async(channel,input)=>{calls.push([channel,structuredClone(input)]);return {ok:false,error:{code:'GITHUB_UNAVAILABLE',message:'GitHub is unavailable. Try again.'}};},async()=>{
   for(const [method,args]of inputs)await assert.rejects(getNativeBridge()[method](args),{code:'GITHUB_UNAVAILABLE',message:'GitHub is unavailable. Try again.'});

@@ -2,6 +2,7 @@ import React, {useLayoutEffect, useRef, useState} from 'react';
 import {importRepositoryArchive, suggestRepositoryName, validateRepositoryName,
   type ImportedRepository, type RepositoryCatalog} from './repository-catalog';
 import {getNativeBridge} from './native-bridge.mjs';
+import {LocalCheckoutForm} from './LocalCheckoutForm';
 import {GitHubCloneForm} from './GitHubCloneForm';
 import type {ClonedRepository, GitHubAccount} from './native-types';
 import './ZipImportDialog.css';
@@ -28,7 +29,7 @@ export function ZipImportDialog({catalog, loading, catalogError, returnFocus, ac
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
-  const [mode, setMode] = useState<'zip' | 'github'>('zip'), [cloning, setCloning] = useState(false);
+  const [mode, setMode] = useState<'zip' | 'github' | 'checkout'>('zip'), [cloning, setCloning] = useState(false);
   const canClone = Boolean(getNativeBridge()?.cloneRepository);
   const modalBusy = busy || cloning;
   const invalidName = validateRepositoryName(name);
@@ -72,8 +73,9 @@ export function ZipImportDialog({catalog, loading, catalogError, returnFocus, ac
     {canClone && <div className="zi-methods" role="group" aria-label="Import method">
       <button type="button" aria-pressed={mode === 'zip'} disabled={modalBusy} onClick={() => setMode('zip')}>Import ZIP</button>
       <button type="button" aria-pressed={mode === 'github'} disabled={modalBusy} onClick={() => setMode('github')}>Clone from GitHub</button>
+      {getNativeBridge()?.pickLocalCheckout&&<button type="button" aria-pressed={mode==='checkout'} disabled={modalBusy} onClick={()=>setMode('checkout')}>Adopt local checkout</button>}
     </div>}
-    {mode === 'github' ? <GitHubCloneForm catalog={catalog} loading={loading} catalogError={catalogError} account={account} connectionConfigured={connectionConfigured} onRetry={onRetry} onClose={onClose} onBusy={value => {setCloning(value); if (!value) onConnectionRefresh?.();}} onCloned={onImported}/> :
+    {mode==='checkout'?<LocalCheckoutForm catalog={catalog} account={account} onBusy={setCloning} onClose={onClose} onImported={onImported}/>:mode === 'github' ? <GitHubCloneForm catalog={catalog} loading={loading} catalogError={catalogError} account={account} connectionConfigured={connectionConfigured} onRetry={onRetry} onClose={onClose} onBusy={value => {setCloning(value); if (!value) onConnectionRefresh?.();}} onCloned={onImported}/> :
     <form onSubmit={event => {void submit(event);}} aria-busy={busy}>
       <p id="zi-description">Import a ZIP archive as a new local repository.</p>
       <label className="zi-field">ZIP archive

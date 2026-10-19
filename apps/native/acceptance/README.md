@@ -46,6 +46,9 @@ Use a desktop session, run pointer/keyboard campaigns serially, and close throug
 | `pro-editor.mjs` | Optional Pro authoring, Visual/Split, exact source/draft/Save/selected commit; explicit interactive review, fallback, sliders/frame accuracy, WebGL/local module+texture, hostile denials, stale review and 20 lifecycle cycles on macOS or Linux. Uses the same `ASMB_TECHNICAL_FIXTURES` reviewed reproduction folder. |
 | `stage1-reading.mjs` | macOS Create/import/cancel/focus diagnostics with ten cycles, synthetic imports, accessible status and normal restart. |
 | `linux-desktop.mjs` | Installed Linux shortcuts/search/outline, choosers, reveal, URL dispatch, restart. |
+| `checkout-ui.mjs` | Reviewed local-checkout chooser, unchanged original/history, published asTeach compatibility and normal restart. Synthetic provider GETs only. |
+| `teach-legacy-intake.mjs` | Legacy shared explorer, cross-root drafts, 11-root scale intake and durable-binding/session separation; synthetic roots and mocked authorization. |
+| `large-checkout-intake.mjs` | Explicit external-Test fixture transport into the real clone materializer, large-file memory bound and history preservation; no provider writes. |
 | `session-accounts.mjs` | Session account lifecycle with identified fixtures. |
 
 Inspect each driver's arguments and assertions before running it. Some older drivers target retired UI and do not define current acceptance.
