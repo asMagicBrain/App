@@ -63,7 +63,7 @@ function validRecord(record){
 
 /** Host-owned org root, never a renderer-provided path. Imported names are
  * admitted only by durable records bound to their published physical folder. */
-export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSITORIES}={}){
+export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSITORIES,isolateUnavailable=false}={}){
  if(!Array.isArray(builtinRepositories)||builtinRepositories.length>100||builtinRepositories.some(r=>!r||!validRepositoryName(r.name)||typeof r.privateRepo!=='boolean')||new Set(builtinRepositories.map(r=>portablePathKey(r.name))).size!==builtinRepositories.length)fail('INVALID_CATALOG');
  const builtins=builtinRepositories.map(r=>Object.freeze({name:r.name,privateRepo:r.privateRepo,...(r.builtin==='documentation'&&r.readOnly===true?{builtin:'documentation',readOnly:true}:{})}));
  const root=pinDirectory(path.resolve(base)),directory=path.join(root.path,'.asmb-catalog');
@@ -76,13 +76,13 @@ export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSI
   for(const file of fs.readdirSync(pin.path).filter(n=>n.endsWith('.repo.json'))){
    const record=readRecord(path.join(pin.path,file));if(!validRecord(record)||file!==`${record.name}.repo.json`||keys.has(portablePathKey(record.name)))fail('CATALOG_UNAVAILABLE');
    if(record.schemaVersion>=2){if(creations.has(record.creationId))fail('CATALOG_UNAVAILABLE');creations.add(record.creationId);}
-   const source=pinDirectory(path.join(root.path,record.name));if(source.identity!==record.identity)fail('REPOSITORY_CHANGED');
+   if(!isolateUnavailable){const source=pinDirectory(path.join(root.path,record.name));if(source.identity!==record.identity)fail('REPOSITORY_CHANGED');}
    keys.add(portablePathKey(record.name));result.push(record);
   }
   checkDirectory(pin);check();return result;
  }
  function list(){return [...builtins.filter(r=>r.builtin!=='documentation'),...records().sort((a,b)=>a.name.localeCompare(b.name)).map(r=>({name:r.name,privateRepo:true})),...builtins.filter(r=>r.builtin==='documentation')];}
- function assertKnown(name){if(!validRepositoryName(name)||!list().some(r=>r.name===name))fail('UNKNOWN_REPOSITORY');check();}
+ function assertKnown(name){if(!validRepositoryName(name)||!list().some(r=>r.name===name))fail('UNKNOWN_REPOSITORY');check();const record=records().find(r=>r.name===name);if(record&&pinDirectory(path.join(root.path,name)).identity!==record.identity)fail('REPOSITORY_CHANGED');}
  function provenance(name){assertKnown(name);const record=records().find(value=>value.name===name);return record?.source==='github'?structuredClone(record):null;}
  function assertAvailable(name){
   if(!validRepositoryName(name))fail('INVALID_REPOSITORY_NAME');const key=portablePathKey(name);
@@ -213,8 +213,8 @@ function runWorker(archivePath,destination,options={}){return new Promise((resol
  worker.once('exit',code=>{if(code!==0||!result)reject(Object.assign(new Error('IMPORT_FAILED'),{code:'IMPORT_FAILED'}));else if(!result.ok)reject(Object.assign(new Error(result.code),{code:result.code}));else resolve(result.value);});
 });}
 
-export function createRepositoryImporter({base,builtinRepositories,hooks={}}){
- const catalog=createRepositoryCatalog(base,{builtinRepositories});catalog.ensure();catalog.recover();
+export function createRepositoryImporter({base,builtinRepositories,isolateUnavailable=false,hooks={}}){
+ const catalog=createRepositoryCatalog(base,{builtinRepositories,isolateUnavailable});catalog.ensure();catalog.recover();
  async function createRepository({name,requestId}){
   if(!validRepositoryName(name))fail('INVALID_REPOSITORY_NAME');if(!validCreationId(requestId))fail('INVALID_REQUEST');
   const at=point=>hooks.at?.(point),pin=catalog.ensure(),lockPath=path.join(pin.path,'import.lock');

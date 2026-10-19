@@ -369,7 +369,7 @@ try {
       // green button uses AppKit fullscreen; red still reaches the close guard.
       ...(process.platform === 'darwin' ? {frame: true, titleBarStyle: 'hidden', trafficLightPosition: {x: 14, y: 14}, fullscreenable: true} : {frame: false}),
       autoHideMenuBar: process.platform === 'linux', show: false, backgroundColor: '#ffffff', webPreferences: {preload: path.join(here, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false, webSecurity: true, spellcheck: false}});
-    artifactHost=createArtifactHost({owner:window,WebContentsView,session,app,readSnapshot:request=>service.prepareArtifactSnapshot(request)});
+    artifactHost=createArtifactHost({owner:window,WebContentsView,session,app,readSnapshot:request=>service.prepareArtifactSnapshot(request),onState:value=>{if(window&&!window.isDestroyed())window.webContents.send('asmb:artifact-state',value);}});
     window.once('closed',()=>{void artifactHost?.close();});
     window.webContents.setWindowOpenHandler(({url}) => {openExternal(url); return {action: 'deny'};});
     window.webContents.on('will-navigate', (event, url) => {if (!isApplicationPage(url)) {event.preventDefault(); openExternal(url);}});

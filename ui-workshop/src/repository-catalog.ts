@@ -3,6 +3,7 @@ import type {ClonedRepository, GitHubCloneInput, GitHubCloneProgress} from './na
 
 export type RepositoryCatalogEntry = {stableId?:string; name: string; privateRepo: boolean; builtin?: 'documentation'; readOnly?: boolean};
 export type RepositoryCatalog = {
+  repositoryRecovery?: {name:string;code:'REPOSITORY_RECOVERY_REQUIRED';message:string}[];
   capability?: string;
   organization: 'asMagicBrain';
   defaultRepository?: string;

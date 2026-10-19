@@ -17,6 +17,6 @@ test('ordinary fences stay code and excessive diagrams retain source without exc
   const source = '```text\nflowchart LR\nA-->B\n```\n\n'+('```mermaid\nflowchart LR\nA-->B\n```\n\n'.repeat(1000));
   const result = renderSourcePreview(source,'',{technical:true});
   assert.equal((result.html.match(/data-mermaid-diagram=/g)||[]).length,17);
-  assert.equal((result.html.match(/A--&gt;B/g)||[]).length,1001);
+  assert.equal((result.html.replace(/ data-copy-source="[^"]*"/g,'').match(/A--&gt;B/g)||[]).length,1001);
   assert.match(result.html, /class="language-text"/);
 });

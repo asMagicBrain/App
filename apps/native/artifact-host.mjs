@@ -7,6 +7,7 @@ export const ARTIFACT_SCHEME = Object.freeze({scheme: 'asmb-artifact', privilege
 const fail = code => {throw Object.assign(new Error(code), {code});};
 const token = value => typeof value === 'string' && /^[a-f0-9-]{36}$/.test(value);
 const shape = (value, allowed) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(key => allowed.includes(key));
+const stopCauses = new Set(['user-stop','view-close','view-unmount','source-switch','fallback-switch','transport-failure','request-superseded']);
 const safeError = error => typeof error?.code === 'string' && /^ARTIFACT_[A-Z_]+$/.test(error.code) ? error.code : 'ARTIFACT_FAILED';
 // Opaque-origin CSP and native session policy are primary constraints. Removing
 // these constructors before repository script executes closes otherwise exposed
@@ -42,16 +43,18 @@ async function denyProxy() {
 export function createArtifactHost({owner, WebContentsView, session, app, readSnapshot, onState = () => {}, limits = ARTIFACT_LIMITS, createProxy = denyProxy, geometryTimeoutMs = 1200}) {
   let review = null, active = null, closed = false, epoch = 0, disposed = 0, started = 0, state = 'idle', errorCode = null, disposing = Promise.resolve();
   let runTail = Promise.resolve();
+  let runtimePhase = 'idle';
+  const phase = value => {runtimePhase=value;record('run-phase',{phase:value});};
   const partition = `asmb-artifact-${randomUUID()}`;
   const counts = {deniedRequests: 0, deniedNavigations: 0, deniedPopups: 0, deniedDownloads: 0, deniedPermissions: 0};
-  let lastMemoryKiB = 0, peakMemoryKiB = 0, lastFailure = null, lastStopReason = null, eventSequence = 0;
+  let lastMemoryKiB = 0, peakMemoryKiB = 0, lastFailure = null, lastStopReason = null, eventSequence = 0, focusReturn = 0, lastStop = null;
   const diagnostics = [];
   const record = (event, detail = {}) => {diagnostics.push({sequence: ++eventSequence, at: Date.now(), event, runId: active?.id ?? null, ...detail}); if (diagnostics.length > 32) diagnostics.shift();};
   const size = () => owner.isDestroyed() ? [0, 0] : owner.getContentSize();
   const viewportMatches = value => shape(value, ['width', 'height']) && Number.isInteger(value.width) && Number.isInteger(value.height) && value.width === size()[0] && value.height === size()[1];
   const current = () => ({state, errorCode, reviewId: review?.id ?? null, runId: active?.id ?? null, policyVersion: ARTIFACT_POLICY_VERSION,
-    activeViews: active ? 1 : 0, started, disposed, webContentsId: active?.view.webContents.id ?? null,
-    processId: active && !active.view.webContents.isDestroyed() ? active.view.webContents.getOSProcessId() : null, lastMemoryKiB, peakMemoryKiB, geometryPending: active?.geometryPending ?? false, bounds: active?.bounds ?? null, ownerSize: size(), lastFailure, lastStopReason, diagnostics: diagnostics.map(item => ({...item})), ...counts});
+    activeViews: active ? 1 : 0, zoomFactor:active?.zoomFactor??1, focusReturn, started, disposed, webContentsId: active?.view.webContents.id ?? null,
+    processId: active && !active.view.webContents.isDestroyed() ? active.view.webContents.getOSProcessId() : null, lastMemoryKiB, peakMemoryKiB, geometryPending: active?.geometryPending ?? false, surfaceVisible:active?.surfaceVisible??null, bounds: active?.bounds ?? null, ownerSize: size(), lastFailure, lastStopReason, lastStop, runtimePhase, diagnostics: diagnostics.map(item => ({...item})), ...counts});
   const emit = () => {try {onState(current());} catch {}};
   async function releaseSession(ses, proxy) {
     if (ses) {
@@ -74,10 +77,11 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
   function stop(reason = 'stopped', event = 'explicit-stop') {
     if (typeof reason === 'object') {
       if (reason?.runId && active?.id !== reason.runId || reason?.reviewId && review?.id !== reason.reviewId) return current();
-      reason = 'stopped';
+      event = reason.cause ?? event; reason = 'stopped';
     }
     const hadRun = Boolean(active) || state === 'loading';
-    record(event, {didDispose: hadRun}); if (hadRun || !lastStopReason) lastStopReason = event;
+    const detail={didDispose:hadRun,ownerVisible:owner.isDestroyed()?null:owner.isVisible?.()??null,ownerMinimized:owner.isDestroyed()?null:owner.isMinimized?.()??null,ownerFullscreen:owner.isDestroyed()?null:owner.isFullScreen?.()??null,ownerFocused:owner.isDestroyed()?null:owner.isFocused?.()??null};
+    record(event, detail); if (hadRun || !lastStopReason) {lastStopReason = event;lastStop={at:Date.now(),cause:event,runId:active?.id??null,...detail};}
     const retainFailure = state === 'failed' && !active;
     epoch++; disposeActive(); if (!retainFailure) {state = reason; errorCode = null;} emit(); return current();
   }
@@ -85,8 +89,8 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
   function suspendGeometry(event) {
     if (!active) return;
     const id = active.id;
-    try {active.view.setVisible(false); active.view.setBounds({x:0,y:0,width:0,height:0});} catch {failed('ARTIFACT_GEOMETRY_FAILED'); return;}
-    active.geometryPending = true;
+    try {active.view.webContents.setBackgroundThrottling?.(false); active.view.setVisible(false); active.view.setBounds({x:0,y:0,width:0,height:0});} catch {failed('ARTIFACT_GEOMETRY_FAILED'); return;}
+    active.surfaceVisible=false; active.geometryPending = true;
     if (state === 'running' && !active.geometryTimer) active.geometryTimer = setTimeout(() => {if (active?.id === id && active.geometryPending) failed('ARTIFACT_GEOMETRY_TIMEOUT');}, geometryTimeoutMs);
     record(event, {ownerSize: size(), bounds: active.bounds}); emit();
   }
@@ -105,14 +109,14 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
     if (!request || !token(request.reviewId) || request.approved !== true || !review || request.reviewId !== review.id) fail('ARTIFACT_REVIEW_REQUIRED');
     const bounds = clipArtifactBounds(request.bounds, owner.getContentSize());
     disposeActive(); const operation = ++epoch, selected = review;
-    state = 'loading'; errorCode = null; lastStopReason = null; record('run-request'); emit();
+    state = 'loading'; errorCode = null; focusReturn = 0; lastStopReason = null; lastStop = null; record('run-request'); emit();
     let proxy, ses, view;
     try {
-      const snapshot = await readSnapshot(selected.request);
+      phase('snapshot-admission'); const snapshot = await readSnapshot(selected.request);
       if (closed || operation !== epoch || review !== selected) fail('ARTIFACT_CANCELLED');
       if (snapshot.identity !== selected.snapshot.identity) {review = null; fail('ARTIFACT_REVIEW_STALE');}
-      await disposing;
-      proxy = await createProxy();
+      phase('prior-session-cleanup'); await disposing;
+      phase('deny-proxy'); proxy = await createProxy();
       if (closed || operation !== epoch) fail('ARTIFACT_CANCELLED');
       const id = randomUUID(), origin = `asmb-artifact://${id}`, url = `${origin}/${snapshot.manifest.entryPath.split('/').map(encodeURIComponent).join('/')}`;
       // One session per host, reused only after prior view destruction and complete
@@ -124,7 +128,7 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
       ses.setDevicePermissionHandler(() => false);
       ses.setDisplayMediaRequestHandler((_request, callback) => callback({}));
       ses.setSpellCheckerEnabled(false);
-      await ses.setProxy({mode: 'fixed_servers', proxyRules: `http://127.0.0.1:${proxy.port}`, proxyBypassRules: '<-loopback>'});
+      phase('session-proxy'); await ses.setProxy({mode: 'fixed_servers', proxyRules: `http://127.0.0.1:${proxy.port}`, proxyBypassRules: '<-loopback>'});
       ses.enableNetworkEmulation({offline: true});
       ses.webRequest.onBeforeRequest((details, callback) => {
         const admitted = active?.id === id && artifactAssetResponse(snapshot, details.url, origin, details.method)
@@ -145,7 +149,7 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
       view = new WebContentsView({webPreferences: {session: ses, sandbox: true, contextIsolation: true, nodeIntegration: false,
         nodeIntegrationInWorker: false, nodeIntegrationInSubFrames: false, webSecurity: true, webviewTag: false, plugins: false,
         experimentalFeatures: false, spellcheck: false, safeDialogs: true, navigateOnDragDrop: false, devTools: false,
-        backgroundThrottling: true, webgl: true, autoplayPolicy: 'document-user-activation-required'}});
+        backgroundThrottling: false, webgl: true, autoplayPolicy: 'document-user-activation-required'}});
       const wc = view.webContents;
       wc.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
       wc.setWindowOpenHandler(() => {counts.deniedPopups++; return {action: 'deny'};});
@@ -153,7 +157,9 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
       wc.on('will-navigate', navigation); wc.on('will-frame-navigate', navigation); wc.on('will-redirect', navigation);
       wc.on('will-attach-webview', event => event.preventDefault());
       wc.on('will-prevent-unload', event => event.preventDefault());
-      wc.on('before-input-event', (event, input) => {if (input.type === 'keyDown' && input.key === 'Escape') {event.preventDefault(); stop(); owner.webContents?.focus();}});
+      wc.on('before-input-event', (event, input) => {if (input.type === 'keyDown' && input.key === 'Escape') {event.preventDefault(); if(request.inline){focusReturn++; record('focus-return'); emit();}else stop(); owner.webContents?.focus();}});
+      // Report failures without sending repository console text into app logs.
+      wc.on('console-message', (_event, details, _message) => {const level=typeof details==='object'?details.level:details;if(active?.id===id&&(level==='error'||level===3))failed('ARTIFACT_SCRIPT_ERROR');});
       wc.on('unresponsive', () => {if (active?.id === id) failed('ARTIFACT_UNRESPONSIVE');});
       wc.on('render-process-gone', () => {if (active?.id === id) failed('ARTIFACT_RENDERER_EXITED');});
       const lifetime = setTimeout(() => {if (active?.id === id) failed('ARTIFACT_TIME_LIMIT');}, limits.lifetimeMs);
@@ -165,15 +171,16 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
           if (lastMemoryKiB > limits.memoryKiB) failed('ARTIFACT_MEMORY_LIMIT');
         } catch {}
       }, limits.sampleMs);
-      active = {id, view, ses, proxy, lifetime, loadTimer, monitor, geometryPending: false, geometryTimer: null, bounds}; started++;
+      active = {id, view, ses, proxy, lifetime, loadTimer, monitor, geometryPending: false, geometryTimer: null, surfaceVisible:false, bounds, presentation:request.presentation===true, zoomFactor:1}; started++;
       view.setVisible(false); owner.contentView.addChildView(view);
       // Snapshot/proxy setup is asynchronous. Keep the initial child hidden until
       // fresh renderer geometry is confirmed, even if the window resized meanwhile.
       clipArtifactBounds(bounds, size()); suspendGeometry('initial-geometry'); emit();
-      await wc.loadURL(url);
+      phase('document-load'); await wc.loadURL(url);
       if (closed || operation !== epoch || active?.id !== id) fail('ARTIFACT_CANCELLED');
-      clearTimeout(loadTimer); state = 'running'; suspendGeometry('initial-geometry-ready'); emit(); return current();
+      clearTimeout(loadTimer); runtimePhase='running'; state = 'running'; suspendGeometry('initial-geometry-ready'); emit(); return current();
     } catch (error) {
+      record('run-error',{phase:runtimePhase,nativeCode:typeof error?.code==='string'&&error.code.length<=64&&/^(?:ERR_|ARTIFACT_)[A-Z_]+$/.test(error.code)?error.code:null});
       if (!active || active.view !== view) {
         try {if (view && !view.webContents.isDestroyed()) view.webContents.close({waitForBeforeUnload: false});} catch {}
         await releaseSession(ses, proxy).catch(() => {});
@@ -183,24 +190,31 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
     }
   }
   async function run(request) {
-    if (!shape(request, ['reviewId', 'approved', 'bounds'])) fail('ARTIFACT_INVALID_REQUEST');
+    if (!shape(request, ['reviewId', 'approved', 'bounds', 'inline', 'presentation'])) fail('ARTIFACT_INVALID_REQUEST');
+    if(request.presentation!==undefined&&typeof request.presentation!=='boolean'||request.inline!==undefined&&typeof request.inline!=='boolean')fail('ARTIFACT_INVALID_REQUEST');
     const admissionEpoch = epoch;
     const result = runTail.then(() => {ensure(); if (epoch !== admissionEpoch) fail('ARTIFACT_CANCELLED'); return runOnce(request);});
     runTail = result.catch(() => {}); return result;
   }
-  const hidden = () => stop('stopped', 'owner-hidden'), minimized = () => stop('stopped', 'owner-minimized');
+  // macOS can emit hide/show notifications while the window remains visible.
+  // Dispose on actual hiding; a visibility notification alone is not a user hide.
+  const hidden = () => {if (!owner.isDestroyed() && owner.isVisible?.() === true && owner.isMinimized?.() !== true) {record('owner-visible-notification'); emit(); return;} stop('stopped', 'owner-hidden');}, minimized = () => stop('stopped', 'owner-minimized');
   const resized = () => suspendGeometry('owner-resize');
+  const resumed = () => suspendGeometry('owner-resumed');
+  for(const event of ['show','restore','enter-full-screen','leave-full-screen'])owner.on?.(event,resumed);
   owner.on?.('hide', hidden); owner.on?.('minimize', minimized); owner.on?.('resize', resized);
   return Object.freeze({review: prepare, run, async reset(request) {
-      if (!shape(request, ['reviewId', 'runId', 'approved', 'bounds']) || request.runId !== undefined && !token(request.runId)) fail('ARTIFACT_INVALID_REQUEST');
+      if (!shape(request, ['reviewId', 'runId', 'approved', 'bounds', 'inline', 'presentation']) || request.runId !== undefined && !token(request.runId)) fail('ARTIFACT_INVALID_REQUEST');
       if (active && request.runId !== active.id || request.runId && !active) fail('ARTIFACT_NOT_RUNNING');
-      return run({reviewId: request.reviewId, approved: request.approved, bounds: request.bounds});
+      return run({reviewId: request.reviewId, approved: request.approved, bounds: request.bounds, inline: request.inline, presentation:request.presentation});
     },
     resize(request) {
-      ensure(); if (!shape(request, ['runId', 'bounds', 'viewport']) || !token(request.runId)) fail('ARTIFACT_INVALID_REQUEST');
+      ensure(); if (!shape(request, ['runId', 'bounds', 'viewport', 'visible']) || !token(request.runId)) fail('ARTIFACT_INVALID_REQUEST');
       if (!active || request.runId !== active.id) fail('ARTIFACT_NOT_RUNNING');
+      if(request.visible!==undefined&&typeof request.visible!=='boolean')fail('ARTIFACT_INVALID_REQUEST');
       let bounds;
       try {
+        if(request.visible===false){active.view.webContents.setBackgroundThrottling?.(true);active.view.setVisible(false);active.view.setBounds({x:0,y:0,width:0,height:0});clearTimeout(active.geometryTimer);active.geometryTimer=null;active.geometryPending=false;active.surfaceVisible=false;record('surface-hidden');return current();}
         // Invalid geometry is never retained or retried. A valid rectangle for a
         // superseded viewport is retryable only while the native child is hidden.
         clipArtifactBounds(request.bounds, [20000, 20000]);
@@ -209,17 +223,20 @@ export function createArtifactHost({owner, WebContentsView, session, app, readSn
         // Some Electron/macOS versions do not resize an invisible WebContentsView.
         // Show the zero-sized child, then apply the admitted geometry so its
         // renderer receives a real viewport without exposing stale bounds.
-        active.view.setVisible(true); active.view.setBounds(bounds); active.bounds = bounds;
+        active.view.webContents.setBackgroundThrottling?.(false);active.view.setVisible(true); active.view.setBounds(bounds); active.bounds = bounds;active.surfaceVisible=true;
+        const zoom=active.presentation?Math.max(1,Math.min(3,bounds.width/1100)):1;if(zoom!==active.zoomFactor){active.view.webContents.setZoomFactor?.(zoom);active.zoomFactor=zoom;}
         clearTimeout(active.geometryTimer); active.geometryTimer = null; active.geometryPending = false;
         record('geometry-applied', {bounds, ownerSize: size()}); return current();
       } catch (error) {failed(safeError(error) === 'ARTIFACT_FAILED' ? 'ARTIFACT_GEOMETRY_FAILED' : safeError(error)); throw error;}
     },
     decline(request) {ensure(); if (!shape(request, ['reviewId']) || !token(request.reviewId) || request.reviewId !== review?.id) fail('ARTIFACT_REVIEW_REQUIRED'); stop('declined'); review = null; return current();},
     stop(request) {
-      if (request !== undefined && (!shape(request, ['runId', 'reviewId']) || Object.keys(request).length !== 1
+      if (request !== undefined && (!shape(request, ['runId', 'reviewId','cause']) || Object.keys(request).filter(key=>key!=='cause').length !== 1
+        || request.cause!==undefined&&!stopCauses.has(request.cause)
         || !(token(request.runId) || token(request.reviewId)))) fail('ARTIFACT_INVALID_REQUEST');
       return stop(request);
     },
     status: current, async close() {if (closed) return disposing; stop(); review = null; closed = true;
+      for(const event of ['show','restore','enter-full-screen','leave-full-screen'])owner.removeListener?.(event,resumed);
       owner.removeListener?.('hide', hidden); owner.removeListener?.('minimize', minimized); owner.removeListener?.('resize', resized); await runTail; await disposing;}});
 }

@@ -58,6 +58,20 @@ parser.core.ruler.after('inline', 'table_cell_breaks', state => {
   }
 });
 
+// Exact top-level source is retained as inert clipboard metadata. Partial
+// selections are serialized from the selected DOM, with math treated atomically.
+parser.core.ruler.after('block', 'clipboard_source_blocks', state => {
+  if (!state.env.technical) return;
+  const lines = (state.env.clipboardSource ?? state.src).replace(/\r\n?/g, '\n').split('\n');
+  for (const token of state.tokens) {
+    if (!token.block || !token.map || token.nesting < 0 || token.level !== 0) continue;
+    const source = lines.slice(token.map[0], token.map[1]).join('\n').replace(/\n$/, '');
+    // Never reintroduce hidden reader comments through clipboard metadata.
+    // Code keeps literal comments; other mixed blocks use visible DOM serialization.
+    if (source.includes('<!--') && !['fence','code_block'].includes(token.type)) continue;
+    token.attrSet('data-copy-source', source);
+  }
+});
 const escape = value => parser.utils.escapeHtml(String(value));
 export const PREVIEW_LIMIT = 512 * 1024;
 
@@ -75,10 +89,12 @@ parser.core.ruler.after('block', 'source_line_locations', state => {
 for (const type of ['fence', 'code_block']) {
   const render = parser.renderer.rules[type];
   parser.renderer.rules[type] = (tokens, index, options, env, self) => {
-    const html = render(tokens, index, options, env, self), map = tokens[index].map;
-    if (!env.sourceMap || !map) return html;
+    const html = render(tokens, index, options, env, self).replace(/(<code\b[^>]*?) data-copy-source="[^"]*"/, '$1'), map = tokens[index].map;
+    const clipboard = tokens[index].attrGet('data-copy-source');
+    const marked = clipboard === null || /<pre[^>]* data-copy-source=/.test(html) ? html : html.replace(/^<pre(?=[ >])/, `<pre data-copy-source="${escape(clipboard)}"`);
+    if (!env.sourceMap || !map) return marked;
     const start = sourceLine(env, map[0]), end = Math.max(start, sourceLine(env, map[1]));
-    return html.replace(/^<pre(?=[ >])/, `<pre data-source-line="${start}" data-source-end-line="${end}"`);
+    return marked.replace(/^<pre(?=[ >])/, `<pre data-source-line="${start}" data-source-end-line="${end}"`);
   };
 }
 
@@ -87,6 +103,16 @@ for (const type of ['fence', 'code_block']) {
 const renderFence = parser.renderer.rules.fence;
 parser.renderer.rules.fence = (tokens, index, options, env, self) => {
   const token = tokens[index];
+  if (env.technical && token.info.trim().toLowerCase() === 'asmb-interactive') {
+    try {
+      if(token.content.length>8192)throw Error('limit');
+      const spec=JSON.parse(token.content);
+      if(!spec||Array.isArray(spec)||Object.keys(spec).some(key=>!['path','caption','fallback'].includes(key))||typeof spec.path!=='string'||spec.path.length>240||/^[\/]|[\\:\x00-\x1f\x7f?#]/.test(spec.path)||! /\.(?:artifact\.json|html)$/i.test(spec.path)||typeof spec.caption!=='string'||spec.caption.length>500||typeof spec.fallback!=='string'||spec.fallback.length>2000)throw Error('invalid');
+      if((env.interactiveCount=(env.interactiveCount??0)+1)>16)throw Error('limit');
+      const map=token.map,hints=env.sourceMap&&map?` data-source-line="${sourceLine(env,map[0])}" data-source-end-line="${sourceLine(env,map[1])}"`:'';
+      return `<figure class="repository-interactive" data-artifact="${escape(spec.path)}" data-artifact-caption="${escape(spec.caption)}" data-artifact-fallback="${escape(spec.fallback)}"${hints}><p>${escape(spec.caption)}</p><p>${escape(spec.fallback)}</p></figure>\n`;
+    }catch{return `<p class="artifact-error" role="alert">Interactive example unavailable: use a local HTML or .artifact.json path, caption and fallback in the asmb-interactive block.</p>\n${renderFence(tokens,index,options,env,self)}`;}
+  }
   if (!env.technical || token.info.trim().toLowerCase() !== 'mermaid') return renderFence(tokens, index, options, env, self);
   const id = `diagram-${env.diagramCount = (env.diagramCount ?? 0) + 1}`;
   // Sixteen renderable blocks plus one local limit explanation. Additional
@@ -168,7 +194,7 @@ parser.renderer.rules.heading_open = (tokens, index, options, env, self) => {
 export function renderSourcePreview(source, sourcePath = '', options = {}) {
   if (typeof source !== 'string') throw Error('Preview requires source text.');
   if (source.length > PREVIEW_LIMIT) return { html: '', headings: [], images: [], language: contentLanguage(source), limited: true };
-  const environment = { sourcePath, technical: options.technical === true, externalLinks: options.externalLinks === true, sourceMap: options.sourceMap === true, sourceLineMap: options.sourceLineMap, linkTags: [], headings: [], images: [], anchors: new Set() };
+  const environment = { clipboardSource: source, sourcePath, technical: options.technical === true, externalLinks: options.externalLinks === true, sourceMap: options.sourceMap === true, sourceLineMap: options.sourceLineMap, linkTags: [], headings: [], images: [], anchors: new Set() };
   const html = parser.render(source, environment);
   return { html, headings: environment.headings, images: environment.images, language: contentLanguage(source), limited: false };
 }

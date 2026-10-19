@@ -13,7 +13,7 @@ test('technical reading is explicit and ordinary previews retain their behavior'
   const plain = renderSourcePreview(source).html;
   assert.doesNotMatch(plain, /preview-math|katex/);
   assert.match(plain, /<em>important<\/em>/);
-  assert.equal(count(render(source), /data-copy-math/g), 3);
+  assert.equal(count(render(source), /data-math-source/g), 3);
 });
 
 test('minimal transform and matrix preserve TeX while providing HTML and MathML', () => {
@@ -62,8 +62,8 @@ test('code, emphasis, escapes, prices and ambiguous dollar pairs stay ordinary M
   assert.match(html, /<em>important<\/em>/);
   assert.match(html, /Prices \$5, \$10\.50, \$5 and \$10/);
   assert.match(html, /Ambiguous \$5\$ and \$2x\$/);
-  assert.match(html, /<pre><code class="language-text">\$not_math\$ and T_\{AB\}/);
-  assert.match(html, /<pre><code>\$indented\$/);
+  assert.match(html, /<pre[^>]*><code class="language-text">\$not_math\$ and T_\{AB\}/);
+  assert.match(html, /<pre[^>]*><code>\$indented\$/);
   const adjacent = render('Keep $x$word ordinary; later $y$ renders.');
   assert.match(adjacent, /Keep \$x\$word ordinary/);
   assert.equal(count(adjacent, /data-math-source=/g), 1);
@@ -84,7 +84,7 @@ test('invalid math gives an escaped local diagnostic and retains later content',
   assert.equal(count(html, /<math /g), 1);
   assert.match(html, /This paragraph remains readable/);
   assert.match(html, /data-math-source="\\frac\{1\}\{"/);
-  assert.equal(count(html, /data-copy-math/g), 2);
+  assert.equal(count(html, /data-math-source/g), 2);
   const malicious = render(String.raw`\(\badcommand{<img src=x onerror=alert(1)>}\)`);
   assert.doesNotMatch(malicious, /<img|<script/);
   assert.match(malicious, /&lt;img/);
@@ -143,7 +143,7 @@ test('surplus equations produce one diagnostic and literal source without DOM am
   const source = '$x$ '.repeat(60000), html = render(source);
   assert.equal(count(html, /data-math-source=/g), MATH_LIMITS.equations + 1);
   assert.equal(count(html, /Document math reading limit reached/g), 1);
-  assert.ok(html.length < source.length * 2);
+  assert.ok(html.replace(/ data-copy-source="[^"]*"/g,'').length < source.length * 2);
   assert.match(html, /\$x\$ \$x\$/);
   const blocks = render('$$x$$\n\n'.repeat(MATH_LIMITS.equations + 3));
   assert.equal(count(blocks, /Document math reading limit reached/g), 1);

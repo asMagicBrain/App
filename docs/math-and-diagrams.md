@@ -18,7 +18,9 @@ The equivalent `\[ ... \]` display form also works. Display equations must occup
 
 Dollar math is deliberately conservative: a single-line expression must begin with a non-digit, non-space character, end without a space, and not touch surrounding letters or numbers. Use `\(2x+1\)` for expressions beginning with a number. Prices such as `$5` and escaped dollars stay text. Math inside code stays code.
 
-Choose **Copy TeX** beside an equation to copy its source without the delimiters. Invalid or unsupported equations show their source and a local explanation. Built-in KaTeX notation is supported; custom macro definitions, external resources and HTML commands are disabled. Equation numbering is not available yet.
+Right-click an equation and choose **Copy TeX** to copy its original TeX without delimiters. Keyboard users can focus an equation and press Shift+F10 to open the same menu. Equations have no persistent copy buttons in Preview or Present.
+
+Select reading content and use Cmd+C (macOS) or Ctrl+C (Windows/Linux) to copy Markdown with original TeX: inline mathematics uses `$…$`, display mathematics uses `$$…$$`. An equation is atomic: selecting any part of its rendered symbols copies the whole equation. Hidden comments stay omitted. Complete selected blocks without hidden comments retain their Markdown source; partial formatted selections are reconstructed as Markdown. Code content and blank lines remain intact. Selection copying in editable source fields retains its ordinary behavior. Copying does not include KaTeX's duplicate visual/accessibility layers. Invalid or unsupported equations show their source and a local explanation. Built-in KaTeX notation is supported; custom macro definitions, external resources and HTML commands are disabled. Equation numbering is not available yet.
 
 ## Diagrams
 

@@ -1,3 +1,4 @@
+export function artifactNativeKeyCode(code, windowsCode, platform=process.platform){return platform==='darwin'?({Home:115,End:119,ArrowLeft:123,ArrowRight:124,ArrowDown:125,ArrowUp:126,Enter:36,Escape:53,Space:49,Tab:48}[code]??windowsCode):windowsCode;}
 /** Read-only CDP observation and ordinary input for an explicitly activated
  * unprivileged artifact target. This is a test process, never an app bridge.
  */
@@ -41,11 +42,12 @@ export async function createArtifactProbe(page) {
     }
     async function click(selector) {
       const point = await evaluate(`(()=>{const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing control');e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);
+      await evaluate('new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))');
       await send('Input.dispatchMouseEvent', {...point,type:'mousePressed',button:'left',clickCount:1});
       await send('Input.dispatchMouseEvent', {...point,type:'mouseReleased',button:'left',clickCount:1});
     }
     async function key(key, code, windowsVirtualKeyCode) {
-      for (const type of ['keyDown','keyUp']) await send('Input.dispatchKeyEvent', {type,key,code,windowsVirtualKeyCode,nativeVirtualKeyCode:windowsVirtualKeyCode});
+      for (const type of ['keyDown','keyUp']) await send('Input.dispatchKeyEvent', {type,key,code,windowsVirtualKeyCode,nativeVirtualKeyCode:artifactNativeKeyCode(code,windowsVirtualKeyCode)});
     }
     return {send, evaluate, click, key, metrics: async () => ({heap:await send('Runtime.getHeapUsage'),performance:await send('Performance.getMetrics'),contexts:[...contexts].filter(([key])=>key.startsWith(sessionId+':')).map(([,value])=>({id:value.id,origin:value.origin,isDefault:value.auxData?.isDefault}))}),
       detach: async () => { await transport.send('Target.detachFromTarget', {sessionId}).catch(()=>{}); for (const key of contexts.keys()) if(key.startsWith(sessionId+':'))contexts.delete(key); }};

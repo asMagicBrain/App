@@ -12,8 +12,8 @@ import './native.css';
 const openingWorkspace = <main className="native-startup" role="status">Opening your local workspace…</main>;
 
 /** The standalone application uses exactly the shared repository/CM6 interface. */
-export function NativeApp({appearance, buildConfiguration, Workspace}: {appearance: NativeAppearance; buildConfiguration: NativeBuildConfiguration; Workspace: typeof import('../../../ui-workshop/src/FocusedWriting').FocusedWriting}) {
-  return <Workspace repositoryHeader repositoryCode initialRepository="Workspace" buildChannel={buildConfiguration.channel}
+export function NativeApp({appearance, buildConfiguration, Workspace, initialRepository='Workspace'}: {initialRepository?:string; appearance: NativeAppearance; buildConfiguration: NativeBuildConfiguration; Workspace: typeof import('../../../ui-workshop/src/FocusedWriting').FocusedWriting}) {
+  return <Workspace repositoryHeader repositoryCode initialRepository={initialRepository} buildChannel={buildConfiguration.channel}
     initialTheme={appearance.themeId} initialHideUnavailable={appearance.hideUnavailable}/>;
 }
 
@@ -30,12 +30,15 @@ async function start() {
     if (!bridge) throw new Error('The native workspace connection is unavailable.');
     // No appearance write occurs during mount. Load the saved values before the
     // first shared-UI render so its defaults cannot overwrite persisted choices.
-    const [appearance, buildConfiguration, workspace] = await Promise.all([bridge.getAppearance(), loadNativeBuildConfiguration(bridge), import('../../../ui-workshop/src/FocusedWriting')]);
+    const [appearance, buildConfiguration, workspace, catalog] = await Promise.all([bridge.getAppearance(), loadNativeBuildConfiguration(bridge), import('../../../ui-workshop/src/FocusedWriting'), bridge.catalog()]);
     if (!appearance || typeof appearance.hideUnavailable !== 'boolean' ||
         (appearance.themeId !== null && !themes.some(theme => theme.id === appearance.themeId))) {
       throw new Error('The saved appearance could not be read. Your settings have not been changed.');
     }
-    root.render(<NativeApp appearance={appearance} buildConfiguration={buildConfiguration} Workspace={workspace.FocusedWriting}/>);
+    if(!catalog.repositories.length){
+      root.render(<main className="native-startup"><h1>Repositories need recovery</h1><p>Your files and drafts are retained. No replacement folder has been adopted.</p><ul>{catalog.repositoryRecovery?.map(item=><li key={item.name}>{item.name}: {item.message}</li>)}</ul><p>Quit before restoring the original folders from a verified backup. Do not delete private state or edit registration records.</p><button onClick={()=>{void start();}}>Recheck repositories</button></main>);return;
+    }
+    root.render(<NativeApp initialRepository={catalog.defaultRepository??catalog.repositories[0].name} appearance={appearance} buildConfiguration={buildConfiguration} Workspace={workspace.FocusedWriting}/>);
   } catch (reason) {
     root.render(<main className="native-startup"><h1>Could not open the workspace</h1>
       <p role="alert">{reason instanceof Error ? reason.message : 'The local connection failed.'}</p>

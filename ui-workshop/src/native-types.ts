@@ -63,7 +63,8 @@ export type RepositoryUpdateFile = RepositoryUpdatePath & {
 };
 export type ArtifactBounds = {x:number;y:number;width:number;height:number};
 export type ArtifactReview = {warnings?:string[];poster?:{path:string;mime:'image/png'|'image/jpeg';data:ArrayBuffer}|null;reviewId:string;title:string;entryPath:string;digest:string;source:string;fallback:string;assets:{path:string;bytes:number;sha256:string}[]};
-export type ArtifactRuntimeState = {state:'idle'|'review'|'declined'|'loading'|'running'|'stopped'|'failed';runId?:string|null;reason?:string;activeViews?:number;geometryPending?:boolean;bounds?:ArtifactBounds|null;ownerSize?:number[];errorCode?:string|null;lastFailure?:{code:string;at:number;runId:string|null}|null;lastStopReason?:string|null;diagnostics?:unknown[]};
+export type ArtifactStopCause='user-stop'|'view-close'|'view-unmount'|'source-switch'|'fallback-switch'|'transport-failure'|'request-superseded';
+export type ArtifactRuntimeState = {state:'idle'|'review'|'declined'|'loading'|'running'|'stopped'|'failed';runId?:string|null;reason?:string;activeViews?:number;geometryPending?:boolean;surfaceVisible?:boolean|null;runtimePhase?:string;focusReturn?:number;zoomFactor?:number;bounds?:ArtifactBounds|null;ownerSize?:number[];errorCode?:string|null;lastFailure?:{code:string;at:number;runId:string|null}|null;lastStopReason?:string|null;lastStop?:{at:number;cause:string;runId:string|null;didDispose:boolean;ownerVisible:boolean|null;ownerMinimized:boolean|null;ownerFullscreen:boolean|null;ownerFocused:boolean|null}|null;diagnostics?:unknown[]};
 export type PortableReadingReference={schemaVersion:1;collectionId:string;documentId:string;targetId?:string;revision?:string;sourceHash?:string};
 export type ResolvedReadingReference={status:string;message:string;repo?:string;repoId?:string;path?:string;revision?:string;sourceHash?:string;target?:{from:number;to:number}|null;candidates?:{repo:string;repoId:string}[]};
 export type AutomationScope='read'|'write'|'import'|'export';
@@ -83,11 +84,12 @@ export type NativeBridge = {
   approveAutomation(input:{operationId:string;digest:string}):Promise<unknown>;
   cancelAutomation(input:{operationId:string}):Promise<unknown>;
   reviewArtifact(input:{repo:string;path:string;ref:''}):Promise<ArtifactReview>;
-  runArtifact(input:{reviewId:string;approved:true;bounds:ArtifactBounds}):Promise<ArtifactRuntimeState>;
-  resizeArtifact(input:{runId:string;bounds:ArtifactBounds;viewport:{width:number;height:number}}):Promise<ArtifactRuntimeState>;
-  stopArtifact(input:{runId?:string;reviewId?:string}):Promise<ArtifactRuntimeState>;
-  resetArtifact(input:{reviewId:string;runId?:string;approved:true;bounds:ArtifactBounds}):Promise<ArtifactRuntimeState>;
+  runArtifact(input:{reviewId:string;approved:true;bounds:ArtifactBounds;inline?:boolean;presentation?:boolean}):Promise<ArtifactRuntimeState>;
+  resizeArtifact(input:{runId:string;bounds:ArtifactBounds;viewport:{width:number;height:number};visible?:boolean}):Promise<ArtifactRuntimeState>;
+  stopArtifact(input:{runId?:string;reviewId?:string;cause?:ArtifactStopCause}):Promise<ArtifactRuntimeState>;
+  resetArtifact(input:{reviewId:string;runId?:string;approved:true;bounds:ArtifactBounds;inline?:boolean;presentation?:boolean}):Promise<ArtifactRuntimeState>;
   artifactStatus():Promise<ArtifactRuntimeState>;
+  onArtifactState?(callback:(value:ArtifactRuntimeState)=>void):()=>void;
   packageStatus(input:{repo:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeStatus>;
   reviewPackageBase(input:{repo:string;bytes:ArrayBuffer;collectionId:string;version:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').PackageReview>;
   registerPackageBase(input:{repo:string;planId:string}):Promise<import('../../packages/desktop-host/src/package-exchange/index.mjs').ExchangeStatus>;

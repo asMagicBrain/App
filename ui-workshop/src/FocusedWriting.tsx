@@ -283,6 +283,12 @@ function FocusedWritingWindow({workspaceStudy,buildChannel='development',initial
       {repositoryHeader&&<RepositoryActions onPackages={getNativeBridge()?.packageStatus?openPackages:undefined} disabled={study?.active} showAgentPlaceholder={!previewBuild} onSearch={getNativeBridge()?.searchRepositoryText?()=>openSearch({mode:'content',repo:null}):undefined} onAllRepositories={()=>openWorkspaceView('repositories')} allRepositoriesActive={catalogView} onNew={selectedReadOnly?undefined:create} onImport={openImport} onNewRepository={getNativeBridge()?.createRepository?openNewRepository:undefined}/>}
       <IconButton icon="right" label="Toggle document outline" expanded={study?.active?(study.outline?.open??false):outlineOpen} alwaysVisible disabled={study?.active&&!study.outline} onClick={study?.active?study.outline?.onToggle:toggleOutline}/>
     </header>
+    {!!catalog?.repositoryRecovery?.length&&<section className="fw-repository-recovery" aria-label="Repositories needing recovery" role="status">
+      <details><summary>{catalog.repositoryRecovery.length} {catalog.repositoryRecovery.length===1?'repository needs':'repositories need'} recovery. Other repositories remain available.</summary>
+        <ul>{catalog.repositoryRecovery.map(item=><li key={item.name}><strong>{item.name}</strong>: {item.message}</li>)}</ul>
+        <p>Quit asMagicBrain before restoring folders from a verified backup. Keep both versions and the private state folder; do not delete drafts or edit registration records. Recheck after the original folder has been restored.</p>
+      </details><button onClick={()=>setCatalogEpoch(value=>value+1)} disabled={catalogLoading}>Recheck repositories</button>
+    </section>}
     {themeOpen&&<><button className="fw-theme-backdrop" aria-label="Dismiss theme picker" tabIndex={-1} onClick={()=>{setThemeOpen(false);themeButton.current?.focus();}}/><section className="fw-theme-picker" aria-label="asMagicBrain Theme"><h2>asMagicBrain Theme</h2><label>Theme<select autoFocus value={themeId??''} onChange={event=>changeTheme(event.target.value||null)}><option value="">Current reference appearance</option>{themes.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label><button onClick={()=>{setThemeOpen(false);themeButton.current?.focus();}}>Done</button></section></>}
     <div className="fw-body">
       <nav className="fw-rail" aria-label="Workspace tools">

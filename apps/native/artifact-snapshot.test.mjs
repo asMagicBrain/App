@@ -100,3 +100,11 @@ test('mislabelled JPEG poster preserves hashes and serves its detected image MIM
  const snapshot=f.load();assert.equal(snapshot.poster.mime,'image/jpeg');assert.equal(snapshot.assets.get('poster.png').mime,'image/jpeg');assert.deepEqual(snapshot.assets.get('poster.png').bytes,jpeg);assert.match(snapshot.warnings[0],/filename extension differs/);
  const origin='asmb-artifact://12345678-1234-1234-1234-123456789012';assert.equal(artifactAssetResponse(snapshot,origin+'/poster.png',origin).mime,'image/jpeg');
 });
+
+test('font-specific budget admits declared local fonts without enlarging script budgets',()=>{
+ const f=fixture(),font=Buffer.alloc(3*1024*1024,0);fs.writeFileSync(path.join(f.dir,'font.ttf'),font);
+ f.manifest.assets.push({path:'font.ttf',bytes:font.length,sha256:digest(font),role:'data'});fs.writeFileSync(path.join(f.dir,'module.artifact.json'),JSON.stringify(f.manifest));
+ assert.equal(f.load().assets.get('font.ttf').mime,'font/ttf');
+ const disguised=structuredClone(f.manifest);disguised.assets.at(-1).path='font.js';disguised.assets.at(-1).role='script';assert.throws(()=>validateArtifactManifest(disguised),{code:'ARTIFACT_INVALID_MANIFEST'});
+ const excessive=structuredClone(f.manifest);excessive.assets.at(-1).bytes=17*1024*1024;assert.throws(()=>validateArtifactManifest(excessive),{code:'ARTIFACT_INVALID_MANIFEST'});
+});
