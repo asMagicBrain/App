@@ -30,6 +30,8 @@ In **Course settings → Repositories**, you can select an imported Student chec
 
 In **Course settings → Repositories → Course repository intake**, inspect all bound role and Team checkouts together. Select the checkouts to validate, review their GitHub identities and confirm registration. Validation reads large files in bounded chunks only for this explicit intake; simply opening the course does not hash all course assets.
 
+Large folder listings use one bounded history query instead of starting Git separately for each file. Row summaries cover recent history; older or unavailable summaries stay blank. Opening a file still reads its own path history. Listing a folder does not load its binary assets.
+
 Already managed checkouts are registered in place: files, history, calendars, People and role bindings remain unchanged. Partial success is recorded privately. After interruption or restart, inspect again and review the remaining checkouts; completed bindings are not lost or automatically repeated. Missing repositories must first be imported and bound through their reviewed setup controls.
 
 ## Connection states
