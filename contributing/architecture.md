@@ -40,7 +40,7 @@ Packaged Git and ripgrep are pinned app-owned binaries with no PATH or system-Gi
 
 ## Accounts and releases
 
-The host owns account transport and build-time registration. Tokens stay in memory until quit. GitHub operations use validated acquisition provenance, so editing `.git/config` cannot redirect them. Comparison and clean Apply are explicit reviewed operations.
+The host owns account transport and build-time registration. Account authorization and durable repository bindings have separate lifetimes. Default session tokens stay in memory until quit. GitHub operations use validated acquisition provenance, so editing `.git/config` cannot redirect them. Comparison and clean Apply are explicit reviewed operations.
 
 Packages record commit/tag, version/channel, runtime inventories, account configuration, and user-doc identity. Signing creates a separate output with updated inventories and preserves its input. Simulated provider/signing tests must be labelled. See [releases](releasing.md).
 
@@ -77,3 +77,6 @@ Qualification separates synthetic provider UI checks, live disposable-repository
 A separate host-private `.asmb-teach-staff` ledger keeps a revisioned local roster and durable pending repository-grant intent. The narrow bridge admits roster save, single-account read/write review, apply/cancel and GET-only recovery. Review resolves a personal GitHub numeric user ID and rechecks the pinned repository, local binding, branch, course revision, roster revision, signed-in account, visibility, current admin authority and complete listed access before PUT. Existing invitations and sufficient inherited/higher rights produce no mutation. Unknown outcomes block further grants until read-only recovery or explicitly verified clearing. No organization membership writes, admin grants, collaborator removal or access downgrade are implemented.
 
 The provider carries the freshly observed owner type into staff-grant review. New personal Read grants are refused before durable mutation intent; personal Write uses a zero-length PUT body, while organization grants use an explicit permission. Provider validation errors are distinct from repository-name conflicts. Unknown grant outcomes still require GET-only reconciliation.
+
+### Existing checkout intake
+Explicit checkout review streams raw file hashes against HEAD/index and the live GitHub branch, without checkout, hooks, filters or credential helpers. Ordinary course descriptors remain metadata-focused. New external copies use an isolated staged publication; existing managed checkouts gain only private verified connection records. Course intake journals retain per-root partial success and require fresh review after restart. See [repository intake](../docs/repository-intake.md).

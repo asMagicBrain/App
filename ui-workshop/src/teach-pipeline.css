@@ -35,3 +35,12 @@
 @media(max-width:800px){.teach-settings-layout{grid-template-columns:140px minmax(0,1fr);gap:16px}.teach-directory-form{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:560px){.teach-settings-layout{grid-template-columns:minmax(0,1fr)}.teach-settings-layout .teach-settings-nav{position:static;flex-direction:row;flex-wrap:wrap;border:0;padding:0}}
 .teach-settings-shell{display:flex;flex:1;min-height:0;min-width:0;position:relative;overflow:hidden;width:100%}.teach-settings-shell>.teach-pipeline{flex:1;min-width:0;overflow:auto;margin:0 auto}.teach-settings-sidebar{position:relative;flex-shrink:0;width:var(--panel-resize-width,280px);overflow:visible;border-right:1px solid var(--fw-line,#d1d9e0)}.teach-settings-sidebar nav{padding:12px 8px}.teach-settings-sidebar button{width:100%;font:inherit;text-align:left;border:0;background:transparent;min-height:32px;cursor:pointer;border-radius:6px}.teach-settings-sidebar button[aria-current=page]{background:var(--fw-hover,#f6f8fa);font-weight:600}.teach-settings-shell .teach-settings-layout{display:block;margin-top:24px}.teach-settings-shell textarea{font:inherit;width:100%}.teach-settings-shell small{color:var(--fw-muted,#59636e)}
+/* Reuse settings-table conventions inside the reviewed intake dialog. */
+.tcs-dialog:has(.teach-course-intake-review){width:min(1100px,calc(100vw - 48px));max-width:calc(100vw - 48px)}
+.teach-course-intake-review .teach-pipeline-table{overflow-x:auto;max-width:100%}
+.teach-course-intake-review table{border-collapse:collapse;width:100%;font-size:14px;text-align:left}
+.teach-course-intake-review th,.teach-course-intake-review td{padding:10px 12px;border-bottom:1px solid var(--borderColor-default,#d1d9e0);vertical-align:top;overflow-wrap:anywhere}
+.teach-course-intake-review th{white-space:nowrap}
+.teach-course-intake-review td{min-width:130px;max-width:280px}
+.teach-course-intake-review td:first-child{min-width:40px}
+.teach-course-intake-review input[type=checkbox]{width:16px;height:16px;min-width:16px;min-height:16px;margin:4px 0;flex:none}

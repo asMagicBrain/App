@@ -7,6 +7,7 @@ import {hashRawFile} from '../local-git/raw-file.mjs';
 import {ZIP_IMPORT_LIMITS} from '../zip-import/index.mjs';
 import {pinDirectory,checkDirectory} from '../physical-roots.mjs';
 import {portablePathKey,isPortableRelativePath} from '../../../source-foundation/src/domain/path-policy.mjs';
+import {copyReviewedCheckout} from './adopt-checkout.mjs';
 import {copyLocalRepository} from './copy-repository.mjs';
 import {initializeEmptyRepository} from '../local-git/initialize-empty.mjs';
 import {cloneGitHubRepository,canonicalGitHubUrl} from '../local-git/github-clone.mjs';
@@ -204,7 +205,7 @@ export function createRepositoryCatalog(base,{builtinRepositories=BUILTIN_REPOSI
    if(!exists(final))register(record);else if(JSON.stringify(readRecord(final))!==JSON.stringify(record))fail('CATALOG_UNAVAILABLE');
   }
  }
- return {root:root.path,directory,ensure,list,assertKnown,provenance,assertAvailable,register,created,finishCreation,renameRegistration,retireRegistration,restoreRegistration,recover,check,writeRecord};
+ return {root:root.path,directory,ensure,list,assertKnown,provenance,provenances:()=>Object.fromEntries(records().filter(r=>r.source==='github').map(r=>[r.name,structuredClone(r)])),assertAvailable,register,created,finishCreation,renameRegistration,retireRegistration,restoreRegistration,recover,check,writeRecord};
 }
 
 function runWorker(archivePath,destination,options={}){return new Promise((resolve,reject)=>{
@@ -241,7 +242,7 @@ export function createRepositoryImporter({base,builtinRepositories,isolateUnavai
    throw error;
   }finally{const live=exists(lockPath);if(live&&identity(live)===lockIdentity)fs.unlinkSync(lockPath);sync(pin.path);}
  }
- async function cloneRepository({name,url,requestId},{signal,credential,onProgress=()=>{}}={}){
+ async function cloneRepository({name,url,requestId},{signal,credential,onProgress=()=>{},reviewed,sourceRoot}={}){
   if(!validRepositoryName(name))fail('INVALID_REPOSITORY_NAME');if(!validCreationId(requestId))fail('INVALID_REQUEST');const sourceUrl=canonicalGitHubUrl(url);
   const at=point=>hooks.at?.(point.replace(/^create-/,'clone-')),pin=catalog.ensure(),lockPath=path.join(pin.path,'import.lock');
   if(lockActive(lockPath))fail('IMPORT_BUSY');
@@ -252,7 +253,7 @@ export function createRepositoryImporter({base,builtinRepositories,isolateUnavai
    if(!record&&exists(readyPath)){record=readRecord(readyPath);if(!validRecord(record)||record.schemaVersion!==3||record.creationId!==requestId||record.requestName!==name||record.sourceUrl!==sourceUrl)fail('REQUEST_CONFLICT');ready=true;}
    if(!record){
     if(signal?.aborted)fail('CLONE_CANCELLED');catalog.assertAvailable(name);fs.mkdirSync(staging,{mode:0o700});stagePin=pinDirectory(staging);sync(catalog.root);at('clone-staging');
-    const result=await cloneGitHubRepository({sourceRoot:staging,url:sourceUrl,signal,credential,onProgress,acquire:hooks.cloneAcquire});checkDirectory(stagePin);checkDirectory(pin);catalog.assertAvailable(name);at('clone-initialized');
+    const result=reviewed?await copyReviewedCheckout({sourceRoot,destination:staging,reviewed,signal,onProgress}).then(v=>({head:v.head,branch:v.branch,files:v.files,bytes:v.bytes,sourceUrl:v.origin})):await cloneGitHubRepository({sourceRoot:staging,url:sourceUrl,signal,credential,onProgress,acquire:hooks.cloneAcquire});checkDirectory(stagePin);checkDirectory(pin);catalog.assertAvailable(name);at('clone-initialized');
     record={schemaVersion:3,source:'github',creationId:requestId,stageId,requestName:name,name,identity:stagePin.identity,...result,createdAt:new Date().toISOString()};
     at('clone-before-ready');if(signal?.aborted)fail('CLONE_CANCELLED');writeRecord(readyPath,record);ready=true;at('clone-ready');
    }
@@ -261,7 +262,7 @@ export function createRepositoryImporter({base,builtinRepositories,isolateUnavai
    onProgress({phase:'publishing'});const result=catalog.finishCreation(record,{at});
    return {name:result.name,organization:'asMagicBrain',head:result.head,files:result.files,bytes:result.bytes,branch:result.branch,sourceUrl:result.sourceUrl};
   }catch(error){
-   if(stagePin&&!ready&&!exists(readyPath)){try{checkDirectory(stagePin);fs.rmSync(staging,{recursive:true});sync(catalog.root);}catch{}}
+   if(stagePin&&!ready&&!exists(readyPath)){try{checkDirectory(stagePin);const recovery=path.join(pin.path,'intake-recovery');if(!exists(recovery))fs.mkdirSync(recovery,{mode:0o700});const recoveryPin=pinDirectory(recovery);fs.renameSync(staging,path.join(recovery,stageId));writeRecord(path.join(recovery,stageId+'.json'),{schemaVersion:1,requestId,name,sourceUrl,stageId,code:/^[A-Z_]{1,64}$/.test(error.code??'')?error.code:'CLONE_FAILED',createdAt:new Date().toISOString()});checkDirectory(recoveryPin);sync(catalog.root);}catch{}}
    throw error;
   }finally{const live=exists(lockPath);if(live&&identity(live)===lockIdentity)fs.unlinkSync(lockPath);sync(pin.path);}
  }
@@ -347,5 +348,5 @@ export function createRepositoryImporter({base,builtinRepositories,isolateUnavai
   if(JSON.stringify(token)!==JSON.stringify({schemaVersion:1,requestId,name,archiveSha256,initializeHistory}))fail('RECOVERY_REQUIRED');
   return {name:record.name,organization:'asMagicBrain',head:record.head,files:record.files,bytes:record.bytes,excludedEntries:record.excludedEntries,requestId,archiveSha256:record.archiveSha256,initializeHistory:record.initializeHistory};
  }
- return {catalog,importArchive,findCompletedImport,createRepository,cloneRepository,duplicateRepository};
+ return {catalog,importArchive,findCompletedImport,createRepository,cloneRepository,adoptRepository:({sourceRoot,name,requestId,reviewed},options)=>cloneRepository({name,url:reviewed.origin,requestId},{...options,reviewed,sourceRoot}),duplicateRepository};
 }

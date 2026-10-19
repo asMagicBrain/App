@@ -37,7 +37,7 @@ export function createCloneCoordinator({clone, getCredential}) {
           if (input.useAccount) credential = await getCredential();
           if (controller.signal.aborted) fail('CLONE_CANCELLED');
           const result = await clone(request, {signal: controller.signal, credential,
-            onProgress: event => {if (phases.has(event?.phase)) job.phase = event.phase;}});
+            onProgress: event => {if (phases.has(event?.phase)){job.phase = event.phase;job.progress=Object.fromEntries(['percent','completedObjects','totalObjects','checkedBytes','totalBytes','completedFiles','files'].filter(k=>Number.isSafeInteger(event[k])&&event[k]>=0).map(k=>[k,event[k]]));}}});
           // Cancellation after durable publication cannot undo a managed repo.
           job.phase = 'complete';
           return result;
@@ -57,7 +57,7 @@ export function createCloneCoordinator({clone, getCredential}) {
   }
   return {
     cloneRepository,
-    getCloneProgress: input => {const job = find(input); return {requestId: job.requestId, phase: job.phase};},
+    getCloneProgress: input => {const job = find(input); return {requestId: job.requestId, phase: job.phase,...job.progress};},
     cancelClone: input => cancelJob(find(input)),
     cancelAuthenticated: async () => {if (active?.authenticated) await cancelJob(active);},
     prepareClose: async () => {paused = true; if (active) await cancelJob(active);},

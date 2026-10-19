@@ -34,7 +34,7 @@ test('URL admission accepts only canonical GitHub HTTPS repositories',()=>{
 
 test('clone retains full history, tags, branch tips and bytes; selected local commit and drafts survive restart',async t=>{
  const f=await fixture(t),input=request(),phases=[];const result=await f.service.cloneRepository(input,{onProgress:value=>phases.push(value.phase)}),root=f.root('Cloned');
- assert.equal(result.head,git(f.original,'rev-parse','HEAD'));assert.equal(result.branch,'trunk');assert.equal(result.sourceUrl,'https://github.com/ancorasir/asTeach-App.git');assert.deepEqual(phases,['connecting','checking','publishing']);
+ assert.equal(result.head,git(f.original,'rev-parse','HEAD'));assert.equal(result.branch,'trunk');assert.equal(result.sourceUrl,'https://github.com/ancorasir/asTeach-App.git');assert.deepEqual([...new Set(phases)],['connecting','checking','publishing']);
  assert.equal(git(root,'remote','get-url','origin'),result.sourceUrl);assert.equal(git(root,'rev-list','--all','--count'),git(f.original,'rev-list','--all','--count'));assert.equal(git(root,'tag','--list'),git(f.original,'tag','--list'));
  for(const ref of ['refs/heads/trunk','refs/heads/topic','refs/tags/v1','refs/tags/v2'])assert.equal(git(root,'rev-parse',ref),git(f.original,'rev-parse',ref));
  for(const name of ['README.md','asset.bin','run.sh','docs/notes.md','.gitattributes'])assert.deepEqual(fs.readFileSync(path.join(root,name)),execFileSync('/usr/bin/git',['-C',f.original,'show',`HEAD:${name}`],{env,maxBuffer:8*1024*1024}));
@@ -107,15 +107,14 @@ test('LFS pointer files remain exact ordinary bytes; unsupported config and temp
 });
 
 
-test('blob write failure and cancellation fully drain streams before owned staging is removed',async t=>{
+test('batch blob write failure and cancellation drain before owned staging is removed',async t=>{
  for(const failure of ['storage','cancel'])await t.test(failure,async t=>{
-  const f=await fixture(t),controller=new AbortController(),original=fs.createWriteStream;let armed=true;
-  fs.createWriteStream=(filename,options)=>{
-   if(!armed||!filename.endsWith('/asset.bin'))return original(filename,options);armed=false;
-   if(failure==='storage')return new Writable({write(chunk,encoding,callback){callback(Object.assign(new Error('Disk full'),{code:'ENOSPC'}));},destroy(error,callback){fs.closeSync(options.fd);callback(error);}});
-   const stream=original(filename,options);stream.once('pipe',()=>controller.abort());return stream;
-  };
-  try{await assert.rejects(f.service.cloneRepository(request(),{signal:controller.signal}),{code:failure==='storage'?'ENOSPC':'CLONE_CANCELLED'});}finally{fs.createWriteStream=original;}
+  const f=await fixture(t),controller=new AbortController(),open=fs.openSync,write=fs.writeSync;let armed=true,target;
+  fs.openSync=(filename,...args)=>{const fd=open(filename,...args);if(typeof filename==='string'&&filename.endsWith('/asset.bin')&&args[0]&fs.constants.O_WRONLY)target=fd;return fd;};
+  fs.writeSync=(fd,...args)=>{if(armed&&fd===target){armed=false;if(failure==='storage')throw Object.assign(Error('Disk full'),{code:'ENOSPC'});controller.abort();}return write(fd,...args);};
+  try{await assert.rejects(f.service.cloneRepository(request(),{signal:controller.signal}),{code:failure==='storage'?'CLONE_DISK_SPACE':'CLONE_CANCELLED'});}finally{fs.openSync=open;fs.writeSync=write;}
   assert.equal(fs.existsSync(f.root('Cloned')),false);assert.deepEqual(fs.readdirSync(f.root('')).filter(name=>name.startsWith('.asmb-import-')),[]);assert.equal((await f.service.cloneRepository(request())).name,'Cloned');
  });
 });
+
+test('disk preflight refuses intake before acquisition; incomplete transfers have explicit recovery records',async t=>{let acquired=false;const f=await fixture(t,{cloneAcquire:async()=>{acquired=true;}}),statfs=fs.statfsSync;fs.statfsSync=()=>({bavail:0,bsize:4096});try{await assert.rejects(f.service.cloneRepository(request()),{code:'CLONE_DISK_SPACE'});}finally{fs.statfsSync=statfs;}assert.equal(acquired,false);const records=await f.service.listIntakeRecovery();assert.equal(records.length,1);assert.equal(records[0].name,'Cloned');assert.equal(records[0].code,'CLONE_DISK_SPACE');assert.doesNotMatch(JSON.stringify(records),/Authorization|token|secret/i);assert.equal(fs.existsSync(f.root('Cloned')),false);});

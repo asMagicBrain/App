@@ -28,7 +28,7 @@ export type ExternalFileTicket = {ticket: string; expiresAt: number; entries: {n
 export type ExternalFileImport = {status: 'completed'; operation: 'import'; importedPaths: string[]; changedPaths: string[]; skippedMetadata: number; pathMoves: []; createdDirectories: string[]; items: {path: string; newPath: string}[]};
 export type ClonedRepository = {name: string; organization: 'asMagicBrain'; head: string | null; files: number; bytes: number; branch: string; sourceUrl: string};
 export type GitHubCloneInput = {url: string; name: string; requestId: string; useAccount: boolean};
-export type GitHubCloneProgress = {phase: 'connecting' | 'receiving' | 'checking' | 'publishing' | 'complete' | 'cancelled' | 'failed'; message?: string};
+export type GitHubCloneProgress = {phase: 'connecting' | 'receiving' | 'checking' | 'publishing' | 'complete' | 'cancelled' | 'failed'; message?: string;percent?:number;checkedBytes?:number;totalBytes?:number;completedFiles?:number;files?:number};
 export type GitHubAccount = {id: number; username: string; displayName?: string; email: string | null};
 export type ApplicationAccount = {id: string; displayName: string; email: string | null; github?: {id: string; username: string | null}};
 export type ApplicationAccountState = {configured: boolean; providers: {github: boolean; email: boolean}; persistence?: 'session' | 'device'; state: 'signed-out' | 'signed-in' | 'offline' | 'expired' | 'unavailable'; account?: ApplicationAccount; error?: string; notice?: string};
@@ -115,6 +115,13 @@ export type NativeBridge = {
   request(input: {repo: string; operation: string; args: Record<string, unknown>}): Promise<unknown>;
   importArchive(input: {name: string; bytes: ArrayBuffer}): Promise<ImportedRepository>;
   createRepository(input: {name: string; requestId: string}): Promise<CreatedRepository>;
+  pickLocalCheckout(input:{name:string;useAccount:boolean}):Promise<any>;
+  applyLocalCheckout(input:{planId:string;useAccount:boolean}):Promise<ClonedRepository>;
+  cancelLocalCheckout(input:{planId:string}):Promise<any>;
+  listIntakeRecovery():Promise<any[]>;
+  revealIntakeRecovery():Promise<any>;
+  getCheckoutProgress():Promise<any>;
+  cancelCheckoutValidation():Promise<any>;
   cloneRepository(input: GitHubCloneInput): Promise<ClonedRepository>;
   getCloneProgress(input: {requestId: string}): Promise<GitHubCloneProgress | null>;
   cancelClone(input: {requestId: string}): Promise<void>;

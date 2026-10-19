@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {cancelGitHubClone, cloneGitHubRepository, getGitHubCloneProgress, githubCloneError, githubRepositoryName} from './repository-catalog';
 import {validateRepositoryName, type RepositoryCatalog} from './repository-catalog';
-import {isNativeClosing} from './native-bridge.mjs';
+import {getNativeBridge,nativeOperation,isNativeClosing} from './native-bridge.mjs';
 import type {ClonedRepository, GitHubAccount, GitHubCloneInput, GitHubCloneProgress} from './native-types';
 
 type Props = {
@@ -20,6 +20,8 @@ export function GitHubCloneForm({catalog, loading, catalogError, account, connec
   const urlInput = useRef<HTMLInputElement>(null), nameInput = useRef<HTMLInputElement>(null);
   const attempt = useRef<GitHubCloneInput | null>(null), submitting = useRef(false), active = useRef(true);
   const nameEdited = useRef(false), cancelling = useRef(false);
+  const [recoveries,setRecoveries]=useState<any[]>([]);
+  useEffect(()=>{void getNativeBridge()?.listIntakeRecovery?.().then(setRecoveries).catch(()=>{});},[]);
   const [url, setUrl] = useState(''), [name, setName] = useState(''), [useAccount, setUseAccount] = useState(false);
   const [busy, setBusy] = useState(false), [cancelRequested, setCancelRequested] = useState(false);
   const [submitted, setSubmitted] = useState(false), [error, setError] = useState(''), [status, setStatus] = useState('');
@@ -39,7 +41,7 @@ export function GitHubCloneForm({catalog, loading, catalogError, account, connec
     const poll = async () => {
       if (stopped) return;
       if (isNativeClosing()) {timer = setTimeout(() => {void poll();}, 700); return;}
-      try {const progress = await getGitHubCloneProgress(requestId); if (!stopped && !cancelling.current && progress) setStatus(phaseLabels[progress.phase] ?? 'Cloning repository…');}
+      try {const progress = await getGitHubCloneProgress(requestId); if (!stopped && !cancelling.current && progress) setStatus((phaseLabels[progress.phase] ?? 'Cloning repository…')+(progress.totalBytes?` ${Math.floor((progress.checkedBytes??0)/1048576)} / ${Math.ceil(progress.totalBytes/1048576)} MiB · ${progress.completedFiles??0}/${progress.files??0} files`:progress.percent!==undefined?` ${progress.percent}%`:''));}
       catch { /* The clone result owns errors; temporary progress failures do not unlock the form. */ }
       if (!stopped) timer = setTimeout(() => {void poll();}, 700);
     };
@@ -82,7 +84,7 @@ export function GitHubCloneForm({catalog, loading, catalogError, account, connec
   };
 
   return <form onSubmit={event => {void submit(event);}} aria-busy={busy}>
-    <p id="zi-description">Clone a GitHub repository into your local asMagicBrain workspace.</p>
+    {recoveries.length>0&&<details><summary>{recoveries.length} interrupted intake record(s)</summary><p>Incomplete copies are retained for recovery and never opened as managed repositories. Retry starts a new isolated copy.</p><ul>{recoveries.map((r,i)=><li key={i}>{r.name} · {r.code}</li>)}</ul><button type="button" className="pws-button" onClick={()=>void nativeOperation(()=>getNativeBridge()!.revealIntakeRecovery())}>Reveal retained copies</button></details>}<p id="zi-description">Clone a GitHub repository into your local asMagicBrain workspace.</p>
     <label className="zi-field">GitHub repository URL<input ref={urlInput} autoFocus type="url" value={url} disabled={busy} placeholder="https://github.com/owner/repository" autoComplete="off" spellCheck={false}
       aria-invalid={Boolean(urlError)} aria-describedby={urlError ? 'gc-url-error' : 'gc-url-help'} onChange={event => {
         const value = event.target.value; setUrl(value); setError(''); setStatus('');
